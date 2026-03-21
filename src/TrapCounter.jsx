@@ -263,22 +263,22 @@ function StationBar({ history, t }) {
   return (
     <div style={{marginBottom:12}}>
       <div style={{fontSize:10,letterSpacing:3,color:t.textMuted,marginBottom:6,textAlign:"center",fontWeight:"bold"}}>STATIONS</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
         {[1,2,3,4,5].map(st=>{
           const shots=history.slice((st-1)*5,st*5);
           const stHits=shots.filter(s=>s==="hit").length;
           const isActive=Math.floor(history.length/5)+1===st&&history.length<25;
           const isDone=shots.length===5;
           return(
-            <div key={st} style={{background:isActive?t.stationActive:t.stationBg,border:`2px solid ${isActive?t.borderActive:t.border}`,borderRadius:6,padding:"6px 4px",textAlign:"center"}}>
-              <div style={{fontSize:10,color:isActive?t.borderActive:t.textDimmer,letterSpacing:1,marginBottom:4,fontWeight:"bold"}}>{isActive?"\u25B6S":"S"}{st}</div>
-              <div style={{display:"flex",gap:3,justifyContent:"center"}}>
+            <div key={st} style={{background:isActive?t.stationActive:t.stationBg,border:`2px solid ${isActive?t.borderActive:t.border}`,borderRadius:6,padding:"5px 2px",textAlign:"center",overflow:"hidden",minWidth:0}}>
+              <div style={{fontSize:9,color:isActive?t.borderActive:t.textDimmer,letterSpacing:1,marginBottom:3,fontWeight:"bold"}}>{isActive?"\u25B6S":"S"}{st}</div>
+              <div style={{display:"flex",gap:2,justifyContent:"center"}}>
                 {[0,1,2,3,4].map(j=>{
                   const shot=shots[j];
-                  return <div key={j} style={{width:10,height:10,borderRadius:"50%",background:shot==="hit"?t.hit:shot==="miss"?t.missCircle:t.dotEmpty,border:`2px solid ${shot==="hit"?t.hitBorder:shot==="miss"?t.missBorder:t.dotEmptyBorder}`}}/>;
+                  return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:shot==="hit"?t.hit:shot==="miss"?t.missCircle:t.dotEmpty,border:`1.5px solid ${shot==="hit"?t.hitBorder:shot==="miss"?t.missBorder:t.dotEmptyBorder}`}}/>;
                 })}
               </div>
-              {isDone&&<div style={{fontSize:11,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:3}}>{stHits}/5</div>}
+              {isDone&&<div style={{fontSize:10,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:2}}>{stHits}/5</div>}
             </div>
           );
         })}
@@ -356,9 +356,9 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
           <div style={{fontSize:12,fontWeight:"bold",color:t.textDim,letterSpacing:2,marginBottom:10,textAlign:"center"}}>
             {shooter.gun}{shooter.gun&&shooter.choke?"  \u00B7  ":""}{shooter.choke}
           </div>}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"14px 20px",marginBottom:12,border:`2px solid ${t.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"14px 12px",marginBottom:12,border:`2px solid ${t.border}`}}>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:48,fontWeight:"900",color:t.hit,lineHeight:1}}>{hits}</div>
+            <div style={{fontSize:44,fontWeight:"900",color:t.hit,lineHeight:1}}>{hits}</div>
             <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>HITS</div>
           </div>
           <div style={{textAlign:"center"}}>
@@ -368,7 +368,7 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
             <div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{remaining>0?`${remaining} left`:"DONE"}</div>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:48,fontWeight:"900",color:t.miss,lineHeight:1}}>{misses}</div>
+            <div style={{fontSize:44,fontWeight:"900",color:t.miss,lineHeight:1}}>{misses}</div>
             <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>MISS</div>
           </div>
         </div>
@@ -749,11 +749,13 @@ export default function TrapCounter() {
             {Array.from({length:qNumShooters},(_,i)=>(
               <div key={i} style={{marginBottom:i<qNumShooters-1?14:0}}>
                 <div style={{fontSize:11,fontWeight:"bold",color:t.textDim,letterSpacing:2,marginBottom:5}}>SHOOTER {i+1}</div>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 1.2fr",gap:6}}>
-                  {["name","gun","choke"].map(field=>(
-                    <input key={field} placeholder={field.toUpperCase()} value={qSetup[i][field]}
-                      onChange={e=>updateQSetup(i,field,e.target.value)} style={inputStyle}/>
-                  ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  <input placeholder="NAME" value={qSetup[i].name}
+                    onChange={e=>updateQSetup(i,"name",e.target.value)} style={{...inputStyle,gridColumn:"1/-1"}}/>
+                  <input placeholder="GUN" value={qSetup[i].gun}
+                    onChange={e=>updateQSetup(i,"gun",e.target.value)} style={inputStyle}/>
+                  <input placeholder="CHOKE" value={qSetup[i].choke}
+                    onChange={e=>updateQSetup(i,"choke",e.target.value)} style={inputStyle}/>
                 </div>
               </div>
             ))}
@@ -784,11 +786,13 @@ export default function TrapCounter() {
                   </div>
                 </div>
                 {Array.from({length:ss.shooterCount},(_,si)=>(
-                  <div key={si} style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 1.2fr",gap:6,marginBottom:si<ss.shooterCount-1?6:0}}>
-                    {["name","gun","choke"].map(field=>(
-                      <input key={field} placeholder={`${field.toUpperCase()}`} value={ss.shooters[si]?.[field]||""}
-                        onChange={e=>updateSquadShooter(sqNum,si,field,e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
-                    ))}
+                  <div key={si} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:si<ss.shooterCount-1?6:0}}>
+                      <input placeholder="NAME" value={ss.shooters[si]?.name||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"name",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px",gridColumn:"1/-1"}}/>
+                      <input placeholder="GUN" value={ss.shooters[si]?.gun||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"gun",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
+                      <input placeholder="CHOKE" value={ss.shooters[si]?.choke||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"choke",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
                   </div>
                 ))}
               </div>
