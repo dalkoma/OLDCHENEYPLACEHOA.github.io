@@ -98,31 +98,19 @@ function getDeviceInfo() {
   return { device, userAgent: ua };
 }
 
-function getLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) { resolve(null); return; }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 5000, maximumAge: 300000 }
-    );
-  });
-}
-
-async function reverseGeocode(lat, lng) {
+// Silent IP-based geolocation (no permission prompt)
+async function getLocationSilent() {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16`);
+    const res = await fetch("https://ipapi.co/json/");
     const data = await res.json();
-    const addr = data.address || {};
-    // Try to find a meaningful place name
-    const name = addr.leisure || addr.sports_centre || addr.club || addr.amenity || addr.building || "";
-    const area = addr.hamlet || addr.village || addr.suburb || addr.town || addr.city || "";
-    const state = addr.state || "";
-    if (name && area) return `${name}, ${area}, ${state}`.replace(/,\s*$/, "");
-    if (name) return `${name}, ${state}`.replace(/,\s*$/, "");
-    if (area) return `${area}, ${state}`.replace(/,\s*$/, "");
-    return data.display_name ? data.display_name.split(",").slice(0,3).join(",").trim() : "";
-  } catch { return ""; }
+    if (data.city) {
+      return {
+        lat: data.latitude, lng: data.longitude,
+        name: [data.city, data.region].filter(Boolean).join(", "),
+      };
+    }
+    return null;
+  } catch { return null; }
 }
 
 // ── Cloud sync helpers ──
@@ -612,13 +600,12 @@ export default function TrapCounter() {
   const appRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Request location on mount and auto-fill location name
+  // Auto-detect location silently via IP (no permission prompt)
   useEffect(() => {
-    getLocation().then(async (loc) => {
-      locationRef.current = loc;
-      if (loc && !locationName) {
-        const name = await reverseGeocode(loc.lat, loc.lng);
-        if (name) setLocationName(name.toUpperCase());
+    getLocationSilent().then(loc => {
+      if (loc) {
+        locationRef.current = { lat: loc.lat, lng: loc.lng };
+        if (!locationName && loc.name) setLocationName(loc.name.toUpperCase());
       }
     });
   }, []);
