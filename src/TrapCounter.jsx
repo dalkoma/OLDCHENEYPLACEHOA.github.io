@@ -330,8 +330,8 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
     <div onClick={()=>!active&&onSelect()} style={{
       background:active?t.cardActive:t.cardInactive,
       border:`3px solid ${active?t.borderActive:t.border}`,
-      borderRadius:10,padding:active?"16px":"12px 16px",marginBottom:12,
-      cursor:active?"default":"pointer",transition:"all 0.2s",
+      borderRadius:10,padding:active?"14px":"12px 14px",marginBottom:12,
+      cursor:active?"default":"pointer",transition:"all 0.2s",overflow:"hidden",boxSizing:"border-box",
       boxShadow:active?(sun?"0 2px 8px rgba(0,0,0,0.15)":"0 0 20px rgba(200,100,0,0.15)"):"none",
     }}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:active?12:0}}>
@@ -356,7 +356,7 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
           <div style={{fontSize:12,fontWeight:"bold",color:t.textDim,letterSpacing:2,marginBottom:10,textAlign:"center"}}>
             {shooter.gun}{shooter.gun&&shooter.choke?"  \u00B7  ":""}{shooter.choke}
           </div>}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"14px 12px",marginBottom:12,border:`2px solid ${t.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"12px 10px",marginBottom:12,border:`2px solid ${t.border}`,boxSizing:"border-box"}}>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:44,fontWeight:"900",color:t.hit,lineHeight:1}}>{hits}</div>
             <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>HITS</div>
@@ -688,9 +688,9 @@ export default function TrapCounter() {
   };
 
   // ── Styles ──
-  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:"20px 16px"};
-  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:16,marginBottom:14};
-  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:13,fontWeight:"bold",padding:"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1};
+  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:"20px 12px",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"};
+  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:14,marginBottom:14,overflow:"hidden"};
+  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:13,fontWeight:"bold",padding:"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1,boxSizing:"border-box",width:"100%",minWidth:0};
   const pillBtn = (active) => ({
     padding:"10px 16px",background:active?t.tabActive:t.tabInactive,
     border:`2px solid ${active?t.borderActive:t.border}`,borderRadius:20,
@@ -705,7 +705,7 @@ export default function TrapCounter() {
     <div style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.9)}}`}</style>
       <input type="file" ref={fileInput} accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleImport}/>
-      <div style={{maxWidth:480,margin:"0 auto"}}>
+      <div style={{maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:t.textMuted}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
           <div style={{fontSize:26,fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:6}}>TRAP COUNTER</div>
@@ -864,7 +864,7 @@ export default function TrapCounter() {
     <div style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.85)}}`}</style>
       <FlashLabel label={flashLabel} t={t}/>
-      <div style={{maxWidth:480,margin:"0 auto"}}>
+      <div style={{maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,borderBottom:`2px solid ${t.border}`,paddingBottom:10}}>
           <button onClick={()=>setScreen("setup")} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
