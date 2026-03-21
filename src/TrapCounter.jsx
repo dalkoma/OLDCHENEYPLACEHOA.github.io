@@ -379,7 +379,7 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           <button onClick={undo} disabled={!history.length} style={smBtn(!history.length)}>{"\u21A9"} UNDO</button>
-          <button onClick={onSave} disabled={!done} style={smBtn(!done,true)}>{"\u2714"} SAVE RND</button>
+          <button onClick={onSave} disabled={!total} style={smBtn(!total,total>0)}>{"\u2714"} SAVE RND</button>
           <button onClick={()=>onChange({hits:0,misses:0,history:[]})} style={smBtn(false)}>{"\u27F3"} RESET</button>
         </div>
         {rounds.length>0&&<div style={{marginTop:12,borderTop:`2px solid ${t.border}`,paddingTop:10}}>
