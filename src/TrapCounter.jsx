@@ -492,7 +492,7 @@ export default function TrapCounter() {
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
   const [mode, setMode] = useState("quick");
   const [screen, setScreen] = useState("setup");
-  const [sunMode, setSunMode] = useState(() => window.matchMedia?.("(prefers-color-scheme: light)").matches ?? false);
+  const [sunMode, setSunMode] = useState(true);
   const [sunManual, setSunManual] = useState(false);
   const [vibOn, setVibOn] = useState(true);
   const [sndOn, setSndOn] = useState(true);
