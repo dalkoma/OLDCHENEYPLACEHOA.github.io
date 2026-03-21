@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
 
 const BIRDS_PER_ROUND = 25;
 
@@ -82,6 +83,30 @@ function useLS(key, defaultVal) {
     try { localStorage.setItem("trap_" + key, JSON.stringify(val)); } catch {}
   }, [key, val]);
   return [val, setVal];
+}
+
+// ── Device & metadata helpers ──
+function getDeviceInfo() {
+  const ua = navigator.userAgent || "";
+  let device = "Unknown";
+  if (/iPhone/.test(ua)) device = "iPhone";
+  else if (/iPad/.test(ua)) device = "iPad";
+  else if (/Android/.test(ua)) device = "Android";
+  else if (/Windows/.test(ua)) device = "Windows";
+  else if (/Mac/.test(ua)) device = "Mac";
+  else if (/Linux/.test(ua)) device = "Linux";
+  return { device, userAgent: ua };
+}
+
+function getLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 5000, maximumAge: 300000 }
+    );
+  });
 }
 
 // ── Cloud sync helpers ──
@@ -556,6 +581,10 @@ export default function TrapCounter() {
   const [curSquad, setCurSquad] = useLS("curSquad", 1);
   const [activeIdx, setActiveIdx] = useLS("activeIdx", 0);
 
+  // Past shoots history
+  const [pastShoots, setPastShoots] = useLS("pastShoots", []);
+  const [showHistory, setShowHistory] = useState(false);
+
   // Cloud sync
   const [sessionId, setSessionId] = useLS("sessionId", "");
   const [syncOn, setSyncOn] = useLS("syncOn", false);
@@ -563,6 +592,38 @@ export default function TrapCounter() {
   const [joinCode, setJoinCode] = useState("");
   const syncRef = useRef(null);
   const skipNextPull = useRef(false);
+  const appRef = useRef(null);
+  const locationRef = useRef(null);
+
+  // Request location on mount
+  useEffect(() => {
+    getLocation().then(loc => { locationRef.current = loc; });
+  }, []);
+
+  // Auto-migrate: on first load after update, if there's existing data and no sync, push to cloud
+  useEffect(() => {
+    const migrated = localStorage.getItem("trap_migrated");
+    if (migrated) return;
+    localStorage.setItem("trap_migrated", "1");
+    // If there's existing shooter data, auto-save to a session
+    const hasData = qShooters.length > 0 || Object.keys(scores).length > 0;
+    if (hasData && !syncOn) {
+      const code = genCode();
+      setSessionId(code);
+      setSyncOn(true);
+      localStorage.setItem("trap_lastSync", "0");
+    }
+  }, []);
+
+  // Build metadata for cloud payload
+  const buildMeta = () => {
+    const { device, userAgent } = getDeviceInfo();
+    return {
+      device, userAgent,
+      location: locationRef.current,
+      date: new Date().toISOString(),
+    };
+  };
 
   // Push state to cloud on changes (debounced)
   const pushTimer = useRef(null);
@@ -579,6 +640,7 @@ export default function TrapCounter() {
         numTraps, numSquads, squadSetups, scores,
         curTrap, curSquad, activeIdx,
         updatedAt: now,
+        _meta: buildMeta(),
       };
       cloudSave(sessionId, payload);
     }, 300);
@@ -594,7 +656,6 @@ export default function TrapCounter() {
       if (data.updatedAt <= localTime) return;
       localStorage.setItem("trap_lastSync", String(data.updatedAt));
       skipNextPull.current = true;
-      // Apply remote state
       if (data.mode !== undefined) setMode(data.mode);
       if (data.eventName !== undefined) setEventName(data.eventName);
       if (data.weather !== undefined) setWeather(data.weather);
@@ -640,6 +701,38 @@ export default function TrapCounter() {
     setSessionId("");
     setSyncStatus("");
     clearInterval(syncRef.current);
+  };
+
+  // Save current shoot to past history
+  const saveToHistory = () => {
+    const shooters = mode === "quick" ? qShooters : [];
+    const hasData = shooters.length > 0 || Object.keys(scores).length > 0;
+    if (!hasData) return;
+    const entry = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      eventName: eventName || "Quick Shoot",
+      mode, weather, notes,
+      sessionId: sessionId || null,
+      qSquad, qTrap, qShooters: mode === "quick" ? qShooters : [],
+      scores: mode === "event" ? scores : {},
+      squadSetups: mode === "event" ? squadSetups : {},
+      numTraps, numSquads,
+      device: getDeviceInfo().device,
+    };
+    setPastShoots(prev => [entry, ...prev].slice(0, 50));
+  };
+
+  // Screenshot
+  const takeScreenshot = async () => {
+    if (!appRef.current) return;
+    try {
+      const canvas = await html2canvas(appRef.current, { backgroundColor: sunMode ? "#ffffff" : "#0f0c08", scale: 2 });
+      const link = document.createElement("a");
+      link.download = `trapscore-${new Date().toISOString().slice(0,10)}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch {}
   };
 
   const t = sunMode ? SUN : DARK;
@@ -986,6 +1079,47 @@ export default function TrapCounter() {
 
         {importMsg && <div style={{textAlign:"center",padding:"10px",marginBottom:12,borderRadius:6,background:importMsg.startsWith("Error")?t.bad:t.good,color:"#fff",fontSize:12,fontWeight:"bold"}}>{importMsg}</div>}
 
+        {/* Past Shoots History */}
+        {pastShoots.length > 0 && (
+          <div style={sectionStyle}>
+            <button onClick={()=>setShowHistory(h=>!h)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>PAST SHOOTS ({pastShoots.length})</span>
+              <span style={{fontSize:14,color:t.textMuted}}>{showHistory?"\u25B2":"\u25BC"}</span>
+            </button>
+            {showHistory && (
+              <div style={{marginTop:10,maxHeight:300,overflowY:"auto"}}>
+                {pastShoots.map((shoot,idx) => {
+                  const d = new Date(shoot.date);
+                  const dateStr = d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+                  const timeStr = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+                  const shooters = shoot.mode === "quick"
+                    ? shoot.qShooters.map(s => {
+                        const h = s.rounds.reduce((a,r)=>a+r.hits,0)+s.hits;
+                        const t2 = s.rounds.reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
+                        return `${s.name}: ${h}/${t2}`;
+                      }).join(", ")
+                    : `${shoot.numSquads} squads, ${shoot.numTraps} traps`;
+                  return (
+                    <div key={shoot.id} style={{padding:"10px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontWeight:"900",color:t.accent,letterSpacing:1}}>{shoot.eventName}</div>
+                          <div style={{color:t.textDim,marginTop:2}}>{dateStr} {timeStr}</div>
+                          {shoot.weather && <div style={{color:t.textDim}}>{shoot.weather}</div>}
+                          <div style={{color:t.textMuted,marginTop:2}}>{shooters}</div>
+                          <div style={{color:t.textDimmer,marginTop:1,fontSize:9}}>{shoot.device}{shoot.sessionId ? ` \u00B7 ${shoot.sessionId}` : ""}</div>
+                        </div>
+                        <button onClick={()=>setPastShoots(p=>p.filter((_,i2)=>i2!==idx))} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:14,padding:4}}>{"\u2715"}</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button onClick={()=>{if(confirm("Clear all past shoots?"))setPastShoots([]);}} style={{marginTop:10,width:"100%",padding:"8px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:10,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>CLEAR ALL HISTORY</button>
+              </div>
+            )}
+          </div>
+        )}
+
         <button onClick={mode==="quick"?startQuick:startEvent} style={{
           width:"100%",padding:"18px",
           background:sunMode?"linear-gradient(160deg,#cc6600,#994400)":"linear-gradient(160deg,#b86000,#7a3800)",
@@ -1007,13 +1141,13 @@ export default function TrapCounter() {
   const setDisplayActiveIdx = isEvent ? setActiveIdx : setQActiveIdx;
 
   return (
-    <div style={pageStyle}>
+    <div ref={appRef} style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.85)}}`}</style>
       <FlashLabel label={flashLabel} t={t}/>
       <div style={{maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,borderBottom:`2px solid ${t.border}`,paddingBottom:10}}>
-          <button onClick={()=>setScreen("setup")} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
+          <button onClick={()=>{saveToHistory();setScreen("setup");}} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
           <div style={{textAlign:"center"}}>
             {eventName&&<div style={{fontSize:11,fontWeight:"900",color:t.accent,letterSpacing:2}}>{eventName}</div>}
             <div style={{fontSize:12,fontWeight:"bold",color:t.textMuted,letterSpacing:3}}>
@@ -1081,7 +1215,7 @@ export default function TrapCounter() {
         )}
 
         {/* Tabs */}
-        <div style={{display:"grid",gridTemplateColumns:isEvent?"1fr 1fr 1fr":"1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr",gap:4,marginBottom:14}}>
           {["range","leaderboard","export"].map(tab=>(
             <button key={tab} onClick={()=>{
               if(tab==="export"){isEvent?handleEventExcel():handleQuickExcel();return;}
@@ -1090,12 +1224,23 @@ export default function TrapCounter() {
               padding:"10px 0",background:screen===tab?t.tabActive:t.tabInactive,
               border:`2px solid ${screen===tab?t.borderActive:t.border}`,borderRadius:6,
               color:screen===tab?(sunMode?"#fff":t.accent):t.tabText,
-              fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit",
+              fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
             }}>
               {tab==="range"?"\u{1F3AF} RANGE":tab==="leaderboard"?"\u{1F3C6} BOARD":"\u{1F4CA} EXCEL"}
             </button>
           ))}
+          <button onClick={takeScreenshot} style={{
+            padding:"10px 0",background:t.tabInactive,
+            border:`2px solid ${t.border}`,borderRadius:6,
+            color:t.tabText,fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u{1F4F7}"} SNAP</button>
+          <button onClick={()=>{saveToHistory();setSyncStatus("saved!");setTimeout(()=>setSyncStatus(""),2000);}} style={{
+            padding:"10px 0",background:t.saveBg,
+            border:`2px solid ${t.saveBorder}`,borderRadius:6,
+            color:t.saveText,fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u{1F4BE}"} SAVE</button>
         </div>
+        {syncStatus==="saved!"&&<div style={{textAlign:"center",padding:"6px",marginBottom:8,borderRadius:6,background:t.saveBg,border:`1px solid ${t.saveBorder}`,color:t.saveText,fontSize:11,fontWeight:"bold",letterSpacing:2}}>SHOOT SAVED TO HISTORY</div>}
 
         {/* Content */}
         {screen==="leaderboard"
