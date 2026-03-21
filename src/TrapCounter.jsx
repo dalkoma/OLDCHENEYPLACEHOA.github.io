@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 const BIRDS_PER_ROUND = 25;
@@ -492,7 +492,8 @@ export default function TrapCounter() {
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
   const [mode, setMode] = useState("quick");
   const [screen, setScreen] = useState("setup");
-  const [sunMode, setSunMode] = useState(false);
+  const [sunMode, setSunMode] = useState(() => window.matchMedia?.("(prefers-color-scheme: light)").matches ?? false);
+  const [sunManual, setSunManual] = useState(false);
   const [vibOn, setVibOn] = useState(true);
   const [sndOn, setSndOn] = useState(true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
@@ -522,6 +523,20 @@ export default function TrapCounter() {
 
   const t = sunMode ? SUN : DARK;
   const { feedbackHit, feedbackMiss } = useFeedback(vibOn, sndOn);
+
+  // Auto-detect system light/dark mode unless user manually toggled
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-color-scheme: light)");
+    if (!mq) return;
+    const handler = (e) => { if (!sunManual) setSunMode(e.matches); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [sunManual]);
+
+  const toggleSunMode = () => {
+    setSunManual(true);
+    setSunMode(s => !s);
+  };
 
   const setFlashLabel = (label) => {
     setFlashLabelRaw(label);
@@ -701,10 +716,11 @@ export default function TrapCounter() {
           <span style={{fontSize:11,fontWeight:"900",letterSpacing:3,color:sunMode?t.accent:t.textMuted}}>
             {sunMode?"\u2600\uFE0F SUN MODE":"\u{1F319} NIGHT MODE"}
           </span>
-          <div onClick={()=>setSunMode(!sunMode)} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
+          <div onClick={toggleSunMode} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
             <div style={{position:"absolute",top:3,left:sunMode?27:3,width:20,height:20,borderRadius:"50%",background:sunMode?"#fff":"#666",transition:"all 0.2s"}}/>
           </div>
         </div>
+        {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
 
         {/* Mode picker */}
         <div style={{...sectionStyle,padding:"12px 16px"}}>
@@ -860,7 +876,7 @@ export default function TrapCounter() {
             {weather&&<div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{weather}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <button onClick={()=>setSunMode(s=>!s)} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
+            <button onClick={toggleSunMode} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
             <button onClick={()=>setVibOn(v=>!v)} title="Vibrate" style={{background:"none",border:"none",cursor:"pointer",fontSize:17,opacity:vibOn?1:0.3}}>{"\u{1F4F3}"}</button>
             <button onClick={()=>setSndOn(s=>!s)} title="Sound" style={{background:"none",border:"none",cursor:"pointer",fontSize:17,opacity:sndOn?1:0.3}}>{"\u{1F514}"}</button>
           </div>
