@@ -109,6 +109,22 @@ function getLocation() {
   });
 }
 
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16`);
+    const data = await res.json();
+    const addr = data.address || {};
+    // Try to find a meaningful place name
+    const name = addr.leisure || addr.sports_centre || addr.club || addr.amenity || addr.building || "";
+    const area = addr.hamlet || addr.village || addr.suburb || addr.town || addr.city || "";
+    const state = addr.state || "";
+    if (name && area) return `${name}, ${area}, ${state}`.replace(/,\s*$/, "");
+    if (name) return `${name}, ${state}`.replace(/,\s*$/, "");
+    if (area) return `${area}, ${state}`.replace(/,\s*$/, "");
+    return data.display_name ? data.display_name.split(",").slice(0,3).join(",").trim() : "";
+  } catch { return ""; }
+}
+
 // ── Cloud sync helpers ──
 const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
 
@@ -573,6 +589,7 @@ export default function TrapCounter() {
   const [eventName, setEventName] = useLS("eventName", "");
   const [weather, setWeather] = useLS("weather", "");
   const [notes, setNotes] = useLS("notes", "");
+  const [locationName, setLocationName] = useLS("locationName", "");
   const [numTraps, setNumTraps] = useLS("numTraps", 2);
   const [numSquads, setNumSquads] = useLS("numSquads", 2);
   const [squadSetups, setSquadSetups] = useLS("squadSetups", {}); // squadNum -> { shooterCount, shooters: [{name,gun,choke}] }
@@ -595,9 +612,15 @@ export default function TrapCounter() {
   const appRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Request location on mount
+  // Request location on mount and auto-fill location name
   useEffect(() => {
-    getLocation().then(loc => { locationRef.current = loc; });
+    getLocation().then(async (loc) => {
+      locationRef.current = loc;
+      if (loc && !locationName) {
+        const name = await reverseGeocode(loc.lat, loc.lng);
+        if (name) setLocationName(name.toUpperCase());
+      }
+    });
   }, []);
 
   // Auto-migrate: on first load after update, if there's existing data and no sync, push to cloud
@@ -635,7 +658,7 @@ export default function TrapCounter() {
       const now = Date.now();
       localStorage.setItem("trap_lastSync", String(now));
       const payload = {
-        mode, eventName, weather, notes,
+        mode, eventName, weather, notes, locationName,
         qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx,
         numTraps, numSquads, squadSetups, scores,
         curTrap, curSquad, activeIdx,
@@ -644,7 +667,7 @@ export default function TrapCounter() {
       };
       cloudSave(sessionId, payload);
     }, 300);
-  }, [syncOn, sessionId, mode, eventName, weather, notes, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
+  }, [syncOn, sessionId, mode, eventName, weather, notes, locationName, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
 
   // Poll cloud for updates every 3s
   useEffect(() => {
@@ -660,6 +683,7 @@ export default function TrapCounter() {
       if (data.eventName !== undefined) setEventName(data.eventName);
       if (data.weather !== undefined) setWeather(data.weather);
       if (data.notes !== undefined) setNotes(data.notes);
+      if (data.locationName !== undefined) setLocationName(data.locationName);
       if (data.qSquad !== undefined) setQSquad(data.qSquad);
       if (data.qTrap !== undefined) setQTrap(data.qTrap);
       if (data.qNumShooters !== undefined) setQNumShooters(data.qNumShooters);
@@ -703,25 +727,43 @@ export default function TrapCounter() {
     clearInterval(syncRef.current);
   };
 
-  // Save current shoot to past history
+  // Track current shoot session ID for upsert
+  const [currentShootId, setCurrentShootId] = useLS("currentShootId", null);
+
+  // Save current shoot to past history (upserts: updates existing entry for this session)
   const saveToHistory = () => {
     const shooters = mode === "quick" ? qShooters : [];
     const hasData = shooters.length > 0 || Object.keys(scores).length > 0;
     if (!hasData) return;
+    const shootId = currentShootId || Date.now();
+    if (!currentShootId) setCurrentShootId(shootId);
     const entry = {
-      id: Date.now(),
+      id: shootId,
       date: new Date().toISOString(),
       eventName: eventName || "Quick Shoot",
-      mode, weather, notes,
+      mode, weather, notes, locationName,
       sessionId: sessionId || null,
       qSquad, qTrap, qShooters: mode === "quick" ? qShooters : [],
       scores: mode === "event" ? scores : {},
       squadSetups: mode === "event" ? squadSetups : {},
       numTraps, numSquads,
       device: getDeviceInfo().device,
+      location: locationRef.current,
     };
-    setPastShoots(prev => [entry, ...prev].slice(0, 50));
+    setPastShoots(prev => {
+      const idx = prev.findIndex(s => s.id === shootId);
+      if (idx >= 0) { const updated = [...prev]; updated[idx] = entry; return updated; }
+      return [entry, ...prev].slice(0, 50);
+    });
   };
+
+  // Auto-save to history whenever scores change
+  const autoSaveTimer = useRef(null);
+  useEffect(() => {
+    if (screen !== "range" && screen !== "leaderboard") return;
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => saveToHistory(), 500);
+  }, [qShooters, scores]);
 
   // Screenshot
   const takeScreenshot = async () => {
@@ -761,6 +803,7 @@ export default function TrapCounter() {
   // ── Quick mode helpers ──
   const updateQSetup = (i,field,val) => setQSetup(p=>p.map((s,idx)=>idx===i?{...s,[field]:val.toUpperCase()}:s));
   const startQuick = () => {
+    setCurrentShootId(Date.now());
     setQShooters(Array.from({length:qNumShooters},(_,i)=>freshShooter(qSetup[i].name,qSetup[i].gun,qSetup[i].choke)));
     setQActiveIdx(0); setScreen("range");
   };
@@ -793,6 +836,7 @@ export default function TrapCounter() {
   const squadNums = Array.from({length:numSquads},(_,i)=>i+1);
 
   const startEvent = () => {
+    setCurrentShootId(Date.now());
     // Initialize scores for all squad/trap combos
     const newScores = {};
     squadNums.forEach(sqNum => {
@@ -973,10 +1017,12 @@ export default function TrapCounter() {
           </div>
         </div>
 
-        {/* Event name / weather / notes */}
+        {/* Event name / location / weather / notes */}
         <div style={sectionStyle}>
           <input placeholder="EVENT NAME (OPTIONAL)" value={eventName} onChange={e=>setEventName(e.target.value.toUpperCase())}
             style={{...inputStyle,width:"100%",marginBottom:10,textAlign:"center",fontSize:14}}/>
+          <input placeholder="LOCATION (AUTO-DETECTED)" value={locationName} onChange={e=>setLocationName(e.target.value.toUpperCase())}
+            style={{...inputStyle,width:"100%",marginBottom:10,fontSize:12}}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <input placeholder="WEATHER" value={weather} onChange={e=>setWeather(e.target.value.toUpperCase())} style={inputStyle}/>
             <input placeholder="NOTES" value={notes} onChange={e=>setNotes(e.target.value.toUpperCase())} style={inputStyle}/>
@@ -1105,6 +1151,7 @@ export default function TrapCounter() {
                         <div>
                           <div style={{fontWeight:"900",color:t.accent,letterSpacing:1}}>{shoot.eventName}</div>
                           <div style={{color:t.textDim,marginTop:2}}>{dateStr} {timeStr}</div>
+                          {shoot.locationName && <div style={{color:t.textDim}}>{shoot.locationName}</div>}
                           {shoot.weather && <div style={{color:t.textDim}}>{shoot.weather}</div>}
                           <div style={{color:t.textMuted,marginTop:2}}>{shooters}</div>
                           <div style={{color:t.textDimmer,marginTop:1,fontSize:9}}>{shoot.device}{shoot.sessionId ? ` \u00B7 ${shoot.sessionId}` : ""}</div>
@@ -1153,7 +1200,8 @@ export default function TrapCounter() {
             <div style={{fontSize:12,fontWeight:"bold",color:t.textMuted,letterSpacing:3}}>
               {isEvent?`SQ ${curSquad} \u00B7 TRAP ${curTrap}`:`SQ ${qSquad} \u00B7 TRAP ${qTrap}`}
             </div>
-            {weather&&<div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{weather}</div>}
+            {locationName&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim,marginTop:2}}>{locationName}</div>}
+            {weather&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim}}>{weather}</div>}
             {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.good,marginTop:2}}>LIVE {sessionId}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
