@@ -84,6 +84,27 @@ function useLS(key, defaultVal) {
   return [val, setVal];
 }
 
+// ── Cloud sync helpers ──
+const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
+
+async function cloudSave(sessionId, data) {
+  try {
+    await fetch("/api/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "session:" + sessionId, data }),
+    });
+  } catch {}
+}
+
+async function cloudLoad(sessionId) {
+  try {
+    const res = await fetch("/api/state?key=session:" + sessionId);
+    const data = await res.json();
+    return data;
+  } catch { return null; }
+}
+
 const freshShooter = (name, gun, choke) => ({
   name: name || "SHOOTER", gun: gun || "", choke: choke || "",
   hits: 0, misses: 0, history: [], rounds: [], roundNum: 1,
@@ -535,6 +556,92 @@ export default function TrapCounter() {
   const [curSquad, setCurSquad] = useLS("curSquad", 1);
   const [activeIdx, setActiveIdx] = useLS("activeIdx", 0);
 
+  // Cloud sync
+  const [sessionId, setSessionId] = useLS("sessionId", "");
+  const [syncOn, setSyncOn] = useLS("syncOn", false);
+  const [syncStatus, setSyncStatus] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const syncRef = useRef(null);
+  const skipNextPull = useRef(false);
+
+  // Push state to cloud on changes (debounced)
+  const pushTimer = useRef(null);
+  useEffect(() => {
+    if (!syncOn || !sessionId) return;
+    if (skipNextPull.current) { skipNextPull.current = false; return; }
+    clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => {
+      const now = Date.now();
+      localStorage.setItem("trap_lastSync", String(now));
+      const payload = {
+        mode, eventName, weather, notes,
+        qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx,
+        numTraps, numSquads, squadSetups, scores,
+        curTrap, curSquad, activeIdx,
+        updatedAt: now,
+      };
+      cloudSave(sessionId, payload);
+    }, 300);
+  }, [syncOn, sessionId, mode, eventName, weather, notes, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
+
+  // Poll cloud for updates every 3s
+  useEffect(() => {
+    if (!syncOn || !sessionId) return;
+    const poll = async () => {
+      const data = await cloudLoad(sessionId);
+      if (!data || !data.updatedAt) return;
+      const localTime = parseInt(localStorage.getItem("trap_lastSync") || "0");
+      if (data.updatedAt <= localTime) return;
+      localStorage.setItem("trap_lastSync", String(data.updatedAt));
+      skipNextPull.current = true;
+      // Apply remote state
+      if (data.mode !== undefined) setMode(data.mode);
+      if (data.eventName !== undefined) setEventName(data.eventName);
+      if (data.weather !== undefined) setWeather(data.weather);
+      if (data.notes !== undefined) setNotes(data.notes);
+      if (data.qSquad !== undefined) setQSquad(data.qSquad);
+      if (data.qTrap !== undefined) setQTrap(data.qTrap);
+      if (data.qNumShooters !== undefined) setQNumShooters(data.qNumShooters);
+      if (data.qSetup !== undefined) setQSetup(data.qSetup);
+      if (data.qShooters !== undefined) setQShooters(data.qShooters);
+      if (data.qActiveIdx !== undefined) setQActiveIdx(data.qActiveIdx);
+      if (data.numTraps !== undefined) setNumTraps(data.numTraps);
+      if (data.numSquads !== undefined) setNumSquads(data.numSquads);
+      if (data.squadSetups !== undefined) setSquadSetups(data.squadSetups);
+      if (data.scores !== undefined) setScores(data.scores);
+      if (data.curTrap !== undefined) setCurTrap(data.curTrap);
+      if (data.curSquad !== undefined) setCurSquad(data.curSquad);
+      if (data.activeIdx !== undefined) setActiveIdx(data.activeIdx);
+      setSyncStatus("synced");
+    };
+    syncRef.current = setInterval(poll, 3000);
+    poll();
+    return () => clearInterval(syncRef.current);
+  }, [syncOn, sessionId]);
+
+  const startSync = () => {
+    const code = genCode();
+    setSessionId(code);
+    setSyncOn(true);
+    setSyncStatus("synced");
+    localStorage.setItem("trap_lastSync", "0");
+  };
+
+  const joinSync = (code) => {
+    if (!code || code.length < 4) return;
+    setSessionId(code.toUpperCase());
+    setSyncOn(true);
+    setSyncStatus("synced");
+    localStorage.setItem("trap_lastSync", "0");
+  };
+
+  const stopSync = () => {
+    setSyncOn(false);
+    setSessionId("");
+    setSyncStatus("");
+    clearInterval(syncRef.current);
+  };
+
   const t = sunMode ? SUN : DARK;
   const { feedbackHit, feedbackMiss } = useFeedback(vibOn, sndOn);
 
@@ -736,6 +843,31 @@ export default function TrapCounter() {
         </div>
         {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
 
+        {/* Cloud Sync */}
+        <div style={{...sectionStyle,padding:"14px 16px"}}>
+          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>LIVE SYNC</div>
+          {syncOn ? (
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:10,color:t.textDim,marginBottom:6}}>SHARE THIS CODE WITH ALL DEVICES</div>
+              <div style={{fontSize:32,fontWeight:"900",letterSpacing:8,color:t.accent,marginBottom:8,userSelect:"all"}}>{sessionId}</div>
+              <div style={{fontSize:10,color:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:10}}>SYNCING LIVE</div>
+              <button onClick={stopSync} style={{padding:"8px 20px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:11,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>DISCONNECT</button>
+            </div>
+          ) : (
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <button onClick={startSync} style={{padding:"12px 0",background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",border:`2px solid ${t.good}`,borderRadius:6,color:"#fff",fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>NEW SESSION</button>
+                <button onClick={()=>joinCode?joinSync(joinCode):null} style={{padding:"12px 0",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.accent,fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>JOIN SESSION</button>
+              </div>
+              <input placeholder="ENTER CODE TO JOIN" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
+                style={{...inputStyle,textAlign:"center",letterSpacing:6,fontSize:16,fontWeight:"900"}}/>
+              <div style={{fontSize:10,color:t.textDim,marginTop:8,textAlign:"center",lineHeight:1.5}}>
+                Start a new session to get a code, or enter a code to join an existing session. All devices with the same code see the same scores live.
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Mode picker */}
         <div style={{...sectionStyle,padding:"12px 16px"}}>
           <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>SESSION TYPE</div>
@@ -888,6 +1020,7 @@ export default function TrapCounter() {
               {isEvent?`SQ ${curSquad} \u00B7 TRAP ${curTrap}`:`SQ ${qSquad} \u00B7 TRAP ${qTrap}`}
             </div>
             {weather&&<div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{weather}</div>}
+            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.good,marginTop:2}}>LIVE {sessionId}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={toggleSunMode} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
