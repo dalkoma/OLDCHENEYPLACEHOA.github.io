@@ -70,6 +70,20 @@ const getStreak = (history) => {
   return s;
 };
 
+// ── localStorage-backed state ──
+function useLS(key, defaultVal) {
+  const [val, setVal] = useState(() => {
+    try {
+      const stored = localStorage.getItem("trap_" + key);
+      return stored !== null ? JSON.parse(stored) : defaultVal;
+    } catch { return defaultVal; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trap_" + key, JSON.stringify(val)); } catch {}
+  }, [key, val]);
+  return [val, setVal];
+}
+
 const freshShooter = (name, gun, choke) => ({
   name: name || "SHOOTER", gun: gun || "", choke: choke || "",
   hits: 0, misses: 0, history: [], rounds: [], roundNum: 1,
@@ -490,36 +504,36 @@ function NumInput({label,value,onChange,min=1,max=99,t}) {
 // ── Main App ──
 export default function TrapCounter() {
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
-  const [mode, setMode] = useState("quick");
-  const [screen, setScreen] = useState("setup");
-  const [sunMode, setSunMode] = useState(true);
-  const [sunManual, setSunManual] = useState(false);
-  const [vibOn, setVibOn] = useState(true);
-  const [sndOn, setSndOn] = useState(true);
+  const [mode, setMode] = useLS("mode", "quick");
+  const [screen, setScreen] = useLS("screen", "setup");
+  const [sunMode, setSunMode] = useLS("sunMode", true);
+  const [sunManual, setSunManual] = useLS("sunManual", false);
+  const [vibOn, setVibOn] = useLS("vibOn", true);
+  const [sndOn, setSndOn] = useLS("sndOn", true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
   const [importMsg, setImportMsg] = useState(null);
   const flashTimer = useRef(null);
   const fileInput = useRef(null);
 
   // Quick mode state
-  const [qSquad, setQSquad] = useState(1);
-  const [qTrap, setQTrap] = useState(1);
-  const [qNumShooters, setQNumShooters] = useState(1);
-  const [qSetup, setQSetup] = useState(Array.from({length:5},(_,i)=>({name:`SHOOTER ${i+1}`,gun:"",choke:""})));
-  const [qShooters, setQShooters] = useState([]);
-  const [qActiveIdx, setQActiveIdx] = useState(0);
+  const [qSquad, setQSquad] = useLS("qSquad", 1);
+  const [qTrap, setQTrap] = useLS("qTrap", 1);
+  const [qNumShooters, setQNumShooters] = useLS("qNumShooters", 1);
+  const [qSetup, setQSetup] = useLS("qSetup", Array.from({length:5},(_,i)=>({name:`SHOOTER ${i+1}`,gun:"",choke:""})));
+  const [qShooters, setQShooters] = useLS("qShooters", []);
+  const [qActiveIdx, setQActiveIdx] = useLS("qActiveIdx", 0);
 
   // Event mode state
-  const [eventName, setEventName] = useState("");
-  const [weather, setWeather] = useState("");
-  const [notes, setNotes] = useState("");
-  const [numTraps, setNumTraps] = useState(2);
-  const [numSquads, setNumSquads] = useState(2);
-  const [squadSetups, setSquadSetups] = useState({}); // squadNum -> { shooterCount, shooters: [{name,gun,choke}] }
-  const [scores, setScores] = useState({}); // "squadNum-trapNum" -> [shooterState, ...]
-  const [curTrap, setCurTrap] = useState(1);
-  const [curSquad, setCurSquad] = useState(1);
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [eventName, setEventName] = useLS("eventName", "");
+  const [weather, setWeather] = useLS("weather", "");
+  const [notes, setNotes] = useLS("notes", "");
+  const [numTraps, setNumTraps] = useLS("numTraps", 2);
+  const [numSquads, setNumSquads] = useLS("numSquads", 2);
+  const [squadSetups, setSquadSetups] = useLS("squadSetups", {}); // squadNum -> { shooterCount, shooters: [{name,gun,choke}] }
+  const [scores, setScores] = useLS("scores", {}); // "squadNum-trapNum" -> [shooterState, ...]
+  const [curTrap, setCurTrap] = useLS("curTrap", 1);
+  const [curSquad, setCurSquad] = useLS("curSquad", 1);
+  const [activeIdx, setActiveIdx] = useLS("activeIdx", 0);
 
   const t = sunMode ? SUN : DARK;
   const { feedbackHit, feedbackMiss } = useFeedback(vibOn, sndOn);
