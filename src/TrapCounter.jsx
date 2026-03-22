@@ -116,19 +116,19 @@ async function getLocationSilent() {
 // ── Cloud sync helpers ──
 const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
 
-async function cloudSave(sessionId, data) {
+async function cloudSave(key, data) {
   try {
     await fetch("/api/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "session:" + sessionId, data }),
+      body: JSON.stringify({ key, data }),
     });
   } catch {}
 }
 
-async function cloudLoad(sessionId) {
+async function cloudLoad(key) {
   try {
-    const res = await fetch("/api/state?key=session:" + sessionId);
+    const res = await fetch("/api/state?key=" + key);
     const data = await res.json();
     return data;
   } catch { return null; }
@@ -652,7 +652,7 @@ export default function TrapCounter() {
         updatedAt: now,
         _meta: buildMeta(),
       };
-      cloudSave(sessionId, payload);
+      cloudSave("session:" + sessionId, payload);
     }, 300);
   }, [syncOn, sessionId, mode, eventName, weather, notes, locationName, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
 
@@ -660,7 +660,7 @@ export default function TrapCounter() {
   useEffect(() => {
     if (!syncOn || !sessionId) return;
     const poll = async () => {
-      const data = await cloudLoad(sessionId);
+      const data = await cloudLoad("session:" + sessionId);
       if (!data || !data.updatedAt) return;
       const localTime = parseInt(localStorage.getItem("trap_lastSync") || "0");
       if (data.updatedAt <= localTime) return;
@@ -691,20 +691,39 @@ export default function TrapCounter() {
     return () => clearInterval(syncRef.current);
   }, [syncOn, sessionId]);
 
+  // Merge cloud history with local (union by id, keep newest version, sort by date desc)
+  const mergeHistory = async (code) => {
+    const cloudHistory = await cloudLoad("history:" + code);
+    if (!cloudHistory || !Array.isArray(cloudHistory)) return;
+    setPastShoots(prev => {
+      const map = new Map();
+      [...prev, ...cloudHistory].forEach(s => {
+        const existing = map.get(s.id);
+        if (!existing || new Date(s.date) > new Date(existing.date)) map.set(s.id, s);
+      });
+      return [...map.values()].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 50);
+    });
+  };
+
   const startSync = () => {
     const code = genCode();
     setSessionId(code);
     setSyncOn(true);
     setSyncStatus("synced");
     localStorage.setItem("trap_lastSync", "0");
+    // Push existing local history to cloud
+    if (pastShoots.length > 0) cloudSave("history:" + code, pastShoots);
   };
 
-  const joinSync = (code) => {
+  const joinSync = async (code) => {
     if (!code || code.length < 4) return;
-    setSessionId(code.toUpperCase());
+    const upper = code.toUpperCase();
+    setSessionId(upper);
     setSyncOn(true);
     setSyncStatus("synced");
     localStorage.setItem("trap_lastSync", "0");
+    // Pull cloud history
+    await mergeHistory(upper);
   };
 
   const stopSync = () => {
@@ -713,6 +732,11 @@ export default function TrapCounter() {
     setSyncStatus("");
     clearInterval(syncRef.current);
   };
+
+  // On app load, if already synced, pull cloud history
+  useEffect(() => {
+    if (syncOn && sessionId) mergeHistory(sessionId);
+  }, []);
 
   // Track current shoot session ID for upsert
   const [currentShootId, setCurrentShootId] = useLS("currentShootId", null);
@@ -739,8 +763,12 @@ export default function TrapCounter() {
     };
     setPastShoots(prev => {
       const idx = prev.findIndex(s => s.id === shootId);
-      if (idx >= 0) { const updated = [...prev]; updated[idx] = entry; return updated; }
-      return [entry, ...prev].slice(0, 50);
+      let updated;
+      if (idx >= 0) { updated = [...prev]; updated[idx] = entry; }
+      else { updated = [entry, ...prev].slice(0, 50); }
+      // Push history to cloud so all devices can see it
+      if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
+      return updated;
     });
   };
 
@@ -967,26 +995,36 @@ export default function TrapCounter() {
         </div>
         {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
 
-        {/* Cloud Sync */}
+        {/* Quick Start button */}
+        <button onClick={mode==="quick"?startQuick:startEvent} style={{
+          width:"100%",padding:"18px 0",
+          background:sunMode?"linear-gradient(160deg,#cc4400,#993300)":"linear-gradient(160deg,#ff5500,#cc4400)",
+          border:`2px solid ${t.accent}`,borderRadius:10,color:"#fff",
+          fontSize:18,fontWeight:"900",letterSpacing:4,cursor:"pointer",fontFamily:"inherit",
+          marginBottom:12,
+        }}>START SHOOTING</button>
+
+        {/* Family Group Sync */}
         <div style={{...sectionStyle,padding:"14px 16px"}}>
-          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>LIVE SYNC</div>
+          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>FAMILY GROUP</div>
           {syncOn ? (
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:10,color:t.textDim,marginBottom:6}}>SHARE THIS CODE WITH ALL DEVICES</div>
+              <div style={{fontSize:10,color:t.textDim,marginBottom:6}}>YOUR GROUP CODE — SHARE WITH FAMILY</div>
               <div style={{fontSize:32,fontWeight:"900",letterSpacing:8,color:t.accent,marginBottom:8,userSelect:"all"}}>{sessionId}</div>
-              <div style={{fontSize:10,color:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:10}}>SYNCING LIVE</div>
-              <button onClick={stopSync} style={{padding:"8px 20px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:11,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>DISCONNECT</button>
+              <div style={{fontSize:10,color:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:4}}>CONNECTED</div>
+              <div style={{fontSize:9,color:t.textDim,marginBottom:10,lineHeight:1.5}}>All scores & history sync across devices.<br/>Anyone with this code can see scores — even remotely.</div>
+              <button onClick={stopSync} style={{padding:"8px 20px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:11,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>LEAVE GROUP</button>
             </div>
           ) : (
             <div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-                <button onClick={startSync} style={{padding:"12px 0",background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",border:`2px solid ${t.good}`,borderRadius:6,color:"#fff",fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>NEW SESSION</button>
-                <button onClick={()=>joinCode?joinSync(joinCode):null} style={{padding:"12px 0",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.accent,fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>JOIN SESSION</button>
+                <button onClick={startSync} style={{padding:"12px 0",background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",border:`2px solid ${t.good}`,borderRadius:6,color:"#fff",fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>CREATE GROUP</button>
+                <button onClick={()=>joinCode?joinSync(joinCode):null} style={{padding:"12px 0",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.accent,fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>JOIN GROUP</button>
               </div>
-              <input placeholder="ENTER CODE TO JOIN" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
+              <input placeholder="ENTER GROUP CODE" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
                 style={{...inputStyle,textAlign:"center",letterSpacing:6,fontSize:16,fontWeight:"900"}}/>
               <div style={{fontSize:10,color:t.textDim,marginTop:8,textAlign:"center",lineHeight:1.5}}>
-                Start a new session to get a code, or enter a code to join an existing session. All devices with the same code see the same scores live.
+                Create a group to get a code, or enter a code to join your family's group. All scores & shoot history sync across all devices — see scores even when you're out of town.
               </div>
             </div>
           )}
