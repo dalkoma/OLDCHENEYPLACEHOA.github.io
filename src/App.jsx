@@ -13,6 +13,10 @@ import AppBuilder from './screens/AppBuilder'
 import Settings from './screens/Settings'
 import Reminders from './screens/Reminders'
 import TrainTracker from './screens/TrainTracker'
+import KioskMode from './modes/KioskMode'
+import DisplayMode from './modes/DisplayMode'
+import ConductorMode from './modes/ConductorMode'
+import MinimalMode from './modes/MinimalMode'
 
 const SCREENS = {
   dashboard: { label: 'Home', icon: '⌂', component: Dashboard },
@@ -69,7 +73,23 @@ const saveState = (key, value) => {
 
 export { loadState, saveState }
 
+// URL parameter mode detection: ?mode=kiosk|display|conductor|minimal
+const DISPLAY_MODES = { kiosk: KioskMode, display: DisplayMode, conductor: ConductorMode, minimal: MinimalMode }
+
+function getUrlMode() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('mode')
+  } catch { return null }
+}
+
 export default function App() {
+  const [urlMode] = useState(getUrlMode)
+
+  // If a display mode is active, render only that mode (no chrome, no nav)
+  const ModeComponent = urlMode ? DISPLAY_MODES[urlMode] : null
+  if (ModeComponent) return <ModeComponent />
+
   const [screen, setScreen] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
   const R = useResponsive()
@@ -87,7 +107,11 @@ export default function App() {
 
   useEffect(() => { saveState('user', user) }, [user])
 
-  const navigate = useCallback((s) => { setScreen(s); setMenuOpen(false) }, [])
+  const navigate = useCallback((s) => {
+    // Cancel any ongoing speech synthesis when changing pages
+    if ('speechSynthesis' in window) speechSynthesis.cancel()
+    setScreen(s); setMenuOpen(false)
+  }, [])
 
   const updateUser = useCallback((updates) => {
     setUser(prev => ({ ...prev, ...updates }))

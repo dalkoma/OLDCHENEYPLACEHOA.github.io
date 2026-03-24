@@ -1,14 +1,69 @@
-import { useState, useRef, useEffect } from 'react'
-import { colors } from '../App'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { colors, loadState } from '../App'
 
-const VOICE_RESPONSES = [
-  { transcript: "What's on my schedule today?", response: "You have 3 events today. A team standup at 10am, lunch with Sarah at noon, and a dentist appointment at 3pm." },
-  { transcript: "Add a reminder to pick up groceries", response: "I've added a reminder to pick up groceries. When would you like me to remind you?" },
-  { transcript: "Plan dinner for tonight", response: "Based on what's in your meal plan, tonight is Chicken Stir-Fry. It takes about 20 minutes. Want me to pull up the recipe?" },
-  { transcript: "Send a text to Mom", response: "Sure! What would you like me to say to Mom? I can draft something based on your recent conversation." },
-  { transcript: "What's the weather like?", response: "It's currently 72°F and sunny. Perfect day to get outside! The evening will cool to around 58°F." },
-  { transcript: "How many tasks do I have?", response: "You have 5 pending tasks. The highest priority one is 'Review Q2 budget proposal'. Want me to go through them?" },
-]
+function getContextualResponses() {
+  const tasks = loadState('tasks', [])
+  const events = loadState('events', [])
+  const reminders = loadState('reminders', [])
+  const mealPlan = loadState('mealPlan', {})
+  const trainSchedule = loadState('trainSchedule', [])
+
+  const pendingTasks = tasks.filter(t => !t.completed)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayEvents = events.filter(e => e.date === todayStr)
+  const activeReminders = reminders.filter(r => !r.dismissed)
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const todayDay = DAYS[new Date().getDay()]
+  const todayTrains = trainSchedule.filter(s => s.days?.includes(todayDay))
+
+  const responses = []
+
+  // Schedule response
+  if (todayEvents.length > 0) {
+    const eventList = todayEvents.slice(0, 3).map(e => `${e.title}${e.time ? ' at ' + e.time : ''}`).join(', ')
+    responses.push({ transcript: "What's on my schedule today?", response: `You have ${todayEvents.length} event${todayEvents.length > 1 ? 's' : ''} today: ${eventList}.` })
+  } else {
+    responses.push({ transcript: "What's on my schedule today?", response: "Your calendar is clear today. A great day to get ahead on tasks or relax!" })
+  }
+
+  // Tasks response
+  if (pendingTasks.length > 0) {
+    const top = pendingTasks[0]
+    responses.push({ transcript: "How many tasks do I have?", response: `You have ${pendingTasks.length} pending task${pendingTasks.length > 1 ? 's' : ''}. The top one is "${top.title}". Want me to go through them?` })
+  } else {
+    responses.push({ transcript: "How many tasks do I have?", response: "You're all caught up! No pending tasks. Nice work." })
+  }
+
+  // Reminders
+  if (activeReminders.length > 0) {
+    responses.push({ transcript: "Do I have any reminders?", response: `You have ${activeReminders.length} active reminder${activeReminders.length > 1 ? 's' : ''}. The next one is "${activeReminders[0].title || activeReminders[0].text || 'Untitled'}".` })
+  } else {
+    responses.push({ transcript: "Do I have any reminders?", response: "No active reminders right now. Want me to set one?" })
+  }
+
+  // Meal plan
+  const todayDayFull = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  const todayMeals = mealPlan[todayDayFull]
+  if (todayMeals && (todayMeals.dinner || todayMeals.lunch)) {
+    const meal = todayMeals.dinner || todayMeals.lunch
+    responses.push({ transcript: "What's for dinner tonight?", response: `Tonight's plan is ${meal}. Want me to pull up the recipe or adjust the meal plan?` })
+  } else {
+    responses.push({ transcript: "Plan dinner for tonight", response: "You don't have anything planned for tonight yet. I can suggest something based on your preferences. Want me to open the meal planner?" })
+  }
+
+  // Train status
+  if (todayTrains.length > 0) {
+    const t = todayTrains[0]
+    responses.push({ transcript: "What's my train status?", response: `You're on train #${t.train} today, ${t.direction}, boarding at ${t.boardStation}${t.exitStation ? ' to ' + t.exitStation : ''}. Check the train tracker for live delay info.` })
+  } else {
+    responses.push({ transcript: "Am I working the train today?", response: "No trains on your schedule today. Enjoy the day off the rails!" })
+  }
+
+  // Always include these generic useful ones
+  responses.push({ transcript: "What can you help me with?", response: "I can help with your calendar, tasks, meal planning, train schedules, reminders, messaging, travel planning, and more. Just ask!" })
+
+  return responses
+}
 
 export default function Voice({ user, addMemory, R }) {
   const [listening, setListening] = useState(false)
@@ -17,6 +72,19 @@ export default function Voice({ user, addMemory, R }) {
   const [mode, setMode] = useState('push')
   const [amplitude, setAmplitude] = useState(0)
   const animRef = useRef(null)
+  const timeoutRef = useRef(null)
+  const responseIndexRef = useRef(0)
+
+  // Cancel all speech synthesis on unmount (fixes repeat on page change)
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel()
+      }
+      cancelAnimationFrame(animRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (listening) {
@@ -32,13 +100,26 @@ export default function Voice({ user, addMemory, R }) {
     return () => cancelAnimationFrame(animRef.current)
   }, [listening])
 
+  const speak = useCallback((text) => {
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel() // Cancel any ongoing speech first
+      const utter = new SpeechSynthesisUtterance(text)
+      utter.rate = 1.0
+      utter.pitch = 1.0
+      speechSynthesis.speak(utter)
+    }
+  }, [])
+
   const startListening = () => setListening(true)
 
   const stopListening = () => {
     setListening(false)
     setProcessing(true)
-    setTimeout(() => {
-      const vr = VOICE_RESPONSES[Math.floor(Math.random() * VOICE_RESPONSES.length)]
+    timeoutRef.current = setTimeout(() => {
+      const responses = getContextualResponses()
+      // Cycle through responses in order instead of random repeats
+      const vr = responses[responseIndexRef.current % responses.length]
+      responseIndexRef.current++
       setConversation(prev => [
         ...prev,
         { role: 'user', text: vr.transcript },
@@ -46,12 +127,7 @@ export default function Voice({ user, addMemory, R }) {
       ])
       addMemory(`Voice: "${vr.transcript}"`)
       setProcessing(false)
-      if ('speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(vr.response)
-        utter.rate = 1.0
-        utter.pitch = 1.0
-        speechSynthesis.speak(utter)
-      }
+      speak(vr.response)
     }, 1000)
   }
 
