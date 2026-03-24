@@ -34,7 +34,16 @@ const DEMO_MESSAGES = {
   ],
 }
 
-export default function Channels({ user, addMemory }) {
+const modalOverlay = (R) => ({
+  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: R.sp(20),
+})
+const modalContent = (R) => ({
+  background: colors.surface, borderRadius: R.sp(16), padding: R.sp(24), width: '100%', maxWidth: R.modalMaxWidth,
+  border: `${R.borderWidth}px solid ${colors.border}`,
+})
+
+export default function Channels({ user, addMemory, R }) {
   const [activeChannel, setActiveChannel] = useState(null)
   const [compose, setCompose] = useState(false)
   const [composeData, setComposeData] = useState({ to: '', message: '', channel: 'sms' })
@@ -64,28 +73,44 @@ export default function Channels({ user, addMemory }) {
     setComposeData({ ...composeData, ...draft })
   }
 
+  const replyBtn = {
+    padding: `${R.sp(4)}px ${R.sp(12)}px`, background: `${colors.primary}15`, border: `${R.borderWidth}px solid ${colors.primary}30`,
+    borderRadius: R.sp(6), color: colors.primaryLight, fontSize: R.fs(11), cursor: 'pointer', fontFamily: 'inherit',
+    minHeight: R.minTouchTarget,
+  }
+  const inputStyle = {
+    width: '100%', padding: `${R.sp(12)}px ${R.sp(14)}px`, background: colors.surfaceLight,
+    border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(10), color: colors.text,
+    fontSize: R.fs(14), fontFamily: 'inherit', marginBottom: R.sp(10), minHeight: R.minTouchTarget,
+  }
+  const actionBtn = {
+    flex: 1, padding: `${R.sp(12)}px ${R.sp(16)}px`, border: 'none', borderRadius: R.sp(10),
+    fontSize: R.fs(14), fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
+  }
+
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+    <div style={{ padding: R.sp(16) }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(16) }}>
         <div>
-          <h2 style={{ color: colors.text, fontSize: 20, fontWeight: 700 }}>Channels</h2>
-          <p style={{ color: colors.textSecondary, fontSize: 12 }}>{totalUnread} unread across all channels</p>
+          <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700 }}>Channels</h2>
+          <p style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{totalUnread} unread across all channels</p>
         </div>
         <button onClick={() => setCompose(true)} style={{
-          padding: '8px 16px', background: colors.gradient1, color: '#fff',
-          border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          padding: `${R.sp(8)}px ${R.sp(16)}px`, background: colors.gradient1, color: '#fff',
+          border: 'none', borderRadius: R.sp(8), fontSize: R.fs(13), fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          minHeight: R.minTouchTarget,
         }}>Compose</button>
       </div>
 
       {/* Proxy Actions Banner */}
       <div style={{
-        padding: 14, background: `${colors.accent}10`, border: `1px solid ${colors.accent}25`,
-        borderRadius: 12, marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center',
+        padding: R.sp(14), background: `${colors.accent}10`, border: `${R.borderWidth}px solid ${colors.accent}25`,
+        borderRadius: R.sp(12), marginBottom: R.sp(16), display: 'flex', gap: R.sp(10), alignItems: 'center',
       }}>
-        <span style={{ fontSize: 18, color: colors.accent }}>◉</span>
+        <span style={{ fontSize: R.fs(18), color: colors.accent }}>◉</span>
         <div>
-          <div style={{ color: colors.accent, fontSize: 11, fontWeight: 600 }}>PROXY ACTIONS</div>
-          <div style={{ color: colors.textSecondary, fontSize: 12 }}>Jarvis can send texts, emails, and make calls on your behalf. You approve before anything is sent.</div>
+          <div style={{ color: colors.accent, fontSize: R.fs(11), fontWeight: 600 }}>PROXY ACTIONS</div>
+          <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>Jarvis can send texts, emails, and make calls on your behalf. You approve before anything is sent.</div>
         </div>
       </div>
 
@@ -97,23 +122,24 @@ export default function Channels({ user, addMemory }) {
             const unread = msgs.filter(m => m.unread).length
             return (
               <button key={ch.id} onClick={() => setActiveChannel(ch.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: 16,
-                background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-                borderRadius: 12, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: R.sp(14), width: '100%', padding: R.sp(16),
+                background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+                borderRadius: R.sp(12), marginBottom: R.sp(8), cursor: 'pointer', textAlign: 'left',
+                minHeight: R.minTouchTarget,
               }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 12, background: `${ch.color}20`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
+                  width: R.sp(44), height: R.sp(44), borderRadius: R.sp(12), background: `${ch.color}20`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: R.fs(20), flexShrink: 0,
                 }}>{ch.icon}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: colors.text, fontSize: 15, fontWeight: 500 }}>{ch.name}</div>
-                  <div style={{ color: colors.textSecondary, fontSize: 12 }}>{ch.desc}</div>
+                  <div style={{ color: colors.text, fontSize: R.fs(15), fontWeight: 500 }}>{ch.name}</div>
+                  <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{ch.desc}</div>
                 </div>
                 {unread > 0 && (
                   <span style={{
-                    minWidth: 22, height: 22, borderRadius: 11, background: colors.accent,
-                    color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', padding: '0 6px',
+                    minWidth: R.sp(22), height: R.sp(22), borderRadius: R.sp(11), background: colors.accent,
+                    color: '#fff', fontSize: R.fs(11), fontWeight: 700, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: `0 ${R.sp(6)}px`,
                   }}>{unread}</span>
                 )}
               </button>
@@ -122,18 +148,18 @@ export default function Channels({ user, addMemory }) {
 
           {/* Recent Sent */}
           {sentMessages.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>RECENTLY SENT</h3>
+            <div style={{ marginTop: R.sp(16) }}>
+              <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>RECENTLY SENT</h3>
               {sentMessages.slice(0, 3).map(m => (
                 <div key={m.id} style={{
-                  padding: 12, background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-                  borderRadius: 8, marginBottom: 6,
+                  padding: R.sp(12), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+                  borderRadius: R.sp(8), marginBottom: R.sp(6),
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: colors.primaryLight, fontSize: 12 }}>To: {m.to}</span>
-                    <span style={{ color: colors.textMuted, fontSize: 10 }}>{m.channel}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: R.sp(4) }}>
+                    <span style={{ color: colors.primaryLight, fontSize: R.fs(12) }}>To: {m.to}</span>
+                    <span style={{ color: colors.textMuted, fontSize: R.fs(10) }}>{m.channel}</span>
                   </div>
-                  <div style={{ color: colors.textSecondary, fontSize: 12 }}>{m.message.slice(0, 60)}...</div>
+                  <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{m.message.slice(0, 60)}...</div>
                 </div>
               ))}
             </div>
@@ -143,30 +169,31 @@ export default function Channels({ user, addMemory }) {
         /* Channel Messages */
         <div>
           <button onClick={() => setActiveChannel(null)} style={{
-            background: 'none', border: 'none', color: colors.primaryLight, fontSize: 13,
-            cursor: 'pointer', marginBottom: 12, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: 'none', color: colors.primaryLight, fontSize: R.fs(13),
+            cursor: 'pointer', marginBottom: R.sp(12), fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: R.sp(4),
+            minHeight: R.minTouchTarget,
           }}>‹ Back to Channels</button>
 
-          <h3 style={{ color: colors.text, fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
+          <h3 style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600, marginBottom: R.sp(12) }}>
             {CHANNELS.find(c => c.id === activeChannel)?.name} Messages
           </h3>
 
           {(DEMO_MESSAGES[activeChannel] || []).map((msg, i) => (
             <div key={i} style={{
-              padding: 14, background: msg.unread ? `${colors.primary}08` : colors.surfaceLight,
-              border: `1px solid ${msg.unread ? colors.primary + '30' : colors.border}`,
-              borderRadius: 10, marginBottom: 8,
+              padding: R.sp(14), background: msg.unread ? `${colors.primary}08` : colors.surfaceLight,
+              border: `${R.borderWidth}px solid ${msg.unread ? colors.primary + '30' : colors.border}`,
+              borderRadius: R.sp(10), marginBottom: R.sp(8),
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ color: colors.text, fontSize: 14, fontWeight: msg.unread ? 600 : 400 }}>{msg.from}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {msg.unread && <span style={{ width: 6, height: 6, borderRadius: 3, background: colors.accent }} />}
-                  <span style={{ color: colors.textMuted, fontSize: 11 }}>{msg.time}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(4) }}>
+                <span style={{ color: colors.text, fontSize: R.fs(14), fontWeight: msg.unread ? 600 : 400 }}>{msg.from}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(6) }}>
+                  {msg.unread && <span style={{ width: R.sp(6), height: R.sp(6), borderRadius: R.sp(3), background: colors.accent }} />}
+                  <span style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{msg.time}</span>
                 </div>
               </div>
-              {msg.subject && <div style={{ color: colors.primaryLight, fontSize: 12, marginBottom: 2 }}>{msg.subject}</div>}
-              <div style={{ color: colors.textSecondary, fontSize: 13 }}>{msg.text}</div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {msg.subject && <div style={{ color: colors.primaryLight, fontSize: R.fs(12), marginBottom: R.sp(2) }}>{msg.subject}</div>}
+              <div style={{ color: colors.textSecondary, fontSize: R.fs(13) }}>{msg.text}</div>
+              <div style={{ display: 'flex', gap: R.sp(8), marginTop: R.sp(8) }}>
                 <button onClick={() => { setCompose(true); setComposeData({ ...composeData, to: msg.from, channel: activeChannel }) }} style={replyBtn}>Reply</button>
                 <button style={{ ...replyBtn, background: `${colors.secondary}15`, color: colors.secondary, borderColor: colors.secondary + '30' }}>AI Draft</button>
               </div>
@@ -177,13 +204,14 @@ export default function Channels({ user, addMemory }) {
 
       {/* Compose Modal */}
       {compose && (
-        <div style={modalOverlay} onClick={() => setCompose(false)}>
-          <div style={modalContent} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ color: colors.text, fontSize: 18, fontWeight: 600 }}>New Message</h3>
+        <div style={modalOverlay(R)} onClick={() => setCompose(false)}>
+          <div style={modalContent(R)} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(16) }}>
+              <h3 style={{ color: colors.text, fontSize: R.fs(18), fontWeight: 600 }}>New Message</h3>
               <button onClick={generateDraft} style={{
-                padding: '6px 12px', background: `${colors.primary}15`, border: `1px solid ${colors.primary}30`,
-                borderRadius: 8, color: colors.primaryLight, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                padding: `${R.sp(6)}px ${R.sp(12)}px`, background: `${colors.primary}15`, border: `${R.borderWidth}px solid ${colors.primary}30`,
+                borderRadius: R.sp(8), color: colors.primaryLight, fontSize: R.fs(11), cursor: 'pointer', fontFamily: 'inherit',
+                minHeight: R.minTouchTarget,
               }}>◉ AI Draft</button>
             </div>
             <select value={composeData.channel} onChange={e => setComposeData({ ...composeData, channel: e.target.value })} style={inputStyle}>
@@ -199,9 +227,9 @@ export default function Channels({ user, addMemory }) {
               value={composeData.message}
               onChange={e => setComposeData({ ...composeData, message: e.target.value })}
               placeholder="Your message..."
-              style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }}
+              style={{ ...inputStyle, minHeight: R.sp(100), resize: 'vertical' }}
             />
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: R.sp(8) }}>
               <button onClick={() => setCompose(false)} style={{ ...actionBtn, background: colors.surfaceLight, color: colors.textSecondary }}>Cancel</button>
               <button onClick={sendMessage} style={{ ...actionBtn, background: colors.gradient1, color: '#fff' }}>Send via {CHANNELS.find(c => c.id === composeData.channel)?.name}</button>
             </div>
@@ -210,26 +238,4 @@ export default function Channels({ user, addMemory }) {
       )}
     </div>
   )
-}
-
-const replyBtn = {
-  padding: '4px 12px', background: `${colors.primary}15`, border: `1px solid ${colors.primary}30`,
-  borderRadius: 6, color: colors.primaryLight, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-}
-const modalOverlay = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20,
-}
-const modalContent = {
-  background: colors.surface, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440,
-  border: `1px solid ${colors.border}`,
-}
-const inputStyle = {
-  width: '100%', padding: '12px 14px', background: colors.surfaceLight,
-  border: `1px solid ${colors.border}`, borderRadius: 10, color: colors.text,
-  fontSize: 14, fontFamily: 'inherit', marginBottom: 10,
-}
-const actionBtn = {
-  flex: 1, padding: '12px 16px', border: 'none', borderRadius: 10,
-  fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
 }

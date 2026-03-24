@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useResponsive } from './useResponsive'
 import Dashboard from './screens/Dashboard'
 import Chat from './screens/Chat'
 import Calendar from './screens/Calendar'
@@ -71,6 +72,7 @@ export { loadState, saveState }
 export default function App() {
   const [screen, setScreen] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
+  const R = useResponsive()
   const [user, setUser] = useState(() => loadState('user', {
     name: '',
     preferences: {},
@@ -104,41 +106,55 @@ export default function App() {
     saveState('onboarded', true)
   }
 
+  // Z Flip cover: minimal boot screen
+  const isZFlip = R.device === 'zFlipCover'
+
   if (!onboarded) {
     return (
-      <div style={{ minHeight: '100vh', minHeight: '100dvh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }}>
+      <div style={{
+        minHeight: '100vh', minHeight: '100dvh', background: colors.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: R.sp(20),
+      }}>
+        <div style={{ maxWidth: R.modalMaxWidth, width: '100%', textAlign: 'center' }}>
           {onboardStep === 0 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <div style={{ fontSize: 64, marginBottom: 24 }}>◉</div>
-              <h1 style={{ color: colors.text, fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Jarvis</h1>
-              <p style={{ color: colors.primaryLight, fontSize: 18, marginBottom: 8 }}>Your Personal AI Life Manager</p>
-              <p style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
-                Calendar, tasks, meals, messaging, travel, and more — all managed by AI that learns you.
-              </p>
-              <button onClick={() => setOnboardStep(1)} style={btnStyle}>Get Started</button>
+              <div style={{ fontSize: R.fs(isZFlip ? 40 : 64), marginBottom: R.sp(24) }}>◉</div>
+              <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 22 : 32), fontWeight: 700, marginBottom: 8 }}>Jarvis</h1>
+              {!isZFlip && <p style={{ color: colors.primaryLight, fontSize: R.fs(18), marginBottom: 8 }}>Your Personal AI Life Manager</p>}
+              {!isZFlip && (
+                <p style={{ color: colors.textSecondary, fontSize: R.fs(14), lineHeight: 1.6, marginBottom: 32 }}>
+                  Calendar, tasks, meals, messaging, travel, and more — all managed by AI that learns you.
+                </p>
+              )}
+              <button onClick={() => setOnboardStep(1)} style={btnStyle(R)}>Get Started</button>
             </div>
           )}
           {onboardStep === 1 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <h2 style={{ color: colors.text, fontSize: 24, marginBottom: 8 }}>What should I call you?</h2>
-              <p style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 24 }}>I'll remember your name and preferences over time.</p>
+              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: 8 }}>What should I call you?</h2>
+              {!isZFlip && <p style={{ color: colors.textSecondary, fontSize: R.fs(14), marginBottom: 24 }}>I'll remember your name and preferences over time.</p>}
               <input
                 value={onboardName}
                 onChange={e => setOnboardName(e.target.value)}
                 placeholder="Your name"
-                style={inputStyle}
+                style={inputStyle(R)}
                 autoFocus
                 onKeyDown={e => e.key === 'Enter' && setOnboardStep(2)}
               />
-              <button onClick={() => setOnboardStep(2)} style={{ ...btnStyle, marginTop: 16 }}>Continue</button>
+              <button onClick={() => setOnboardStep(2)} style={{ ...btnStyle(R), marginTop: 16 }}>Continue</button>
             </div>
           )}
           {onboardStep === 2 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <h2 style={{ color: colors.text, fontSize: 24, marginBottom: 8 }}>Here's what I can do</h2>
+              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: 8 }}>Here's what I can do</h2>
               <div style={{ textAlign: 'left', margin: '24px 0' }}>
-                {[
+                {(isZFlip ? [
+                  ['◉', 'AI Chat & Voice'],
+                  ['▦', 'Smart Calendar'],
+                  ['✓', 'Task Delegation'],
+                  ['◈', 'Meal Planning'],
+                ] : [
                   ['◉', 'AI Chat & Voice', 'Talk to me anytime — text or voice'],
                   ['▦', 'Smart Calendar', 'Unified calendar with conflict detection'],
                   ['✓', 'Task Delegation', 'Assign tasks to your circle via SMS'],
@@ -147,17 +163,17 @@ export default function App() {
                   ['⊶', 'Multi-Channel', 'SMS, Email, WhatsApp, Slack — all in one'],
                   ['➤', 'Travel Planning', 'Plan trips with AI assistance'],
                   ['⬡', 'App Builder', 'Create custom mini-apps on the fly'],
-                ].map(([icon, title, desc]) => (
-                  <div key={title} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: `1px solid ${colors.border}` }}>
-                    <span style={{ fontSize: 20, color: colors.primary, width: 28, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                ]).map(([icon, title, desc]) => (
+                  <div key={title} style={{ display: 'flex', gap: R.sp(12), padding: `${R.sp(10)}px 0`, borderBottom: `1px solid ${colors.border}` }}>
+                    <span style={{ fontSize: R.fs(20), color: colors.primary, width: 28, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                     <div>
-                      <div style={{ color: colors.text, fontSize: 14, fontWeight: 600 }}>{title}</div>
-                      <div style={{ color: colors.textSecondary, fontSize: 12 }}>{desc}</div>
+                      <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600 }}>{title}</div>
+                      {desc && <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{desc}</div>}
                     </div>
                   </div>
                 ))}
               </div>
-              <button onClick={completeOnboarding} style={btnStyle}>Let's Go, {onboardName || 'Friend'}!</button>
+              <button onClick={completeOnboarding} style={btnStyle(R)}>Let's Go, {onboardName || 'Friend'}!</button>
             </div>
           )}
         </div>
@@ -168,24 +184,34 @@ export default function App() {
 
   const CurrentScreen = SCREENS[screen]?.component || Dashboard
 
+  // Landscape phone: hide labels in nav, smaller nav
+  const isLandscapePhone = R.isLandscape && R.isSmall
+
   return (
     <div style={{ minHeight: '100vh', minHeight: '100dvh', background: colors.bg, display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', background: colors.surface, borderBottom: `1px solid ${colors.border}`,
+        padding: `${R.sp(12)}px ${R.sp(16)}px`,
+        paddingTop: `max(${R.sp(12)}px, env(safe-area-inset-top, 0px))`,
+        background: colors.surface, borderBottom: `${R.isRetina ? 0.5 : 1}px solid ${colors.border}`,
         position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22, color: colors.primary }}>◉</span>
-          <span style={{ color: colors.text, fontSize: 16, fontWeight: 600 }}>Jarvis</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(10) }}>
+          <span style={{ fontSize: R.fs(22), color: colors.primary }}>◉</span>
+          {!isZFlip && <span style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>Jarvis</span>}
         </div>
-        <div style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <div style={{ color: colors.textSecondary, fontSize: R.fs(13) }}>
           {SCREENS[screen]?.label}
         </div>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          style={{ background: 'none', border: 'none', color: colors.textSecondary, fontSize: 22, cursor: 'pointer', padding: 4 }}
+          style={{
+            background: 'none', border: 'none', color: colors.textSecondary,
+            fontSize: R.fs(22), cursor: 'pointer', padding: 4,
+            minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
           {menuOpen ? '✕' : '☰'}
         </button>
@@ -198,26 +224,28 @@ export default function App() {
           background: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease',
         }} onClick={() => setMenuOpen(false)}>
           <div style={{
-            position: 'absolute', top: 0, right: 0, bottom: 0, width: 280,
-            background: colors.surface, borderLeft: `1px solid ${colors.border}`,
-            padding: '60px 0 20px', overflowY: 'auto', animation: 'slideIn 0.25s ease',
+            position: 'absolute', top: 0, right: 0, bottom: 0, width: R.sidebarWidth,
+            background: colors.surface, borderLeft: `${R.isRetina ? 0.5 : 1}px solid ${colors.border}`,
+            padding: `${R.sp(60)}px 0 ${R.sp(20)}px`, overflowY: 'auto', animation: 'slideIn 0.25s ease',
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '0 16px 16px', borderBottom: `1px solid ${colors.border}`, marginBottom: 8 }}>
-              <div style={{ color: colors.text, fontSize: 16, fontWeight: 600 }}>Hi, {user.name}!</div>
-              <div style={{ color: colors.textSecondary, fontSize: 12 }}>All Features</div>
+            <div style={{ padding: `0 ${R.sp(16)}px ${R.sp(16)}px`, borderBottom: `1px solid ${colors.border}`, marginBottom: 8 }}>
+              <div style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>Hi, {user.name}!</div>
+              <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>All Features</div>
             </div>
             {[...NAV_ITEMS, ...MENU_ITEMS].map(key => (
               <button
                 key={key}
                 onClick={() => navigate(key)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                  padding: '12px 20px', background: screen === key ? colors.surfaceHover : 'transparent',
+                  display: 'flex', alignItems: 'center', gap: R.sp(12), width: '100%',
+                  padding: `${R.sp(12)}px ${R.sp(20)}px`,
+                  background: screen === key ? colors.surfaceHover : 'transparent',
                   border: 'none', color: screen === key ? colors.primary : colors.text,
-                  fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                  fontSize: R.fs(14), cursor: 'pointer', textAlign: 'left',
+                  minHeight: R.minTouchTarget,
                 }}
               >
-                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{SCREENS[key]?.icon}</span>
+                <span style={{ fontSize: R.fs(18), width: 24, textAlign: 'center' }}>{SCREENS[key]?.icon}</span>
                 {SCREENS[key]?.label}
                 {['travel', 'builder'].includes(key) && (
                   <span style={{ marginLeft: 'auto', fontSize: 9, color: colors.accent, background: `${colors.accent}22`, padding: '2px 6px', borderRadius: 8 }}>NEW</span>
@@ -229,15 +257,19 @@ export default function App() {
       )}
 
       {/* Main content */}
-      <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 72 }}>
-        <CurrentScreen user={user} updateUser={updateUser} addMemory={addMemory} navigate={navigate} />
+      <main style={{ flex: 1, overflowY: 'auto', paddingBottom: isLandscapePhone ? 52 : 72 }}>
+        <CurrentScreen user={user} updateUser={updateUser} addMemory={addMemory} navigate={navigate} R={R} />
       </main>
 
       {/* Bottom nav */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        display: 'flex', background: colors.surface, borderTop: `1px solid ${colors.border}`,
-        zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom, 0)',
+        display: 'flex', background: colors.surface,
+        borderTop: `${R.isRetina ? 0.5 : 1}px solid ${colors.border}`,
+        zIndex: 50,
+        paddingBottom: 'env(safe-area-inset-bottom, 0)',
+        paddingLeft: 'env(safe-area-inset-left, 0)',
+        paddingRight: 'env(safe-area-inset-right, 0)',
       }}>
         {NAV_ITEMS.map(key => (
           <button
@@ -245,13 +277,15 @@ export default function App() {
             onClick={() => navigate(key)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '8px 0 6px', background: 'none', border: 'none',
+              padding: isLandscapePhone ? '4px 0 3px' : `${R.sp(8)}px 0 ${R.sp(6)}px`,
+              background: 'none', border: 'none',
               color: screen === key ? colors.primary : colors.textMuted,
-              fontSize: 10, cursor: 'pointer', gap: 2,
+              fontSize: R.fs(isLandscapePhone ? 8 : 10), cursor: 'pointer', gap: 2,
+              minHeight: R.minTouchTarget,
             }}
           >
-            <span style={{ fontSize: 20 }}>{SCREENS[key]?.icon}</span>
-            {SCREENS[key]?.label}
+            <span style={{ fontSize: R.fs(isLandscapePhone ? 16 : 20) }}>{SCREENS[key]?.icon}</span>
+            {!isZFlip && SCREENS[key]?.label}
           </button>
         ))}
       </nav>
@@ -259,23 +293,31 @@ export default function App() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        input:focus, textarea:focus { outline: none; border-color: ${colors.primary} !important; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: ${colors.primary} !important; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${colors.border}; border-radius: 2px; }
+        @media (hover: none) and (pointer: coarse) {
+          button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+        }
+        @media (resolution >= 2dppx) {
+          * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        }
       `}</style>
     </div>
   )
 }
 
-const btnStyle = {
-  width: '100%', padding: '14px 24px', background: colors.gradient1,
-  color: '#fff', border: 'none', borderRadius: 12, fontSize: 16,
+const btnStyle = (R) => ({
+  width: '100%', padding: `${R.sp(14)}px ${R.sp(24)}px`, background: colors.gradient1,
+  color: '#fff', border: 'none', borderRadius: 12, fontSize: R.fs(16),
   fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-}
+  minHeight: R.minTouchTarget,
+})
 
-const inputStyle = {
-  width: '100%', padding: '14px 16px', background: colors.surfaceLight,
+const inputStyle = (R) => ({
+  width: '100%', padding: `${R.sp(14)}px ${R.sp(16)}px`, background: colors.surfaceLight,
   color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 12,
-  fontSize: 16, fontFamily: 'inherit',
-}
+  fontSize: R.fs(16), fontFamily: 'inherit',
+  minHeight: R.minTouchTarget,
+})

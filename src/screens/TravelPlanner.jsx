@@ -40,7 +40,7 @@ const SAMPLE_ITINERARIES = {
   },
 }
 
-export default function TravelPlanner({ user, addMemory }) {
+export default function TravelPlanner({ user, addMemory, R }) {
   const [trips, setTrips] = useState(() => loadState('trips', []))
   const [planning, setPlanning] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -85,62 +85,78 @@ export default function TravelPlanner({ user, addMemory }) {
     }))
   }
 
+  const inputStyle = {
+    width: '100%', padding: `${R.sp(12)}px ${R.sp(14)}px`, background: colors.surfaceLight,
+    border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(10), color: colors.text,
+    fontSize: R.fs(14), fontFamily: 'inherit', marginBottom: R.sp(10), minHeight: R.minTouchTarget,
+  }
+
+  const modalOverlay = {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: R.sp(20),
+  }
+
+  const modalContent = {
+    background: colors.surface, borderRadius: R.sp(16), padding: R.sp(24), width: '100%', maxWidth: R.modalMaxWidth,
+    border: `${R.borderWidth}px solid ${colors.border}`,
+  }
+
   if (activeTrip) {
     const itin = activeTrip.itinerary
     return (
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: R.sp(16) }}>
         <button onClick={() => setActiveTrip(null)} style={{
-          background: 'none', border: 'none', color: colors.primaryLight, fontSize: 13,
-          cursor: 'pointer', marginBottom: 12, fontFamily: 'inherit',
+          background: 'none', border: 'none', color: colors.primaryLight, fontSize: R.fs(13),
+          cursor: 'pointer', marginBottom: R.sp(12), fontFamily: 'inherit', minHeight: R.minTouchTarget,
         }}>‹ Back to Trips</button>
 
-        <h2 style={{ color: colors.text, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{itin.destination}</h2>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <span style={{ color: colors.textSecondary, fontSize: 12 }}>{itin.days.length} days</span>
-          <span style={{ color: colors.success, fontSize: 12 }}>Est. {itin.budget}</span>
+        <h2 style={{ color: colors.text, fontSize: R.fs(22), fontWeight: 700, marginBottom: R.sp(4) }}>{itin.destination}</h2>
+        <div style={{ display: 'flex', gap: R.sp(12), marginBottom: R.sp(20) }}>
+          <span style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{itin.days.length} days</span>
+          <span style={{ color: colors.success, fontSize: R.fs(12) }}>Est. {itin.budget}</span>
         </div>
 
         {/* Itinerary */}
-        <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 12 }}>ITINERARY</h3>
+        <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(12) }}>ITINERARY</h3>
         {itin.days.map(day => (
           <div key={day.day} style={{
-            padding: 14, background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-            borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${colors.primary}`,
+            padding: R.sp(14), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+            borderRadius: R.sp(10), marginBottom: R.sp(8), borderLeft: `3px solid ${colors.primary}`,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ color: colors.primaryLight, fontSize: 11, fontWeight: 600 }}>DAY {day.day}</span>
-              <span style={{ color: colors.text, fontSize: 13, fontWeight: 500 }}>{day.title}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: R.sp(8) }}>
+              <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>DAY {day.day}</span>
+              <span style={{ color: colors.text, fontSize: R.fs(13), fontWeight: 500 }}>{day.title}</span>
             </div>
             {day.activities.map((act, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ color: colors.textMuted, fontSize: 8 }}>●</span>
-                <span style={{ color: colors.textSecondary, fontSize: 12 }}>{act}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: R.sp(8), marginBottom: R.sp(4) }}>
+                <span style={{ color: colors.textMuted, fontSize: R.fs(8) }}>●</span>
+                <span style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{act}</span>
               </div>
             ))}
           </div>
         ))}
 
         {/* Packing List */}
-        <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginTop: 20, marginBottom: 12 }}>PACKING LIST</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginTop: R.sp(20), marginBottom: R.sp(12) }}>PACKING LIST</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: R.sp(6) }}>
           {itin.packing.map(item => (
             <span key={item} style={{
-              padding: '6px 12px', background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-              borderRadius: 16, color: colors.textSecondary, fontSize: 12,
+              padding: `${R.sp(6)}px ${R.sp(12)}px`, background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+              borderRadius: R.sp(16), color: colors.textSecondary, fontSize: R.fs(12),
             }}>{item}</span>
           ))}
         </div>
 
         {/* AI Suggestions */}
         <div style={{
-          marginTop: 20, padding: 14, background: `${colors.primary}10`,
-          border: `1px solid ${colors.primary}25`, borderRadius: 10,
+          marginTop: R.sp(20), padding: R.sp(14), background: `${colors.primary}10`,
+          border: `${R.borderWidth}px solid ${colors.primary}25`, borderRadius: R.sp(10),
         }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ display: 'flex', gap: R.sp(8), alignItems: 'center', marginBottom: R.sp(6) }}>
             <span style={{ color: colors.primary }}>◉</span>
-            <span style={{ color: colors.primaryLight, fontSize: 11, fontWeight: 600 }}>AI TRAVEL TIPS</span>
+            <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>AI TRAVEL TIPS</span>
           </div>
-          <div style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 1.5 }}>
+          <div style={{ color: colors.textSecondary, fontSize: R.fs(12), lineHeight: 1.5 }}>
             Best time to visit: Check weather 2 weeks before. I'll add calendar events for each day and set packing reminders 3 days before departure.
           </div>
         </div>
@@ -149,18 +165,19 @@ export default function TravelPlanner({ user, addMemory }) {
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 style={{ color: colors.text, fontSize: 20, fontWeight: 700 }}>Travel Planner</h2>
-        <span style={{ fontSize: 9, color: colors.accent, background: `${colors.accent}22`, padding: '3px 8px', borderRadius: 8, fontWeight: 600 }}>NEW</span>
+    <div style={{ padding: R.sp(16) }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(4) }}>
+        <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700 }}>Travel Planner</h2>
+        <span style={{ fontSize: R.fs(9), color: colors.accent, background: `${colors.accent}22`, padding: `${R.sp(3)}px ${R.sp(8)}px`, borderRadius: R.sp(8), fontWeight: 600 }}>NEW</span>
       </div>
-      <p style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>AI-powered trip planning with itineraries, packing lists, and budget estimates.</p>
+      <p style={{ color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(16) }}>AI-powered trip planning with itineraries, packing lists, and budget estimates.</p>
 
       <button onClick={() => setPlanning(true)} style={{
-        width: '100%', padding: 16, background: colors.gradient1, color: '#fff',
-        border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600,
-        cursor: 'pointer', marginBottom: 20, fontFamily: 'inherit',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        width: '100%', padding: R.sp(16), background: colors.gradient1, color: '#fff',
+        border: 'none', borderRadius: R.sp(12), fontSize: R.fs(15), fontWeight: 600,
+        cursor: 'pointer', marginBottom: R.sp(20), fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: R.sp(8),
+        minHeight: R.minTouchTarget,
       }}>
         <span>◉</span> Plan a New Trip
       </button>
@@ -168,18 +185,18 @@ export default function TravelPlanner({ user, addMemory }) {
       {/* Saved Trips */}
       {trips.length > 0 && (
         <div>
-          <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>YOUR TRIPS</h3>
+          <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>YOUR TRIPS</h3>
           {trips.map(trip => (
             <button key={trip.id} onClick={() => setActiveTrip(trip)} style={{
-              width: '100%', padding: 16, background: colors.surfaceLight,
-              border: `1px solid ${colors.border}`, borderRadius: 12, marginBottom: 8,
-              cursor: 'pointer', textAlign: 'left',
+              width: '100%', padding: R.sp(16), background: colors.surfaceLight,
+              border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(12), marginBottom: R.sp(8),
+              cursor: 'pointer', textAlign: 'left', minHeight: R.minTouchTarget,
             }}>
-              <div style={{ color: colors.text, fontSize: 15, fontWeight: 500 }}>{trip.itinerary.destination}</div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                <span style={{ color: colors.textSecondary, fontSize: 12 }}>{trip.itinerary.days.length} days</span>
-                <span style={{ color: colors.success, fontSize: 12 }}>{trip.itinerary.budget}</span>
-                <span style={{ color: colors.primaryLight, fontSize: 12 }}>{trip.status}</span>
+              <div style={{ color: colors.text, fontSize: R.fs(15), fontWeight: 500 }}>{trip.itinerary.destination}</div>
+              <div style={{ display: 'flex', gap: R.sp(12), marginTop: R.sp(4) }}>
+                <span style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{trip.itinerary.days.length} days</span>
+                <span style={{ color: colors.success, fontSize: R.fs(12) }}>{trip.itinerary.budget}</span>
+                <span style={{ color: colors.primaryLight, fontSize: R.fs(12) }}>{trip.status}</span>
               </div>
             </button>
           ))}
@@ -189,21 +206,22 @@ export default function TravelPlanner({ user, addMemory }) {
       {/* Quick Inspiration */}
       {trips.length === 0 && (
         <div>
-          <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>INSPIRATION</h3>
+          <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>INSPIRATION</h3>
           {[
             ['🏖️', 'Beach Getaway', 'Maui, Bali, Maldives', 'beach'],
             ['🏙️', 'City Explorer', 'Tokyo, Paris, NYC', 'city'],
             ['🏔️', 'Adventure Trip', 'Costa Rica, Nepal, Iceland', 'adventure'],
           ].map(([icon, title, places, style]) => (
             <button key={style} onClick={() => { setPlanning(true); setTripForm(prev => ({ ...prev, style })) }} style={{
-              display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: 16,
-              background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-              borderRadius: 12, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: R.sp(14), width: '100%', padding: R.sp(16),
+              background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+              borderRadius: R.sp(12), marginBottom: R.sp(8), cursor: 'pointer', textAlign: 'left',
+              minHeight: R.minTouchTarget,
             }}>
-              <span style={{ fontSize: 28 }}>{icon}</span>
+              <span style={{ fontSize: R.fs(28) }}>{icon}</span>
               <div>
-                <div style={{ color: colors.text, fontSize: 14, fontWeight: 500 }}>{title}</div>
-                <div style={{ color: colors.textSecondary, fontSize: 12 }}>{places}</div>
+                <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 500 }}>{title}</div>
+                <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{places}</div>
               </div>
             </button>
           ))}
@@ -214,19 +232,19 @@ export default function TravelPlanner({ user, addMemory }) {
       {planning && (
         <div style={modalOverlay} onClick={() => setPlanning(false)}>
           <div style={{ ...modalContent, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ color: colors.text, fontSize: 20, fontWeight: 600, marginBottom: 16 }}>Plan Your Trip</h3>
+            <h3 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 600, marginBottom: R.sp(16) }}>Plan Your Trip</h3>
 
             <input value={tripForm.destination} onChange={e => setTripForm({ ...tripForm, destination: e.target.value })}
               placeholder="Where do you want to go?" style={inputStyle} autoFocus />
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: R.sp(8) }}>
               <input type="date" value={tripForm.startDate} onChange={e => setTripForm({ ...tripForm, startDate: e.target.value })}
                 style={{ ...inputStyle, flex: 1 }} placeholder="Start date" />
               <input type="date" value={tripForm.endDate} onChange={e => setTripForm({ ...tripForm, endDate: e.target.value })}
                 style={{ ...inputStyle, flex: 1 }} placeholder="End date" />
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: R.sp(8) }}>
               <select value={tripForm.travelers} onChange={e => setTripForm({ ...tripForm, travelers: e.target.value })}
                 style={{ ...inputStyle, flex: 1 }}>
                 {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} traveler{n > 1 ? 's' : ''}</option>)}
@@ -239,23 +257,23 @@ export default function TravelPlanner({ user, addMemory }) {
               </select>
             </div>
 
-            <div style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 8 }}>Interests</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+            <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginBottom: R.sp(8) }}>Interests</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: R.sp(6), marginBottom: R.sp(16) }}>
               {INTERESTS.map(interest => (
                 <button key={interest} onClick={() => toggleInterest(interest)} style={{
-                  padding: '6px 14px', borderRadius: 16,
+                  padding: `${R.sp(6)}px ${R.sp(14)}px`, borderRadius: R.sp(16),
                   background: tripForm.interests.includes(interest) ? `${colors.primary}30` : colors.surfaceLight,
-                  border: `1px solid ${tripForm.interests.includes(interest) ? colors.primary : colors.border}`,
+                  border: `${R.borderWidth}px solid ${tripForm.interests.includes(interest) ? colors.primary : colors.border}`,
                   color: tripForm.interests.includes(interest) ? colors.primaryLight : colors.textSecondary,
-                  fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
                 }}>{interest}</button>
               ))}
             </div>
 
             <button onClick={generateTrip} disabled={generating} style={{
-              width: '100%', padding: 14, background: colors.gradient1, color: '#fff',
-              border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
+              width: '100%', padding: R.sp(14), background: colors.gradient1, color: '#fff',
+              border: 'none', borderRadius: R.sp(12), fontSize: R.fs(14), fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
             }}>
               {generating ? 'Generating itinerary...' : '◉ Generate Trip with AI'}
             </button>
@@ -264,18 +282,4 @@ export default function TravelPlanner({ user, addMemory }) {
       )}
     </div>
   )
-}
-
-const modalOverlay = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20,
-}
-const modalContent = {
-  background: colors.surface, borderRadius: 16, padding: 24, width: '100%', maxWidth: 440,
-  border: `1px solid ${colors.border}`,
-}
-const inputStyle = {
-  width: '100%', padding: '12px 14px', background: colors.surfaceLight,
-  border: `1px solid ${colors.border}`, borderRadius: 10, color: colors.text,
-  fontSize: 14, fontFamily: 'inherit', marginBottom: 10,
 }

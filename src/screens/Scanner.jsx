@@ -27,7 +27,7 @@ const DEMO_EXTRACTIONS = [
   },
 ]
 
-export default function Scanner({ user, addMemory }) {
+export default function Scanner({ user, addMemory, R }) {
   const [scannedDocs, setScannedDocs] = useState(() => loadState('scannedDocs', []))
   const [scanning, setScanning] = useState(false)
   const [result, setResult] = useState(null)
@@ -76,21 +76,27 @@ export default function Scanner({ user, addMemory }) {
     addMemory(`Task from scan: ${item.title}`)
   }
 
+  const addBtn = {
+    padding: `${R.sp(4)}px ${R.sp(10)}px`, background: `${colors.primary}22`, border: `${R.borderWidth}px solid ${colors.primary}44`,
+    borderRadius: R.sp(6), color: colors.primaryLight, fontSize: R.fs(10), cursor: 'pointer', fontFamily: 'inherit',
+    fontWeight: 600, whiteSpace: 'nowrap', minHeight: R.minTouchTarget,
+  }
+
   return (
-    <div style={{ padding: 16 }}>
-      <h2 style={{ color: colors.text, fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Smart Scanner</h2>
-      <p style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+    <div style={{ padding: R.sp(16) }}>
+      <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700, marginBottom: R.sp(4) }}>Smart Scanner</h2>
+      <p style={{ color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(16) }}>
         Upload photos, PDFs, or paste text. AI extracts events, tasks, and action items.
       </p>
 
       {/* Mode Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: R.sp(8), marginBottom: R.sp(16) }}>
         {[['upload', 'Upload'], ['text', 'Paste Text'], ['camera', 'Camera']].map(([m, label]) => (
           <button key={m} onClick={() => setMode(m)} style={{
-            flex: 1, padding: '10px 8px', background: mode === m ? colors.primary : colors.surfaceLight,
-            border: `1px solid ${mode === m ? colors.primary : colors.border}`,
-            borderRadius: 10, color: mode === m ? '#fff' : colors.textSecondary,
-            fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            flex: 1, padding: `${R.sp(10)}px ${R.sp(8)}px`, background: mode === m ? colors.primary : colors.surfaceLight,
+            border: `${R.borderWidth}px solid ${mode === m ? colors.primary : colors.border}`,
+            borderRadius: R.sp(10), color: mode === m ? '#fff' : colors.textSecondary,
+            fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
           }}>{label}</button>
         ))}
       </div>
@@ -100,35 +106,35 @@ export default function Scanner({ user, addMemory }) {
         <div
           onClick={() => fileRef.current?.click()}
           style={{
-            padding: 40, border: `2px dashed ${colors.border}`, borderRadius: 16,
-            textAlign: 'center', cursor: 'pointer', marginBottom: 16,
+            padding: R.sp(40), border: `2px dashed ${colors.border}`, borderRadius: R.sp(16),
+            textAlign: 'center', cursor: 'pointer', marginBottom: R.sp(16),
             background: colors.surfaceLight,
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 12, color: colors.primary }}>⊞</div>
-          <div style={{ color: colors.text, fontSize: 14, marginBottom: 4 }}>Tap to upload</div>
-          <div style={{ color: colors.textMuted, fontSize: 12 }}>Photos, PDFs, screenshots, documents</div>
+          <div style={{ fontSize: R.fs(40), marginBottom: R.sp(12), color: colors.primary }}>⊞</div>
+          <div style={{ color: colors.text, fontSize: R.fs(14), marginBottom: R.sp(4) }}>Tap to upload</div>
+          <div style={{ color: colors.textMuted, fontSize: R.fs(12) }}>Photos, PDFs, screenshots, documents</div>
           <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx" onChange={handleFile} style={{ display: 'none' }} />
         </div>
       )}
 
       {/* Text Mode */}
       {mode === 'text' && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: R.sp(16) }}>
           <textarea
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             placeholder="Paste an email, message, or any text here..."
             style={{
-              width: '100%', minHeight: 120, padding: 14, background: colors.surfaceLight,
-              border: `1px solid ${colors.border}`, borderRadius: 12, color: colors.text,
-              fontSize: 14, fontFamily: 'inherit', resize: 'vertical',
+              width: '100%', minHeight: R.sp(120), padding: R.sp(14), background: colors.surfaceLight,
+              border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(12), color: colors.text,
+              fontSize: R.fs(14), fontFamily: 'inherit', resize: 'vertical',
             }}
           />
           <button onClick={handleText} disabled={!textInput.trim()} style={{
-            width: '100%', padding: 12, marginTop: 8, background: textInput.trim() ? colors.gradient1 : colors.surfaceLight,
-            color: textInput.trim() ? '#fff' : colors.textMuted, border: 'none', borderRadius: 10,
-            fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            width: '100%', padding: R.sp(12), marginTop: R.sp(8), background: textInput.trim() ? colors.gradient1 : colors.surfaceLight,
+            color: textInput.trim() ? '#fff' : colors.textMuted, border: 'none', borderRadius: R.sp(10),
+            fontSize: R.fs(14), fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
           }}>Scan & Extract</button>
         </div>
       )}
@@ -136,55 +142,57 @@ export default function Scanner({ user, addMemory }) {
       {/* Camera Mode */}
       {mode === 'camera' && (
         <div style={{
-          padding: 40, border: `2px dashed ${colors.border}`, borderRadius: 16,
-          textAlign: 'center', marginBottom: 16, background: colors.surfaceLight,
+          padding: R.sp(40), border: `2px dashed ${colors.border}`, borderRadius: R.sp(16),
+          textAlign: 'center', marginBottom: R.sp(16), background: colors.surfaceLight,
         }}>
-          <div style={{ fontSize: 40, marginBottom: 12, color: colors.secondary }}>◎</div>
-          <div style={{ color: colors.text, fontSize: 14, marginBottom: 4 }}>Camera Scan</div>
-          <div style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>Point at a document, flyer, or whiteboard</div>
+          <div style={{ fontSize: R.fs(40), marginBottom: R.sp(12), color: colors.secondary }}>◎</div>
+          <div style={{ color: colors.text, fontSize: R.fs(14), marginBottom: R.sp(4) }}>Camera Scan</div>
+          <div style={{ color: colors.textMuted, fontSize: R.fs(12), marginBottom: R.sp(12) }}>Point at a document, flyer, or whiteboard</div>
           <button onClick={() => simulateScan('Camera capture')} style={{
-            padding: '10px 24px', background: colors.gradient2, color: '#000',
-            border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            padding: `${R.sp(10)}px ${R.sp(24)}px`, background: colors.gradient2, color: '#000',
+            border: 'none', borderRadius: R.sp(10), fontSize: R.fs(13), fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}>Capture</button>
         </div>
       )}
 
       {/* Scanning Animation */}
       {scanning && (
-        <div style={{ textAlign: 'center', padding: 24 }}>
-          <div style={{ fontSize: 32, color: colors.primary, animation: 'pulse 1s infinite' }}>◉</div>
-          <div style={{ color: colors.primaryLight, fontSize: 14, marginTop: 8 }}>Analyzing document...</div>
-          <div style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>Extracting events, tasks, and action items</div>
+        <div style={{ textAlign: 'center', padding: R.sp(24) }}>
+          <div style={{ fontSize: R.fs(32), color: colors.primary, animation: 'pulse 1s infinite' }}>◉</div>
+          <div style={{ color: colors.primaryLight, fontSize: R.fs(14), marginTop: R.sp(8) }}>Analyzing document...</div>
+          <div style={{ color: colors.textMuted, fontSize: R.fs(12), marginTop: R.sp(4) }}>Extracting events, tasks, and action items</div>
         </div>
       )}
 
       {/* Result */}
       {result && !scanning && (
         <div style={{
-          padding: 16, background: `${colors.success}10`, border: `1px solid ${colors.success}30`,
-          borderRadius: 12, marginBottom: 16,
+          padding: R.sp(16), background: `${colors.success}10`, border: `${R.borderWidth}px solid ${colors.success}30`,
+          borderRadius: R.sp(12), marginBottom: R.sp(16),
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(12) }}>
             <div>
-              <div style={{ color: colors.success, fontSize: 12, fontWeight: 600 }}>EXTRACTED FROM {result.type.toUpperCase()}</div>
-              <div style={{ color: colors.textSecondary, fontSize: 11 }}>{result.items.length} items found</div>
+              <div style={{ color: colors.success, fontSize: R.fs(12), fontWeight: 600 }}>EXTRACTED FROM {result.type.toUpperCase()}</div>
+              <div style={{ color: colors.textSecondary, fontSize: R.fs(11) }}>{result.items.length} items found</div>
             </div>
             <button onClick={() => setResult(null)} style={{
-              background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: 16,
+              background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(16),
+              minHeight: R.minTouchTarget, minWidth: R.minTouchTarget,
             }}>✕</button>
           </div>
           {result.items.map((item, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: 12,
-              background: colors.surfaceLight, borderRadius: 8, marginBottom: 6,
+              display: 'flex', alignItems: 'center', gap: R.sp(10), padding: R.sp(12),
+              background: colors.surfaceLight, borderRadius: R.sp(8), marginBottom: R.sp(6),
             }}>
               <span style={{
-                fontSize: 10, padding: '3px 6px', borderRadius: 4,
+                fontSize: R.fs(10), padding: `${R.sp(3)}px ${R.sp(6)}px`, borderRadius: R.sp(4),
                 background: item.kind === 'event' ? `${colors.primary}22` : item.kind === 'task' ? `${colors.warning}22` : `${colors.secondary}22`,
                 color: item.kind === 'event' ? colors.primary : item.kind === 'task' ? colors.warning : colors.secondary,
                 textTransform: 'uppercase', fontWeight: 600,
               }}>{item.kind}</span>
-              <span style={{ color: colors.text, fontSize: 13, flex: 1 }}>{item.title || item.items?.join(', ')}</span>
+              <span style={{ color: colors.text, fontSize: R.fs(13), flex: 1 }}>{item.title || item.items?.join(', ')}</span>
               {item.kind === 'event' && (
                 <button onClick={() => addToCalendar(item)} style={addBtn}>+ Cal</button>
               )}
@@ -199,19 +207,19 @@ export default function Scanner({ user, addMemory }) {
       {/* History */}
       {scannedDocs.length > 0 && (
         <div>
-          <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>SCAN HISTORY</h3>
+          <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>SCAN HISTORY</h3>
           {scannedDocs.slice(0, 5).map(doc => (
             <div key={doc.id} style={{
-              padding: 12, background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-              borderRadius: 8, marginBottom: 6,
+              padding: R.sp(12), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+              borderRadius: R.sp(8), marginBottom: R.sp(6),
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: colors.text, fontSize: 13 }}>{doc.type}</span>
-                <span style={{ color: colors.textMuted, fontSize: 11 }}>
+                <span style={{ color: colors.text, fontSize: R.fs(13) }}>{doc.type}</span>
+                <span style={{ color: colors.textMuted, fontSize: R.fs(11) }}>
                   {new Date(doc.scannedAt).toLocaleDateString()}
                 </span>
               </div>
-              <div style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+              <div style={{ color: colors.textSecondary, fontSize: R.fs(11), marginTop: R.sp(2) }}>
                 {doc.items.length} items extracted from {doc.source}
               </div>
             </div>
@@ -222,10 +230,4 @@ export default function Scanner({ user, addMemory }) {
       <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   )
-}
-
-const addBtn = {
-  padding: '4px 10px', background: `${colors.primary}22`, border: `1px solid ${colors.primary}44`,
-  borderRadius: 6, color: colors.primaryLight, fontSize: 10, cursor: 'pointer', fontFamily: 'inherit',
-  fontWeight: 600, whiteSpace: 'nowrap',
 }

@@ -10,11 +10,11 @@ const VOICE_RESPONSES = [
   { transcript: "How many tasks do I have?", response: "You have 5 pending tasks. The highest priority one is 'Review Q2 budget proposal'. Want me to go through them?" },
 ]
 
-export default function Voice({ user, addMemory }) {
+export default function Voice({ user, addMemory, R }) {
   const [listening, setListening] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [conversation, setConversation] = useState([])
-  const [mode, setMode] = useState('push') // push, continuous
+  const [mode, setMode] = useState('push')
   const [amplitude, setAmplitude] = useState(0)
   const animRef = useRef(null)
 
@@ -32,14 +32,11 @@ export default function Voice({ user, addMemory }) {
     return () => cancelAnimationFrame(animRef.current)
   }, [listening])
 
-  const startListening = () => {
-    setListening(true)
-  }
+  const startListening = () => setListening(true)
 
   const stopListening = () => {
     setListening(false)
     setProcessing(true)
-
     setTimeout(() => {
       const vr = VOICE_RESPONSES[Math.floor(Math.random() * VOICE_RESPONSES.length)]
       setConversation(prev => [
@@ -49,8 +46,6 @@ export default function Voice({ user, addMemory }) {
       ])
       addMemory(`Voice: "${vr.transcript}"`)
       setProcessing(false)
-
-      // Simulate speech
       if ('speechSynthesis' in window) {
         const utter = new SpeechSynthesisUtterance(vr.response)
         utter.rate = 1.0
@@ -60,30 +55,35 @@ export default function Voice({ user, addMemory }) {
     }, 1000)
   }
 
-  const ringSize = 160
+  // Responsive orb sizing
+  const isZFlip = R.device === 'zFlipCover'
+  const isSmall = R.isSmall
+  const ringSize = isZFlip ? 80 : isSmall ? Math.min(140, R.w * 0.35) : Math.min(160, R.w * 0.25)
+  const orbContainerSize = ringSize + (isZFlip ? 30 : 60)
   const rings = [1, 0.75, 0.5]
 
   return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
-      <h2 style={{ color: colors.text, fontSize: 20, fontWeight: 700, marginBottom: 4, alignSelf: 'flex-start' }}>Voice Assistant</h2>
-      <p style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 24, alignSelf: 'flex-start' }}>
+    <div style={{ padding: R.sp(16), display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: `calc(100vh - ${R.isLandscape && isSmall ? 150 : 200}px)` }}>
+      <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700, marginBottom: 4, alignSelf: 'flex-start' }}>Voice Assistant</h2>
+      <p style={{ color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(24), alignSelf: 'flex-start' }}>
         Talk to Jarvis hands-free. {mode === 'push' ? 'Hold the button to speak.' : 'Jarvis is always listening.'}
       </p>
 
       {/* Mode Toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignSelf: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: R.sp(8), marginBottom: R.sp(isZFlip ? 16 : 32), alignSelf: 'flex-start' }}>
         {[['push', 'Push to Talk'], ['continuous', 'Always On']].map(([m, label]) => (
           <button key={m} onClick={() => setMode(m)} style={{
-            padding: '6px 14px', background: mode === m ? colors.primary : colors.surfaceLight,
-            border: `1px solid ${mode === m ? colors.primary : colors.border}`,
+            padding: `${R.sp(6)}px ${R.sp(14)}px`, background: mode === m ? colors.primary : colors.surfaceLight,
+            border: `${R.borderWidth}px solid ${mode === m ? colors.primary : colors.border}`,
             borderRadius: 20, color: mode === m ? '#fff' : colors.textSecondary,
-            fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}>{label}</button>
         ))}
       </div>
 
       {/* Voice Orb */}
-      <div style={{ position: 'relative', width: ringSize + 60, height: ringSize + 60, marginBottom: 32 }}>
+      <div style={{ position: 'relative', width: orbContainerSize, height: orbContainerSize, marginBottom: R.sp(isZFlip ? 16 : 32) }}>
         {rings.map((scale, i) => (
           <div key={i} style={{
             position: 'absolute',
@@ -106,41 +106,41 @@ export default function Voice({ user, addMemory }) {
           style={{
             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             width: ringSize, height: ringSize, borderRadius: '50%',
-            background: listening ? colors.gradient1 : colors.gradient1,
+            background: colors.gradient1,
             border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: listening ? `0 0 40px ${colors.primary}60` : `0 0 20px ${colors.primary}30`,
             transition: 'box-shadow 0.3s ease',
           }}
         >
-          <span style={{ fontSize: 48, color: '#fff' }}>
+          <span style={{ fontSize: R.fs(isZFlip ? 28 : 48), color: '#fff' }}>
             {processing ? '...' : listening ? '◎' : '◉'}
           </span>
         </button>
       </div>
 
-      <div style={{ color: listening ? colors.primaryLight : colors.textMuted, fontSize: 14, marginBottom: 24 }}>
+      <div style={{ color: listening ? colors.primaryLight : colors.textMuted, fontSize: R.fs(14), marginBottom: R.sp(24) }}>
         {processing ? 'Processing...' : listening ? 'Listening...' : mode === 'push' ? 'Hold to speak' : 'Tap to start'}
       </div>
 
       {/* Conversation History */}
       {conversation.length > 0 && (
-        <div style={{ width: '100%', maxWidth: 440 }}>
-          <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>CONVERSATION</h3>
+        <div style={{ width: '100%', maxWidth: R.modalMaxWidth }}>
+          <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>CONVERSATION</h3>
           {conversation.map((msg, i) => (
             <div key={i} style={{
               display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              marginBottom: 8,
+              marginBottom: R.sp(8),
             }}>
               <div style={{
-                maxWidth: '85%', padding: '10px 14px', borderRadius: 12,
+                maxWidth: '85%', padding: `${R.sp(10)}px ${R.sp(14)}px`, borderRadius: 12,
                 background: msg.role === 'user' ? colors.primary : colors.surfaceLight,
-                border: msg.role === 'ai' ? `1px solid ${colors.border}` : 'none',
+                border: msg.role === 'ai' ? `${R.borderWidth}px solid ${colors.border}` : 'none',
               }}>
                 {msg.role === 'ai' && (
-                  <div style={{ color: colors.primaryLight, fontSize: 10, fontWeight: 600, marginBottom: 4 }}>JARVIS</div>
+                  <div style={{ color: colors.primaryLight, fontSize: R.fs(10), fontWeight: 600, marginBottom: 4 }}>JARVIS</div>
                 )}
-                <p style={{ color: '#fff', fontSize: 13, margin: 0, lineHeight: 1.4 }}>{msg.text}</p>
+                <p style={{ color: '#fff', fontSize: R.fs(13), margin: 0, lineHeight: 1.4 }}>{msg.text}</p>
               </div>
             </div>
           ))}
@@ -148,17 +148,19 @@ export default function Voice({ user, addMemory }) {
       )}
 
       {/* Quick Voice Commands */}
-      <div style={{ width: '100%', maxWidth: 440, marginTop: 20 }}>
-        <h3 style={{ color: colors.text, fontSize: 14, fontWeight: 600, marginBottom: 10 }}>TRY SAYING</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {["What's on my schedule?", "Set a reminder", "Plan dinner", "Send a text", "Check my tasks"].map(cmd => (
-            <span key={cmd} style={{
-              padding: '6px 12px', background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-              borderRadius: 16, color: colors.textSecondary, fontSize: 11,
-            }}>{cmd}</span>
-          ))}
+      {!isZFlip && (
+        <div style={{ width: '100%', maxWidth: R.modalMaxWidth, marginTop: R.sp(20) }}>
+          <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>TRY SAYING</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: R.sp(6) }}>
+            {["What's on my schedule?", "Set a reminder", "Plan dinner", "Send a text", "Check my tasks"].map(cmd => (
+              <span key={cmd} style={{
+                padding: `${R.sp(6)}px ${R.sp(12)}px`, background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+                borderRadius: 16, color: colors.textSecondary, fontSize: R.fs(11),
+              }}>{cmd}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

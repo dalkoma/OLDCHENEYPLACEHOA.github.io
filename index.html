@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0a0a1a" />
@@ -16,8 +16,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #0a0a1a; overflow-x: hidden; -webkit-tap-highlight-color: transparent; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+      body {
+        background: #0a0a1a; overflow-x: hidden;
+        -webkit-tap-highlight-color: transparent;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        /* Safe area insets for notch, Dynamic Island, rounded corners */
+        padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      }
       #root { min-height: 100vh; min-height: 100dvh; }
+
+      /* Touch target sizing - Apple guideline: 44px min */
+      @media (hover: none) and (pointer: coarse) {
+        button, a, [role="button"], input, select, textarea {
+          min-height: 40px;
+        }
+      }
+
+      /* High DPI / Retina displays */
+      @media (resolution >= 2dppx) {
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      }
+
+      /* Orientation change smooth transition */
+      @media (orientation: landscape) {
+        #root { transition: none; }
+      }
     </style>
   </head>
   <body>

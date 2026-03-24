@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { colors, loadState, saveState } from '../App'
 
-export default function Settings({ user, updateUser, addMemory }) {
+export default function Settings({ user, updateUser, addMemory, R }) {
   const [editName, setEditName] = useState(false)
   const [name, setName] = useState(user.name)
   const [showMemory, setShowMemory] = useState(false)
@@ -49,29 +49,41 @@ export default function Settings({ user, updateUser, addMemory }) {
     { key: 'instacart', name: 'Instacart', desc: 'Grocery delivery', icon: '🛒' },
   ]
 
+  const inputStyle = {
+    padding: `${R.sp(8)}px ${R.sp(10)}px`, background: colors.surfaceHover,
+    border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(8), color: colors.text,
+    fontSize: R.fs(13), fontFamily: 'inherit', marginBottom: 0, minHeight: R.minTouchTarget,
+  }
+
+  const smBtn = {
+    padding: `${R.sp(8)}px ${R.sp(14)}px`, background: colors.primary, color: '#fff',
+    border: 'none', borderRadius: R.sp(8), fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit',
+    whiteSpace: 'nowrap', minHeight: R.minTouchTarget,
+  }
+
   return (
-    <div style={{ padding: 16 }}>
-      <h2 style={{ color: colors.text, fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Settings</h2>
+    <div style={{ padding: R.sp(16) }}>
+      <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700, marginBottom: R.sp(20) }}>Settings</h2>
 
       {/* Profile */}
-      <Section title="PROFILE">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14 }}>
+      <Section title="PROFILE" R={R}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(14), padding: R.sp(14) }}>
           <div style={{
-            width: 48, height: 48, borderRadius: '50%', background: colors.gradient1,
+            width: R.sp(48), height: R.sp(48), borderRadius: '50%', background: colors.gradient1,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: 20, fontWeight: 700,
+            color: '#fff', fontSize: R.fs(20), fontWeight: 700,
           }}>{(user.name || 'U')[0].toUpperCase()}</div>
           <div style={{ flex: 1 }}>
             {editName ? (
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: R.sp(8) }}>
                 <input value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 0, flex: 1 }} autoFocus
                   onKeyDown={e => e.key === 'Enter' && saveName()} />
                 <button onClick={saveName} style={smBtn}>Save</button>
               </div>
             ) : (
               <>
-                <div style={{ color: colors.text, fontSize: 16, fontWeight: 600 }}>{user.name}</div>
-                <button onClick={() => setEditName(true)} style={{ background: 'none', border: 'none', color: colors.primaryLight, fontSize: 12, cursor: 'pointer' }}>
+                <div style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>{user.name}</div>
+                <button onClick={() => setEditName(true)} style={{ background: 'none', border: 'none', color: colors.primaryLight, fontSize: R.fs(12), cursor: 'pointer', minHeight: R.minTouchTarget }}>
                   Edit name
                 </button>
               </>
@@ -81,31 +93,31 @@ export default function Settings({ user, updateUser, addMemory }) {
       </Section>
 
       {/* Circle / Family */}
-      <Section title="YOUR CIRCLE">
-        <div style={{ padding: '8px 14px' }}>
-          <p style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 12 }}>
+      <Section title="YOUR CIRCLE" R={R}>
+        <div style={{ padding: `${R.sp(8)}px ${R.sp(14)}px` }}>
+          <p style={{ color: colors.textSecondary, fontSize: R.fs(12), marginBottom: R.sp(12) }}>
             Add people to delegate tasks and share calendars. They get notified via SMS.
           </p>
           {user.circle.map(member => (
             <div key={member.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
-              borderBottom: `1px solid ${colors.border}`,
+              display: 'flex', alignItems: 'center', gap: R.sp(10), padding: `${R.sp(8)}px 0`,
+              borderBottom: `${R.borderWidth}px solid ${colors.border}`,
             }}>
               <div style={{
-                width: 32, height: 32, borderRadius: '50%', background: `${colors.secondary}30`,
+                width: R.sp(32), height: R.sp(32), borderRadius: '50%', background: `${colors.secondary}30`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: colors.secondary, fontSize: 14, fontWeight: 600,
+                color: colors.secondary, fontSize: R.fs(14), fontWeight: 600,
               }}>{member.name[0]}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ color: colors.text, fontSize: 13 }}>{member.name}</div>
-                <div style={{ color: colors.textMuted, fontSize: 11 }}>{member.phone} · {member.role}</div>
+                <div style={{ color: colors.text, fontSize: R.fs(13) }}>{member.name}</div>
+                <div style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{member.phone} · {member.role}</div>
               </div>
               <button onClick={() => removeCircleMember(member.id)} style={{
-                background: 'none', border: 'none', color: colors.textMuted, fontSize: 14, cursor: 'pointer',
+                background: 'none', border: 'none', color: colors.textMuted, fontSize: R.fs(14), cursor: 'pointer', minHeight: R.minTouchTarget,
               }}>✕</button>
             </div>
           ))}
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: R.sp(6), marginTop: R.sp(10) }}>
             <input value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })}
               placeholder="Name" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
             <input value={newMember.phone} onChange={e => setNewMember({ ...newMember, phone: e.target.value })}
@@ -116,25 +128,25 @@ export default function Settings({ user, updateUser, addMemory }) {
       </Section>
 
       {/* Morning Briefing */}
-      <Section title="MORNING BRIEFING">
-        <div style={{ padding: '10px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ color: colors.textSecondary, fontSize: 13 }}>Time:</span>
+      <Section title="MORNING BRIEFING" R={R}>
+        <div style={{ padding: `${R.sp(10)}px ${R.sp(14)}px` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(10), marginBottom: R.sp(10) }}>
+            <span style={{ color: colors.textSecondary, fontSize: R.fs(13) }}>Time:</span>
             <input type="time" value={briefingTime} onChange={e => { setBriefingTime(e.target.value); saveState('briefingTime', e.target.value) }}
               style={{ ...inputStyle, marginBottom: 0, width: 'auto' }} />
           </div>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: R.sp(4), flexWrap: 'wrap' }}>
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
               <button key={day} onClick={() => {
                 const updated = briefingDays.includes(day) ? briefingDays.filter(d => d !== day) : [...briefingDays, day]
                 setBriefingDays(updated)
                 saveState('briefingDays', updated)
               }} style={{
-                padding: '6px 10px', borderRadius: 6,
+                padding: `${R.sp(6)}px ${R.sp(10)}px`, borderRadius: R.sp(6),
                 background: briefingDays.includes(day) ? colors.primary : colors.surfaceLight,
-                border: `1px solid ${briefingDays.includes(day) ? colors.primary : colors.border}`,
+                border: `${R.borderWidth}px solid ${briefingDays.includes(day) ? colors.primary : colors.border}`,
                 color: briefingDays.includes(day) ? '#fff' : colors.textSecondary,
-                fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: R.fs(11), cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
               }}>{day}</button>
             ))}
           </div>
@@ -142,25 +154,25 @@ export default function Settings({ user, updateUser, addMemory }) {
       </Section>
 
       {/* Integrations */}
-      <Section title="INTEGRATIONS">
+      <Section title="INTEGRATIONS" R={R}>
         {integrations.map(int => (
           <div key={int.key} style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-            borderBottom: `1px solid ${colors.border}`,
+            display: 'flex', alignItems: 'center', gap: R.sp(12), padding: `${R.sp(12)}px ${R.sp(14)}px`,
+            borderBottom: `${R.borderWidth}px solid ${colors.border}`,
           }}>
-            <span style={{ fontSize: 18 }}>{int.icon}</span>
+            <span style={{ fontSize: R.fs(18) }}>{int.icon}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ color: colors.text, fontSize: 13 }}>{int.name}</div>
-              <div style={{ color: colors.textMuted, fontSize: 11 }}>{int.desc}</div>
+              <div style={{ color: colors.text, fontSize: R.fs(13) }}>{int.name}</div>
+              <div style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{int.desc}</div>
             </div>
             <button onClick={() => toggleIntegration(int.key)} style={{
-              width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+              width: R.sp(44), height: R.sp(24), borderRadius: R.sp(12), border: 'none', cursor: 'pointer',
               background: user.integrations?.[int.key] ? colors.success : colors.surfaceHover,
-              position: 'relative', transition: 'background 0.2s',
+              position: 'relative', transition: 'background 0.2s', minHeight: R.minTouchTarget,
             }}>
               <span style={{
-                position: 'absolute', top: 2, left: user.integrations?.[int.key] ? 22 : 2,
-                width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                position: 'absolute', top: R.sp(2), left: user.integrations?.[int.key] ? R.sp(22) : R.sp(2),
+                width: R.sp(20), height: R.sp(20), borderRadius: '50%', background: '#fff',
                 transition: 'left 0.2s',
               }} />
             </button>
@@ -169,26 +181,27 @@ export default function Settings({ user, updateUser, addMemory }) {
       </Section>
 
       {/* AI Memory */}
-      <Section title="AI MEMORY">
-        <div style={{ padding: '10px 14px' }}>
-          <p style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 10 }}>
+      <Section title="AI MEMORY" R={R}>
+        <div style={{ padding: `${R.sp(10)}px ${R.sp(14)}px` }}>
+          <p style={{ color: colors.textSecondary, fontSize: R.fs(12), marginBottom: R.sp(10) }}>
             Jarvis learns your preferences and routines over time. {user.memory.length} memories stored.
           </p>
           <button onClick={() => setShowMemory(!showMemory)} style={{
-            background: 'none', border: `1px solid ${colors.border}`, borderRadius: 8,
-            padding: '6px 14px', color: colors.primaryLight, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            background: 'none', border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(8),
+            padding: `${R.sp(6)}px ${R.sp(14)}px`, color: colors.primaryLight, fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}>
             {showMemory ? 'Hide' : 'View'} Memories
           </button>
           {showMemory && (
-            <div style={{ marginTop: 10, maxHeight: 200, overflowY: 'auto' }}>
+            <div style={{ marginTop: R.sp(10), maxHeight: 200, overflowY: 'auto' }}>
               {user.memory.length === 0 ? (
-                <div style={{ color: colors.textMuted, fontSize: 12 }}>No memories yet. Use the app and I'll learn!</div>
+                <div style={{ color: colors.textMuted, fontSize: R.fs(12) }}>No memories yet. Use the app and I'll learn!</div>
               ) : (
                 user.memory.map((m, i) => (
                   <div key={i} style={{
-                    padding: '6px 0', borderBottom: `1px solid ${colors.border}`,
-                    fontSize: 11, color: colors.textSecondary,
+                    padding: `${R.sp(6)}px 0`, borderBottom: `${R.borderWidth}px solid ${colors.border}`,
+                    fontSize: R.fs(11), color: colors.textSecondary,
                   }}>
                     <span style={{ color: colors.textMuted }}>{new Date(m.date).toLocaleDateString()}</span>
                     {' '}{m.text}
@@ -201,47 +214,37 @@ export default function Settings({ user, updateUser, addMemory }) {
       </Section>
 
       {/* Danger Zone */}
-      <Section title="DATA">
-        <div style={{ padding: '10px 14px' }}>
+      <Section title="DATA" R={R}>
+        <div style={{ padding: `${R.sp(10)}px ${R.sp(14)}px` }}>
           <button onClick={clearAllData} style={{
-            width: '100%', padding: 12, background: 'transparent',
-            border: `1px solid ${colors.danger}40`, borderRadius: 8,
-            color: colors.danger, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+            width: '100%', padding: R.sp(12), background: 'transparent',
+            border: `${R.borderWidth}px solid ${colors.danger}40`, borderRadius: R.sp(8),
+            color: colors.danger, fontSize: R.fs(13), cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}>Reset All Data</button>
         </div>
       </Section>
 
       {/* About */}
-      <div style={{ textAlign: 'center', padding: '24px 0 40px', color: colors.textMuted, fontSize: 11 }}>
-        <div style={{ marginBottom: 4 }}>Jarvis v1.0</div>
+      <div style={{ textAlign: 'center', padding: `${R.sp(24)}px 0 ${R.sp(40)}px`, color: colors.textMuted, fontSize: R.fs(11) }}>
+        <div style={{ marginBottom: R.sp(4) }}>Jarvis v1.0</div>
         <div>Your Personal AI Life Manager</div>
-        <div style={{ marginTop: 4 }}>Your AI, your way.</div>
+        <div style={{ marginTop: R.sp(4) }}>Your AI, your way.</div>
       </div>
     </div>
   )
 }
 
-function Section({ title, children }) {
+function Section({ title, children, R }) {
   return (
     <div style={{
-      background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-      borderRadius: 12, marginBottom: 12, overflow: 'hidden',
+      background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+      borderRadius: R.sp(12), marginBottom: R.sp(12), overflow: 'hidden',
     }}>
-      <div style={{ padding: '10px 14px', borderBottom: `1px solid ${colors.border}` }}>
-        <h3 style={{ color: colors.textSecondary, fontSize: 11, fontWeight: 600, letterSpacing: 0.5 }}>{title}</h3>
+      <div style={{ padding: `${R.sp(10)}px ${R.sp(14)}px`, borderBottom: `${R.borderWidth}px solid ${colors.border}` }}>
+        <h3 style={{ color: colors.textSecondary, fontSize: R.fs(11), fontWeight: 600, letterSpacing: 0.5 }}>{title}</h3>
       </div>
       {children}
     </div>
   )
-}
-
-const inputStyle = {
-  padding: '8px 10px', background: colors.surfaceHover,
-  border: `1px solid ${colors.border}`, borderRadius: 8, color: colors.text,
-  fontSize: 13, fontFamily: 'inherit', marginBottom: 0,
-}
-const smBtn = {
-  padding: '8px 14px', background: colors.primary, color: '#fff',
-  border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-  whiteSpace: 'nowrap',
 }

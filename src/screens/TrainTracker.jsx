@@ -87,7 +87,7 @@ function delayText(mins) {
   return m > 0 ? `${h}h ${m}m late` : `${h}h late`
 }
 
-export default function TrainTracker({ user, addMemory }) {
+export default function TrainTracker({ user, addMemory, R }) {
   const [trains, setTrains] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

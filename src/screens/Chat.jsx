@@ -47,7 +47,7 @@ const getResponse = (msg) => {
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
-export default function Chat({ user, addMemory }) {
+export default function Chat({ user, addMemory, R }) {
   const [messages, setMessages] = useState(() => loadState('chatMessages', [
     { role: 'ai', text: `Hi ${user.name}! I'm Jarvis, your personal AI assistant. I can help with your calendar, tasks, meals, travel, messaging, and much more. What can I do for you?`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
   ]))
@@ -75,36 +75,39 @@ export default function Chat({ user, addMemory }) {
     }, 800 + Math.random() * 1200)
   }
 
+  const isLandscapePhone = R.isLandscape && R.isSmall
+  const headerOffset = isLandscapePhone ? 90 : 120
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', height: 'calc(100dvh - 120px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: `calc(100vh - ${headerOffset}px)`, height: `calc(100dvh - ${headerOffset}px)` }}>
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: R.sp(16), WebkitOverflowScrolling: 'touch' }}>
         {messages.map((msg, i) => (
           <div key={i} style={{
             display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            marginBottom: 12, animation: 'fadeIn 0.3s ease',
+            marginBottom: R.sp(12), animation: 'fadeIn 0.3s ease',
           }}>
             <div style={{
-              maxWidth: '80%', padding: '12px 16px', borderRadius: 16,
+              maxWidth: R.isLarge ? '60%' : '80%', padding: `${R.sp(12)}px ${R.sp(16)}px`, borderRadius: 16,
               background: msg.role === 'user' ? colors.primary : colors.surfaceLight,
-              border: msg.role === 'ai' ? `1px solid ${colors.border}` : 'none',
+              border: msg.role === 'ai' ? `${R.borderWidth}px solid ${colors.border}` : 'none',
               borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
               borderBottomLeftRadius: msg.role === 'ai' ? 4 : 16,
             }}>
               {msg.role === 'ai' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <span style={{ color: colors.primary, fontSize: 12 }}>◉</span>
-                  <span style={{ color: colors.primaryLight, fontSize: 11, fontWeight: 600 }}>Jarvis</span>
+                  <span style={{ color: colors.primary, fontSize: R.fs(12) }}>◉</span>
+                  <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>Jarvis</span>
                 </div>
               )}
-              <p style={{ color: '#fff', fontSize: 14, lineHeight: 1.5, margin: 0 }}>{msg.text}</p>
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 6, textAlign: 'right' }}>{msg.time}</div>
+              <p style={{ color: '#fff', fontSize: R.fs(14), lineHeight: 1.5, margin: 0 }}>{msg.text}</p>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: R.fs(10), marginTop: 6, textAlign: 'right' }}>{msg.time}</div>
             </div>
           </div>
         ))}
         {typing && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
-            <div style={{ padding: '12px 20px', background: colors.surfaceLight, border: `1px solid ${colors.border}`, borderRadius: 16, borderBottomLeftRadius: 4 }}>
+            <div style={{ padding: `${R.sp(12)}px ${R.sp(20)}px`, background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: 16, borderBottomLeftRadius: 4 }}>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[0, 1, 2].map(i => (
                   <span key={i} style={{
@@ -120,18 +123,22 @@ export default function Chat({ user, addMemory }) {
       </div>
 
       {/* Suggestions */}
-      <div style={{ padding: '8px 16px', display: 'flex', gap: 8, overflowX: 'auto', flexShrink: 0 }}>
+      <div style={{ padding: `${R.sp(8)}px ${R.sp(16)}px`, display: 'flex', gap: R.sp(8), overflowX: 'auto', flexShrink: 0, WebkitOverflowScrolling: 'touch' }}>
         {['Plan my week', 'Add a task', 'Meal ideas', 'Set reminder'].map(s => (
           <button key={s} onClick={() => { setInput(s); setTimeout(() => inputRef.current?.focus(), 50) }} style={{
-            padding: '6px 14px', background: colors.surfaceLight, border: `1px solid ${colors.border}`,
-            borderRadius: 20, color: colors.textSecondary, fontSize: 12, cursor: 'pointer',
-            whiteSpace: 'nowrap', fontFamily: 'inherit',
+            padding: `${R.sp(6)}px ${R.sp(14)}px`, background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
+            borderRadius: 20, color: colors.textSecondary, fontSize: R.fs(12), cursor: 'pointer',
+            whiteSpace: 'nowrap', fontFamily: 'inherit', minHeight: R.minTouchTarget,
           }}>{s}</button>
         ))}
       </div>
 
       {/* Input */}
-      <div style={{ padding: '8px 16px 16px', display: 'flex', gap: 8, flexShrink: 0 }}>
+      <div style={{
+        padding: `${R.sp(8)}px ${R.sp(16)}px ${R.sp(16)}px`,
+        paddingBottom: `max(${R.sp(16)}px, env(safe-area-inset-bottom, 0px))`,
+        display: 'flex', gap: R.sp(8), flexShrink: 0,
+      }}>
         <input
           ref={inputRef}
           value={input}
@@ -139,15 +146,17 @@ export default function Chat({ user, addMemory }) {
           onKeyDown={e => e.key === 'Enter' && send()}
           placeholder="Message Jarvis..."
           style={{
-            flex: 1, padding: '12px 16px', background: colors.surfaceLight,
-            border: `1px solid ${colors.border}`, borderRadius: 24,
-            color: colors.text, fontSize: 14, fontFamily: 'inherit',
+            flex: 1, padding: `${R.sp(12)}px ${R.sp(16)}px`, background: colors.surfaceLight,
+            border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: 24,
+            color: colors.text, fontSize: R.fs(14), fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}
         />
         <button onClick={send} disabled={!input.trim()} style={{
-          width: 44, height: 44, borderRadius: '50%', background: input.trim() ? colors.gradient1 : colors.surfaceLight,
-          border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: R.sp(44), height: R.sp(44), minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
+          borderRadius: '50%', background: input.trim() ? colors.gradient1 : colors.surfaceLight,
+          border: 'none', color: '#fff', fontSize: R.fs(18), cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>↑</button>
       </div>
 
