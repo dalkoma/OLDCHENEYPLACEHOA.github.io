@@ -113,6 +113,33 @@ async function getLocationSilent() {
   } catch { return null; }
 }
 
+// ── Responsive screen size hook ──
+function useScreenSize() {
+  const calc = () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const landscape = w > h;
+    let sz = "phone"; // default
+    if (w < 320) sz = "tiny";      // Z Flip cover
+    else if (w < 400) sz = "phone"; // iPhone SE, small Android, Z Fold closed
+    else if (w < 600) sz = "phone-lg"; // iPhone, Pixel, Galaxy S
+    else if (w < 820) sz = "tablet-sm"; // Z Fold open, iPad mini
+    else if (w < 1100) sz = "tablet";   // iPad Air/Pro portrait
+    else if (w < 1500) sz = "laptop";   // iPad landscape, laptops
+    else if (w < 2000) sz = "desktop";  // Desktop
+    else sz = "ultra";                   // Ultra-wide, TV
+    return { w, h, landscape, sz };
+  };
+  const [info, setInfo] = useState(calc);
+  useEffect(() => {
+    const onResize = () => setInfo(calc());
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", () => setTimeout(onResize, 100));
+    return () => { window.removeEventListener("resize", onResize); window.removeEventListener("orientationchange", onResize); };
+  }, []);
+  return info;
+}
+
 // ── Cloud sync helpers ──
 const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
 
@@ -553,6 +580,7 @@ function NumInput({label,value,onChange,min=1,max=99,t}) {
 
 // ── Main App ──
 export default function TrapCounter() {
+  const scr = useScreenSize();
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
   const [mode, setMode] = useLS("mode", "quick");
   const [screen, setScreen] = useLS("screen", "setup");
@@ -960,14 +988,22 @@ export default function TrapCounter() {
     if (fileInput.current) fileInput.current.value = "";
   };
 
+  // ── Responsive helpers ──
+  const isWide = scr.sz === "tablet" || scr.sz === "laptop" || scr.sz === "desktop" || scr.sz === "ultra";
+  const isTiny = scr.sz === "tiny";
+  const isTablet = scr.sz === "tablet-sm" || scr.sz === "tablet";
+  const containerMax = isWide ? 720 : (isTablet ? 600 : 480);
+  const basePad = isTiny ? 8 : (isWide ? 28 : 14);
+  const baseFontMult = isTiny ? 0.85 : (isWide ? 1.15 : 1);
+
   // ── Styles ──
-  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:"20px 12px",maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"};
-  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:14,marginBottom:14,overflow:"hidden"};
-  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:13,fontWeight:"bold",padding:"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1,boxSizing:"border-box",width:"100%",minWidth:0};
+  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:`20px ${isTiny?6:isWide?24:12}px`,maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"};
+  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:basePad,marginBottom:14,overflow:"hidden"};
+  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:Math.round(13*baseFontMult),fontWeight:"bold",padding:isWide?"12px 14px":"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1,boxSizing:"border-box",width:"100%",minWidth:0};
   const pillBtn = (active) => ({
-    padding:"10px 16px",background:active?t.tabActive:t.tabInactive,
+    padding:isWide?"12px 20px":"10px 16px",background:active?t.tabActive:t.tabInactive,
     border:`2px solid ${active?t.borderActive:t.border}`,borderRadius:20,
-    color:active?(sunMode?"#fff":t.accent):t.tabText,fontSize:11,fontWeight:"900",
+    color:active?(sunMode?"#fff":t.accent):t.tabText,fontSize:Math.round(11*baseFontMult),fontWeight:"900",
     letterSpacing:2,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s",
   });
 
@@ -978,10 +1014,10 @@ export default function TrapCounter() {
     <div style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.9)}}`}</style>
       <input type="file" ref={fileInput} accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleImport}/>
-      <div style={{maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+      <div style={{maxWidth:containerMax,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:t.textMuted}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
-          <div style={{fontSize:26,fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:6}}>TRAP COUNTER</div>
+          {!isTiny&&<div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:t.textMuted}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>}
+          <div style={{fontSize:isTiny?20:Math.round(26*baseFontMult),fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:isTiny?0:6}}>TRAP COUNTER</div>
         </div>
 
         {/* Sun mode */}
@@ -1216,18 +1252,18 @@ export default function TrapCounter() {
     <div ref={appRef} style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.85)}}`}</style>
       <FlashLabel label={flashLabel} t={t}/>
-      <div style={{maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
-        {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,borderBottom:`2px solid ${t.border}`,paddingBottom:10}}>
+      <div style={{maxWidth:containerMax,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        {/* Header — compact in landscape on phones */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:scr.landscape&&!isWide?6:12,borderBottom:`2px solid ${t.border}`,paddingBottom:scr.landscape&&!isWide?4:10}}>
           <button onClick={()=>{saveToHistory();setScreen("setup");}} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
           <div style={{textAlign:"center"}}>
             {eventName&&<div style={{fontSize:11,fontWeight:"900",color:t.accent,letterSpacing:2}}>{eventName}</div>}
             <div style={{fontSize:12,fontWeight:"bold",color:t.textMuted,letterSpacing:3}}>
               {isEvent?`SQ ${curSquad} \u00B7 TRAP ${curTrap}`:`SQ ${qSquad} \u00B7 TRAP ${qTrap}`}
             </div>
-            {locationName&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim,marginTop:2}}>{locationName}</div>}
-            {weather&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim}}>{weather}</div>}
-            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.good,marginTop:2}}>LIVE {sessionId}</div>}
+            {!(scr.landscape&&!isWide)&&locationName&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim,marginTop:2}}>{locationName}</div>}
+            {!(scr.landscape&&!isWide)&&weather&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim}}>{weather}</div>}
+            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.good,marginTop:2}}>GROUP {sessionId}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={toggleSunMode} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>

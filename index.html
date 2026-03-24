@@ -2,14 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0f0c08" />
     <title>Trap Counter</title>
     <style>
       *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { background: #0f0c08; overflow-x: hidden; -webkit-tap-highlight-color: transparent; width: 100%; max-width: 100vw; }
       input, button { box-sizing: border-box; max-width: 100%; }
+      /* Safe area insets for notch/Dynamic Island/rounded corners */
+      body {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+      }
+      /* Minimum touch targets on touch devices */
+      @media (pointer: coarse) {
+        button, [role="button"] { min-height: 40px; min-width: 40px; }
+      }
+      /* Thinner borders on high-DPI screens */
+      @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .section-card { border-width: 1px !important; }
+      }
     </style>
   </head>
   <body>
