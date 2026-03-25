@@ -1078,7 +1078,6 @@ export default function TrapCounter() {
         @keyframes muzzleFlare{0%{opacity:0;transform:scale(0.2)}8%{opacity:1;transform:scale(1.3)}25%{opacity:0.7;transform:scale(1)}100%{opacity:0;transform:scale(0.4)}}
         @keyframes smokeUp{0%{opacity:0.4;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--sc))}}
         @keyframes clayFly{0%{left:5%;top:58%;transform:rotate(0deg) scale(0.7)}40%{top:32%;transform:rotate(-8deg) scale(1)}100%{left:72%;top:28%;transform:rotate(-15deg) scale(1)}}
-        @keyframes shotSpread{0%{opacity:0.8;transform:translate(0,0)}100%{opacity:0.1;transform:translate(calc(72vw - 100%),calc(-38vh))}}
         @keyframes screenFlash{0%{opacity:0}4%{opacity:0.9}12%{opacity:0.4}100%{opacity:0}}
         @keyframes boomBall{0%{transform:scale(0.1);opacity:1}20%{transform:scale(1);opacity:1}100%{transform:scale(5);opacity:0}}
         @keyframes shardFly{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--ex),var(--ey)) rotate(var(--er)) scale(0.15)}}
@@ -1198,18 +1197,6 @@ export default function TrapCounter() {
           </div>
         </div>
       )}
-
-      {/* ── SHOT PATTERN — pellets travel from barrel tip toward clay ── */}
-      {bootPhase>=1&&bootPhase<2&&(()=>{
-        const bLen = isTiny ? 80 : 120;
-        const startLeft = 5 + ((32 + 20 + bLen - 15) / (isTiny ? 3.2 : 4));
-        const startTop = 68 - (90 - 33 + 18) / (isTiny ? 6 : 8);
-        // Pellets fly from barrel tip toward clay impact at ~72%, 28%
-        return [0,1,2,3,4,5,6,7].map(i => {
-          const spread = (i - 3.5) * 1.2; // vertical spread
-          return <div key={`sh${i}`} style={{position:"absolute",width:3,height:3,borderRadius:"50%",background:`rgba(220,200,150,${0.6-i*0.05})`,boxShadow:"0 0 4px rgba(220,200,150,0.3)",animation:`shotSpread ${0.8+i*0.03}s ease-in ${i*0.015}s forwards`,top:`${startTop + spread}%`,left:`${startLeft}%`}}/>;
-        });
-      })()}
 
       {/* ── EXPLOSION — right side of screen where clay was ── */}
       {bootPhase>=2&&(
