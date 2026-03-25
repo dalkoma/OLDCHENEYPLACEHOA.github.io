@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const AI_RESPONSES = {
   greeting: [
@@ -96,7 +97,7 @@ export default function Chat({ user, addMemory, R }) {
             }}>
               {msg.role === 'ai' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(6), marginBottom: R.sp(6) }}>
-                  <span style={{ color: colors.primary, fontSize: R.fs(12) }}>◉</span>
+                  <HudIcon size={R.fs(12)} />
                   <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>Jarvis</span>
                 </div>
               )}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -148,7 +149,7 @@ export default function Calendar({ user, addMemory, R }) {
         padding: R.sp(14), background: `${colors.primary}10`, border: `${R.borderWidth}px solid ${colors.primary}25`,
         borderRadius: R.sp(10), display: 'flex', gap: R.sp(10), alignItems: 'center',
       }}>
-        <span style={{ color: colors.primary, fontSize: R.fs(16) }}>◉</span>
+        <HudIcon size={R.fs(16)} />
         <div>
           <div style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>SMART SUGGESTION</div>
           <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>

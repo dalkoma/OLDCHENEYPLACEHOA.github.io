@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const SAMPLE_ITINERARIES = {
   beach: {
@@ -153,7 +154,7 @@ export default function TravelPlanner({ user, addMemory, R }) {
           border: `${R.borderWidth}px solid ${colors.primary}25`, borderRadius: R.sp(10),
         }}>
           <div style={{ display: 'flex', gap: R.sp(8), alignItems: 'center', marginBottom: R.sp(6) }}>
-            <span style={{ color: colors.primary }}>◉</span>
+            <HudIcon size={14} />
             <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>AI TRAVEL TIPS</span>
           </div>
           <div style={{ color: colors.textSecondary, fontSize: R.fs(12), lineHeight: 1.5 }}>
@@ -179,7 +180,7 @@ export default function TravelPlanner({ user, addMemory, R }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: R.sp(8),
         minHeight: R.minTouchTarget,
       }}>
-        <span>◉</span> Plan a New Trip
+        <HudIcon size={16} /> Plan a New Trip
       </button>
 
       {/* Saved Trips */}
@@ -275,7 +276,7 @@ export default function TravelPlanner({ user, addMemory, R }) {
               border: 'none', borderRadius: R.sp(12), fontSize: R.fs(14), fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit', minHeight: R.minTouchTarget,
             }}>
-              {generating ? 'Generating itinerary...' : '◉ Generate Trip with AI'}
+              {generating ? 'Generating itinerary...' : <><HudIcon size={14} /> Generate Trip with AI</>}
             </button>
           </div>
         </div>

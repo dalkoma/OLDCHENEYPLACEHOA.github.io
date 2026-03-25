@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { logIssue } from '../ErrorBoundary'
+import { HudIcon } from '../components/HudReactor'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -151,7 +152,7 @@ export default function DisplayMode() {
         padding: '20px 40px', borderBottom: '2px solid #1a1a3a',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 32, color: '#6c5ce7' }}>◉</span>
+          <HudIcon size={32} />
           <div>
             <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', letterSpacing: 2 }}>CALIFORNIA ZEPHYR</div>
             <div style={{ fontSize: 14, color: '#555577', letterSpacing: 4, textTransform: 'uppercase' }}>Live Departure & Arrival Board</div>

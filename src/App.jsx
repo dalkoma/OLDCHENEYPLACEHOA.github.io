@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useResponsive } from './useResponsive'
+import { HudIcon, HudOverlay, useHudOverlay } from './components/HudReactor'
 import Dashboard from './screens/Dashboard'
 import Chat from './screens/Chat'
 import Calendar from './screens/Calendar'
@@ -22,13 +23,13 @@ import MinimalMode from './modes/MinimalMode'
 const SCREENS = {
   dashboard: { label: 'Home', icon: '⌂', component: Dashboard },
   trains: { label: 'Trains', icon: '🚂', component: TrainTracker },
-  chat: { label: 'Chat', icon: '◉', component: Chat },
+  chat: { label: 'Chat', icon: '⬡', component: Chat },
   calendar: { label: 'Calendar', icon: '▦', component: Calendar },
   tasks: { label: 'Tasks', icon: '✓', component: Tasks },
   meals: { label: 'Meals', icon: '◈', component: MealPlanner },
   scanner: { label: 'Scan', icon: '⊞', component: Scanner },
   channels: { label: 'Channels', icon: '⊶', component: Channels },
-  voice: { label: 'Voice', icon: '◎', component: Voice },
+  voice: { label: 'Voice', icon: '⬡', component: Voice },
   travel: { label: 'Travel', icon: '➤', component: TravelPlanner },
   builder: { label: 'Builder', icon: '⬡', component: AppBuilder },
   reminders: { label: 'Remind', icon: '⏰', component: Reminders },
@@ -108,6 +109,7 @@ export default function App() {
 
   const [screen, setScreen] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
+  const hud = useHudOverlay()
   const R = useResponsive()
   const [user, setUser] = useState(() => loadState('user', {
     name: '',
@@ -159,7 +161,7 @@ export default function App() {
         <div style={{ maxWidth: R.modalMaxWidth, width: '100%', textAlign: 'center' }}>
           {onboardStep === 0 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <div style={{ fontSize: R.fs(isZFlip ? 40 : 64), marginBottom: R.sp(24) }}>◉</div>
+              <div style={{ marginBottom: R.sp(24) }}><HudIcon size={R.fs(isZFlip ? 40 : 64)} /></div>
               <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 22 : 32), fontWeight: 700, marginBottom: R.sp(8) }}>Jarvis</h1>
               {!isZFlip && <p style={{ color: colors.primaryLight, fontSize: R.fs(18), marginBottom: R.sp(8) }}>Your Personal AI Life Manager</p>}
               {!isZFlip && (
@@ -190,12 +192,12 @@ export default function App() {
               <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: R.sp(8) }}>Here's what I can do</h2>
               <div style={{ textAlign: 'left', margin: `${R.sp(24)}px 0` }}>
                 {(isZFlip ? [
-                  ['◉', 'AI Chat & Voice'],
+                  ['⬡', 'AI Chat & Voice'],
                   ['▦', 'Smart Calendar'],
                   ['✓', 'Task Delegation'],
                   ['◈', 'Meal Planning'],
                 ] : [
-                  ['◉', 'AI Chat & Voice', 'Talk to me anytime — text or voice'],
+                  ['⬡', 'AI Chat & Voice', 'Talk to me anytime — text or voice'],
                   ['▦', 'Smart Calendar', 'Unified calendar with conflict detection'],
                   ['✓', 'Task Delegation', 'Assign tasks to your circle via SMS'],
                   ['◈', 'Meal Planning', 'Personalized meals + grocery lists'],
@@ -238,7 +240,7 @@ export default function App() {
         position: 'sticky', top: 0, zIndex: 100,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(10) }}>
-          <span style={{ fontSize: R.fs(22), color: colors.primary }}>◉</span>
+          <HudIcon size={R.fs(22)} onClick={hud.show} glow />
           {!isZFlip && <span style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>Jarvis</span>}
         </div>
         <div style={{ color: colors.textSecondary, fontSize: R.fs(13) }}>
@@ -348,6 +350,7 @@ export default function App() {
           * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         }
       `}</style>
+      <HudOverlay open={hud.open} onClose={hud.hide} />
     </div>
   )
 }

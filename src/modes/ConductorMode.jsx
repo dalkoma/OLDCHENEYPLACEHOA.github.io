@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { logIssue } from '../ErrorBoundary'
+import { HudIcon } from '../components/HudReactor'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -127,7 +128,7 @@ export default function ConductorMode() {
         padding: '10px 24px', borderBottom: '2px solid #1a1a3a', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 24, color: '#6c5ce7' }}>◉</span>
+          <HudIcon size={24} />
           <span style={{ fontSize: 16, fontWeight: 600, color: '#8888aa' }}>CONDUCTOR VIEW</span>
           {/* Train selector */}
           <div style={{ display: 'flex', gap: 6 }}>

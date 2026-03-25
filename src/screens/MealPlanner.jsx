@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const MEAL_DB = {
   breakfast: [
@@ -93,7 +94,7 @@ export default function MealPlanner({ user, addMemory, R }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: R.sp(8),
             minHeight: R.minTouchTarget,
           }}>
-            <span>◉</span> Generate Weekly Plan with AI
+            <HudIcon size={16} /> Generate Weekly Plan with AI
           </button>
 
           <div style={{ display: 'flex', gap: R.sp(4), marginBottom: R.sp(16), overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>

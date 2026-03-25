@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const CHANNELS = [
   { id: 'sms', name: 'SMS', icon: '💬', color: colors.success, desc: 'Send & receive texts' },
@@ -107,7 +108,7 @@ export default function Channels({ user, addMemory, R }) {
         padding: R.sp(14), background: `${colors.accent}10`, border: `${R.borderWidth}px solid ${colors.accent}25`,
         borderRadius: R.sp(12), marginBottom: R.sp(16), display: 'flex', gap: R.sp(10), alignItems: 'center',
       }}>
-        <span style={{ fontSize: R.fs(18), color: colors.accent }}>◉</span>
+        <HudIcon size={R.fs(18)} />
         <div>
           <div style={{ color: colors.accent, fontSize: R.fs(11), fontWeight: 600 }}>PROXY ACTIONS</div>
           <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>Jarvis can send texts, emails, and make calls on your behalf. You approve before anything is sent.</div>
@@ -212,7 +213,7 @@ export default function Channels({ user, addMemory, R }) {
                 padding: `${R.sp(6)}px ${R.sp(12)}px`, background: `${colors.primary}15`, border: `${R.borderWidth}px solid ${colors.primary}30`,
                 borderRadius: R.sp(8), color: colors.primaryLight, fontSize: R.fs(11), cursor: 'pointer', fontFamily: 'inherit',
                 minHeight: R.minTouchTarget,
-              }}>◉ AI Draft</button>
+              }}><HudIcon size={12} /> AI Draft</button>
             </div>
             <select value={composeData.channel} onChange={e => setComposeData({ ...composeData, channel: e.target.value })} style={inputStyle}>
               {CHANNELS.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { logIssue } from '../ErrorBoundary'
+import { HudIcon } from '../components/HudReactor'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -318,7 +319,7 @@ export default function KioskMode() {
         padding: '12px 30px', borderBottom: '1px solid #2a2a4a', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 24, color: '#6c5ce7' }}>◉</span>
+          <HudIcon size={24} />
           <span style={{ fontSize: 18, fontWeight: 600 }}>Jarvis Rail Monitor</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>

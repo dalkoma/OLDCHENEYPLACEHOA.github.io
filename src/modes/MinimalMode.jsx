@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useResponsive } from '../useResponsive'
 import { logIssue } from '../ErrorBoundary'
+import { HudIcon } from '../components/HudReactor'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -112,7 +113,7 @@ export default function MinimalMode() {
       <div style={{ width: '100%', maxWidth: R.modalMaxWidth }}>
         {/* Small header */}
         <div style={{ textAlign: 'center', marginBottom: R.sp(24) }}>
-          <span style={{ fontSize: R.fs(20), color: '#6c5ce7' }}>◉</span>
+          <HudIcon size={R.fs(20)} />
           <div style={{ fontSize: R.fs(12), color: '#555577', marginTop: R.sp(4), letterSpacing: 2 }}>CALIFORNIA ZEPHYR</div>
         </div>
 

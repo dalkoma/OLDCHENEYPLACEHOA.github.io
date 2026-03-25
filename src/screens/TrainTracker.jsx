@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -450,7 +451,7 @@ export default function TrainTracker({ user, addMemory, R }) {
             padding: R.sp(14), background: `${colors.secondary}10`, border: `${R.borderWidth}px solid ${colors.secondary}25`,
             borderRadius: R.sp(10), display: 'flex', gap: R.sp(10), alignItems: 'center', marginTop: R.sp(8),
           }}>
-            <span style={{ color: colors.secondary, fontSize: R.fs(16) }}>◉</span>
+            <HudIcon size={R.fs(16)} />
             <div>
               <div style={{ color: colors.secondary, fontSize: R.fs(11), fontWeight: 600 }}>DATA SOURCE</div>
               <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { colors, loadState, saveState } from '../App'
 import { logIssue } from '../ErrorBoundary'
+import { HudIcon } from '../components/HudReactor'
 
 const greetings = (name) => {
   const h = new Date().getHours()
@@ -281,7 +282,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
         background: colors.gradient1, borderRadius: R.sp(16), padding: R.sp(20), marginBottom: R.sp(16),
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -20, right: -20, fontSize: R.fs(80), opacity: 0.1 }}>◉</div>
+        <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}><HudIcon size={R.fs(80)} /></div>
         <h3 style={{ color: '#fff', fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(12), opacity: 0.9 }}>TODAY'S BRIEFING</h3>
         <div style={{ display: 'flex', gap: R.sp(16) }}>
           {[
@@ -389,8 +390,8 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${quickActionCols}, 1fr)`, gap: R.sp(8) }}>
           {[
             ['🚂', 'Trains', 'trains', colors.warning],
-            ['◉', 'Chat', 'chat', colors.primary],
-            ['◎', 'Voice', 'voice', colors.secondary],
+            ['⬡', 'Chat', 'chat', colors.primary],
+            ['⬡', 'Voice', 'voice', colors.secondary],
             ['⊞', 'Scan', 'scanner', colors.accent],
           ].map(([icon, label, target, col]) => (
             <button

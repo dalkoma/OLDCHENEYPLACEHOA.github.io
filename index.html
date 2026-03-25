@@ -13,11 +13,11 @@
     <link rel="apple-touch-icon" href="./icon-192.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        background: #0a0e18; overflow-x: hidden;
+        background: #060a12; overflow: hidden;
         -webkit-tap-highlight-color: transparent;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
@@ -27,136 +27,145 @@
       @media (resolution >= 2dppx) { * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; } }
       @media (orientation: landscape) { #root { transition: none; } }
 
-      /* ===== JARVIS HUD BOOT ===== */
+      /* ===== JARVIS FULL-SCREEN HUD BOOT ===== */
       #jarvis-splash {
         position: fixed; inset: 0; z-index: 9999;
-        background: radial-gradient(ellipse at center, #0d1525 0%, #060a12 60%, #020408 100%);
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        overflow: hidden;
-        transition: opacity 0.8s ease, visibility 0.8s ease;
+        background: radial-gradient(ellipse at center, #0a1020 0%, #060a12 50%, #020406 100%);
+        display: flex; align-items: center; justify-content: center;
+        transition: opacity 1s ease, visibility 1s ease;
       }
       #jarvis-splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
 
-      /* === HUD ARC REACTOR === */
+      /* Subtle grid */
+      .hud-grid {
+        position: absolute; inset: 0; opacity: 0.03;
+        background-image:
+          linear-gradient(rgba(0,210,220,1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,210,220,1) 1px, transparent 1px);
+        background-size: 50px 50px;
+      }
+
+      /* Reactor takes up full viewport */
       .hud-reactor {
-        position: relative;
-        width: min(380px, 85vw); height: min(380px, 85vw);
-        margin-bottom: 20px; flex-shrink: 0;
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
       }
       .hud-reactor svg {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        filter: drop-shadow(0 0 12px rgba(0, 200, 220, 0.3));
+        width: min(100vw, 100vh); height: min(100vw, 100vh);
+        max-width: 800px; max-height: 800px;
       }
 
-      /* Spinning ring layers */
-      .hud-ring-1 { animation: hudSpin 12s linear infinite; }
-      .hud-ring-2 { animation: hudSpin 8s linear infinite reverse; }
-      .hud-ring-3 { animation: hudSpin 15s linear infinite; }
-      .hud-ring-4 { animation: hudSpin 6s linear infinite reverse; }
-      .hud-ring-5 { animation: hudSpin 20s linear infinite; }
-      .hud-ring-6 { animation: hudSpin 10s linear infinite reverse; }
-      .hud-ring-7 { animation: hudSpin 4s linear infinite; }
-
-      @keyframes hudSpin { from { transform-origin: 50% 50%; transform: rotate(0deg); } to { transform-origin: 50% 50%; transform: rotate(360deg); } }
-
-      /* Core glow */
+      /* Core glow behind text */
       .hud-core-glow {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 90px; height: 90px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(0,210,220,0.25) 0%, rgba(0,210,220,0.08) 40%, transparent 70%);
-        filter: blur(8px);
-        animation: coreGlow 2s ease-in-out infinite;
+        width: 160px; height: 160px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,210,220,0.3) 0%, rgba(0,210,220,0.1) 30%, transparent 65%);
+        filter: blur(15px);
+        animation: coreGlow 2.5s ease-in-out infinite;
       }
-      @keyframes coreGlow { 0%,100% { opacity: 0.7; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.3); } }
+      @keyframes coreGlow { 0%,100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.4); } }
 
-      /* Center text */
+      /* Center overlay */
       .hud-center {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         text-align: center; z-index: 3;
       }
       .hud-jarvis {
-        font-size: 20px; font-weight: 600; letter-spacing: 8px;
-        color: rgba(0, 220, 230, 0.9);
-        text-shadow: 0 0 20px rgba(0,210,220,0.5), 0 0 40px rgba(0,210,220,0.2);
-        animation: textGlow 2s ease-in-out infinite;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 22px; font-weight: 700; letter-spacing: 10px;
+        color: rgba(0, 225, 235, 0.95);
+        text-shadow: 0 0 25px rgba(0,210,220,0.6), 0 0 50px rgba(0,210,220,0.25);
+        animation: textGlow 2.5s ease-in-out infinite;
       }
-      @keyframes textGlow { 0%,100% { text-shadow: 0 0 20px rgba(0,210,220,0.5), 0 0 40px rgba(0,210,220,0.2); } 50% { text-shadow: 0 0 30px rgba(0,210,220,0.8), 0 0 60px rgba(0,210,220,0.4); } }
+      .hud-clock {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px; font-weight: 400; letter-spacing: 4px;
+        color: rgba(0,200,210,0.5); margin-top: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+      @keyframes textGlow { 0%,100% { text-shadow: 0 0 25px rgba(0,210,220,0.6), 0 0 50px rgba(0,210,220,0.25); } 50% { text-shadow: 0 0 40px rgba(0,210,220,0.9), 0 0 80px rgba(0,210,220,0.4); } }
 
-      /* Outer expanding sonar rings */
+      /* Sonar expanding rings */
       .hud-sonar {
         position: absolute; top: 50%; left: 50%; border-radius: 50%;
-        border: 1px solid rgba(0,210,220,0.12);
-        transform: translate(-50%, -50%) scale(0.5);
+        border: 1px solid rgba(0,210,220,0.1);
+        transform: translate(-50%, -50%) scale(0.4);
         animation: sonarExpand 4s ease-out infinite;
+        pointer-events: none;
       }
-      .hud-sonar:nth-child(1) { width: 420px; height: 420px; animation-delay: 0s; }
-      .hud-sonar:nth-child(2) { width: 520px; height: 520px; animation-delay: 1s; }
-      .hud-sonar:nth-child(3) { width: 640px; height: 640px; animation-delay: 2s; }
-      .hud-sonar:nth-child(4) { width: 780px; height: 780px; animation-delay: 3s; }
+      .hud-sonar:nth-child(2) { width: 110%; height: 110%; animation-delay: 0s; }
+      .hud-sonar:nth-child(3) { width: 130%; height: 130%; animation-delay: 1s; }
+      .hud-sonar:nth-child(4) { width: 155%; height: 155%; animation-delay: 2s; }
+      .hud-sonar:nth-child(5) { width: 185%; height: 185%; animation-delay: 3s; }
       @keyframes sonarExpand {
-        0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
-        15% { opacity: 0.4; }
+        0% { transform: translate(-50%,-50%) scale(0.4); opacity: 0; }
+        12% { opacity: 0.35; }
         100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
       }
 
-      /* Floating particles */
-      .splash-particle { position: absolute; border-radius: 50%; background: rgba(0,210,220,0.25); animation: particleFloat linear infinite; }
-      @keyframes particleFloat { 0% { transform: translateY(0) scale(1); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.5; } 100% { transform: translateY(-100vh) scale(0.3); opacity: 0; } }
+      /* Particles */
+      .splash-particle { position: absolute; border-radius: 50%; background: rgba(0,210,220,0.2); animation: pFloat linear infinite; pointer-events: none; }
+      @keyframes pFloat { 0% { transform: translateY(0) scale(1); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.3; } 100% { transform: translateY(-100vh) scale(0.2); opacity: 0; } }
 
-      /* Grid background */
-      .hud-grid {
-        position: absolute; inset: 0; opacity: 0.04;
-        background-image:
-          linear-gradient(rgba(0,210,220,1) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,210,220,1) 1px, transparent 1px);
-        background-size: 60px 60px;
+      /* Data feed overlay (bottom left) */
+      .splash-feed {
+        position: absolute; bottom: 80px; left: 20px; right: 20px;
+        max-width: 400px;
+        display: flex; flex-direction: column; gap: 4px;
+        z-index: 5;
       }
-
-      /* Text below reactor */
-      .splash-greeting { color: #e0f4f4; font-size: 20px; font-weight: 600; margin-bottom: 2px; animation: textIn 0.8s ease 0.3s both; }
-      .splash-clock { color: rgba(0,220,230,0.9); font-size: 38px; font-weight: 300; letter-spacing: 3px; font-variant-numeric: tabular-nums; animation: textIn 0.8s ease 0.5s both; text-shadow: 0 0 15px rgba(0,210,220,0.3); }
-      .splash-date { color: #3a5060; font-size: 12px; margin-bottom: 20px; animation: textIn 0.8s ease 0.6s both; }
-      @keyframes textIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-
-      /* Live data feed */
-      .splash-feed { width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
       .splash-feed-item {
-        display: flex; align-items: center; gap: 10px;
-        padding: 7px 14px; border-radius: 8px;
-        background: rgba(0,210,220,0.04); border: 1px solid rgba(0,210,220,0.12);
-        opacity: 0; transform: translateX(-20px);
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 12px; border-radius: 6px;
+        background: rgba(0,15,25,0.85); border: 1px solid rgba(0,210,220,0.1);
+        backdrop-filter: blur(6px);
+        opacity: 0; transform: translateX(-15px);
         transition: opacity 0.4s ease, transform 0.4s ease;
       }
       .splash-feed-item.show { opacity: 1; transform: translateX(0); }
-      .splash-feed-icon { font-size: 14px; flex-shrink: 0; width: 22px; text-align: center; }
-      .splash-feed-label { color: rgba(0,210,220,0.5); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .splash-feed-value { color: #c0dde0; font-size: 11px; line-height: 1.4; }
-      .splash-feed-value .hi { color: #00dce6; }
+      .splash-feed-icon { font-size: 12px; flex-shrink: 0; width: 18px; text-align: center; }
+      .splash-feed-label { color: rgba(0,210,220,0.45); font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Orbitron', sans-serif; }
+      .splash-feed-value { color: #b0d8dc; font-size: 10px; line-height: 1.3; }
+      .splash-feed-value .hi { color: #00e5ef; }
       .splash-feed-value .warn { color: #fdcb6e; }
-      .splash-feed-value .accent { color: #7dd8dc; }
+      .splash-feed-value .accent { color: #70d0d5; }
+
+      /* Greeting overlay (top) */
+      .splash-top {
+        position: absolute; top: 40px; left: 0; right: 0;
+        text-align: center; z-index: 5;
+        animation: textIn 1s ease 0.3s both;
+      }
+      .splash-greeting { color: #c0e8ec; font-size: 16px; font-weight: 500; margin-bottom: 2px; }
+      .splash-date { color: rgba(0,200,210,0.35); font-size: 11px; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; }
+      @keyframes textIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
       /* Bottom progress */
-      .splash-bottom { position: absolute; bottom: 36px; display: flex; flex-direction: column; align-items: center; gap: 8px; animation: textIn 0.8s ease 0.8s both; }
-      .splash-progress { width: 160px; height: 2px; background: rgba(0,210,220,0.1); border-radius: 1px; overflow: hidden; }
-      .splash-progress-bar { height: 100%; width: 0; border-radius: 1px; background: linear-gradient(90deg, #00808a, #00dce6, #7dd8dc); transition: width 0.3s ease; }
-      .splash-status-text { color: #2a4858; font-size: 10px; letter-spacing: 1.5px; transition: opacity 0.2s; }
+      .splash-bottom {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 5;
+        animation: textIn 0.8s ease 0.6s both;
+      }
+      .splash-progress { width: 180px; height: 2px; background: rgba(0,210,220,0.08); border-radius: 1px; overflow: hidden; }
+      .splash-progress-bar { height: 100%; width: 0; border-radius: 1px; background: linear-gradient(90deg, #006a72, #00dce6, #70d0d5); transition: width 0.3s ease; }
+      .splash-status-text { color: rgba(0,200,210,0.3); font-size: 9px; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; transition: opacity 0.2s; }
     </style>
   </head>
   <body>
     <div id="jarvis-splash" aria-label="Loading Jarvis">
-      <!-- Background grid -->
       <div class="hud-grid"></div>
 
       <!-- Particles -->
       <div class="splash-particle" style="width:2px;height:2px;left:8%;bottom:-5px;animation-duration:7s;animation-delay:0s;"></div>
-      <div class="splash-particle" style="width:3px;height:3px;left:22%;bottom:-5px;animation-duration:9s;animation-delay:0.8s;"></div>
-      <div class="splash-particle" style="width:2px;height:2px;left:40%;bottom:-5px;animation-duration:6s;animation-delay:1.5s;"></div>
-      <div class="splash-particle" style="width:3px;height:3px;left:60%;bottom:-5px;animation-duration:8s;animation-delay:0.3s;"></div>
-      <div class="splash-particle" style="width:2px;height:2px;left:75%;bottom:-5px;animation-duration:7.5s;animation-delay:2s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:20%;bottom:-5px;animation-duration:9s;animation-delay:0.8s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:38%;bottom:-5px;animation-duration:6s;animation-delay:1.5s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:58%;bottom:-5px;animation-duration:8s;animation-delay:0.3s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:72%;bottom:-5px;animation-duration:7.5s;animation-delay:2s;"></div>
       <div class="splash-particle" style="width:2px;height:2px;left:88%;bottom:-5px;animation-duration:6.5s;animation-delay:1s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:48%;bottom:-5px;animation-duration:8.5s;animation-delay:2.5s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:15%;bottom:-5px;animation-duration:10s;animation-delay:3s;"></div>
 
-      <!-- HUD Arc Reactor -->
+      <!-- Full-screen HUD Reactor -->
       <div class="hud-reactor">
         <!-- Sonar rings -->
         <div class="hud-sonar"></div><div class="hud-sonar"></div><div class="hud-sonar"></div><div class="hud-sonar"></div>
@@ -164,103 +173,26 @@
         <!-- Core glow -->
         <div class="hud-core-glow"></div>
 
-        <!-- SVG HUD Rings -->
-        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            <filter id="glowStrong"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          </defs>
+        <!-- The SVG — all rings built with JS for proper rotation -->
+        <svg id="hud-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg"></svg>
 
-          <!-- RING 7: Outermost — thin dashed ring -->
-          <g class="hud-ring-5">
-            <circle cx="200" cy="200" r="190" fill="none" stroke="rgba(0,210,220,0.08)" stroke-width="0.5" stroke-dasharray="3 8"/>
-          </g>
-
-          <!-- RING 6: Outer tick marks (60 ticks) -->
-          <g class="hud-ring-3" filter="url(#glow)">
-            <g id="outer-ticks">
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(6 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(12 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(18 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(24 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(30 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(36 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(42 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(48 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="24" stroke="rgba(0,210,220,0.15)" stroke-width="0.5" transform="rotate(54 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(60 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(90 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(120 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(150 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(180 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(210 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(240 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(270 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(300 200 200)"/>
-              <line x1="200" y1="18" x2="200" y2="28" stroke="rgba(0,210,220,0.25)" stroke-width="1" transform="rotate(330 200 200)"/>
-            </g>
-          </g>
-
-          <!-- RING 5: Segmented arc ring (thick, gaps) -->
-          <g class="hud-ring-2" filter="url(#glow)">
-            <circle cx="200" cy="200" r="170" fill="none" stroke="rgba(0,210,220,0.2)" stroke-width="3" stroke-dasharray="40 15 20 15 60 15 30 15" stroke-linecap="round"/>
-          </g>
-
-          <!-- RING 4: Thin solid ring with bright arc highlight -->
-          <g class="hud-ring-1">
-            <circle cx="200" cy="200" r="155" fill="none" stroke="rgba(0,210,220,0.1)" stroke-width="1"/>
-            <circle cx="200" cy="200" r="155" fill="none" stroke="rgba(0,230,240,0.6)" stroke-width="2.5" stroke-dasharray="80 500" stroke-linecap="round" filter="url(#glowStrong)"/>
-            <circle cx="200" cy="200" r="155" fill="none" stroke="rgba(253,203,110,0.5)" stroke-width="2" stroke-dasharray="40 540" stroke-dashoffset="200" stroke-linecap="round" filter="url(#glow)"/>
-          </g>
-
-          <!-- RING 3: Inner segmented with notches -->
-          <g class="hud-ring-4" filter="url(#glow)">
-            <circle cx="200" cy="200" r="135" fill="none" stroke="rgba(0,210,220,0.15)" stroke-width="6" stroke-dasharray="8 4"/>
-            <circle cx="200" cy="200" r="135" fill="none" stroke="rgba(0,230,240,0.45)" stroke-width="6" stroke-dasharray="25 200 15 200" stroke-linecap="round"/>
-          </g>
-
-          <!-- RING 2: Thin ring with dot markers -->
-          <g class="hud-ring-6">
-            <circle cx="200" cy="200" r="118" fill="none" stroke="rgba(0,210,220,0.12)" stroke-width="1"/>
-            <!-- Dot markers around the ring -->
-            <circle cx="200" cy="82" r="2.5" fill="rgba(0,230,240,0.6)"/>
-            <circle cx="282" cy="118" r="2" fill="rgba(0,230,240,0.4)"/>
-            <circle cx="318" cy="200" r="2.5" fill="rgba(0,230,240,0.6)"/>
-            <circle cx="282" cy="282" r="2" fill="rgba(0,230,240,0.4)"/>
-            <circle cx="200" cy="318" r="2.5" fill="rgba(0,230,240,0.6)"/>
-            <circle cx="118" cy="282" r="2" fill="rgba(0,230,240,0.4)"/>
-            <circle cx="82" cy="200" r="2.5" fill="rgba(0,230,240,0.6)"/>
-            <circle cx="118" cy="118" r="2" fill="rgba(0,230,240,0.4)"/>
-          </g>
-
-          <!-- RING 1: Inner segmented bright arcs -->
-          <g class="hud-ring-7" filter="url(#glowStrong)">
-            <circle cx="200" cy="200" r="100" fill="none" stroke="rgba(0,230,240,0.15)" stroke-width="2" stroke-dasharray="15 8 6 8"/>
-            <circle cx="200" cy="200" r="100" fill="none" stroke="rgba(0,240,250,0.6)" stroke-width="3" stroke-dasharray="30 290" stroke-linecap="round"/>
-            <circle cx="200" cy="200" r="100" fill="none" stroke="rgba(0,240,250,0.4)" stroke-width="2" stroke-dasharray="20 300" stroke-dashoffset="150" stroke-linecap="round"/>
-          </g>
-
-          <!-- CORE: Innermost ring -->
-          <circle cx="200" cy="200" r="75" fill="none" stroke="rgba(0,210,220,0.2)" stroke-width="1.5" filter="url(#glow)"/>
-          <circle cx="200" cy="200" r="72" fill="none" stroke="rgba(0,210,220,0.08)" stroke-width="0.5"/>
-        </svg>
-
-        <!-- Center text overlay -->
+        <!-- Center overlay -->
         <div class="hud-center">
           <div class="hud-jarvis">J.A.R.V.I.S</div>
+          <div class="hud-clock" id="hud-clock"></div>
         </div>
       </div>
 
-      <!-- Real greeting + clock -->
-      <div class="splash-greeting" id="splash-greeting"></div>
-      <div class="splash-clock" id="splash-clock"></div>
-      <div class="splash-date" id="splash-date"></div>
+      <!-- Top greeting -->
+      <div class="splash-top">
+        <div class="splash-greeting" id="splash-greeting"></div>
+        <div class="splash-date" id="splash-date"></div>
+      </div>
 
       <!-- Live data feed -->
       <div class="splash-feed" id="splash-feed"></div>
 
-      <!-- Bottom -->
+      <!-- Bottom progress -->
       <div class="splash-bottom">
         <div class="splash-progress"><div class="splash-progress-bar" id="splash-progress"></div></div>
         <div class="splash-status-text" id="splash-status">INITIALIZING</div>
@@ -271,22 +203,165 @@
     <script type="module" src="/src/main.jsx"></script>
     <script>
     (function() {
+      // === BUILD THE HUD SVG WITH JAVASCRIPT ===
+      var svg = document.getElementById('hud-svg');
+      var NS = 'http://www.w3.org/2000/svg';
+      var CX = 250, CY = 250; // center of 500x500 viewBox
+
+      // Helper: create SVG element
+      function el(tag, attrs) {
+        var e = document.createElementNS(NS, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      }
+
+      // Defs: glow filters
+      var defs = el('defs', {});
+      // Soft glow
+      var f1 = el('filter', { id: 'g1' });
+      f1.appendChild(el('feGaussianBlur', { stdDeviation: '2', in: 'SourceGraphic', result: 'b' }));
+      var m1 = el('feMerge', {});
+      m1.appendChild(el('feMergeNode', { in: 'b' }));
+      m1.appendChild(el('feMergeNode', { in: 'SourceGraphic' }));
+      f1.appendChild(m1);
+      defs.appendChild(f1);
+      // Strong glow
+      var f2 = el('filter', { id: 'g2' });
+      f2.appendChild(el('feGaussianBlur', { stdDeviation: '4', in: 'SourceGraphic', result: 'b' }));
+      var m2 = el('feMerge', {});
+      m2.appendChild(el('feMergeNode', { in: 'b' }));
+      m2.appendChild(el('feMergeNode', { in: 'SourceGraphic' }));
+      f2.appendChild(m2);
+      defs.appendChild(f2);
+      svg.appendChild(defs);
+
+      // Ring definitions: [radius, elements[], speed (deg/s), filter]
+      var rings = [];
+
+      // --- RING 8: Outermost hairline dashed ---
+      var r8 = el('g', {});
+      r8.appendChild(el('circle', { cx: CX, cy: CY, r: 245, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5', 'stroke-dasharray': '2 6' }));
+      rings.push({ g: r8, speed: 0.5 });
+
+      // --- RING 7: Major tick marks (every 10°) + minor ticks (every 2°) ---
+      var r7 = el('g', {});
+      for (var a = 0; a < 360; a += 2) {
+        var major = a % 10 === 0;
+        var cardinal = a % 90 === 0;
+        r7.appendChild(el('line', {
+          x1: CX, y1: CY - 235, x2: CX, y2: CY - (cardinal ? 220 : major ? 225 : 230),
+          stroke: cardinal ? 'rgba(0,230,240,0.5)' : major ? 'rgba(0,210,220,0.25)' : 'rgba(0,210,220,0.08)',
+          'stroke-width': cardinal ? '1.5' : major ? '1' : '0.4',
+          transform: 'rotate(' + a + ' ' + CX + ' ' + CY + ')'
+        }));
+      }
+      // Cardinal labels
+      var labels = [['N', 0], ['E', 90], ['S', 180], ['W', 270]];
+      labels.forEach(function(l) {
+        var rad = (l[1] - 90) * Math.PI / 180;
+        var lx = CX + 210 * Math.cos(rad);
+        var ly = CY + 210 * Math.sin(rad);
+        r7.appendChild(el('text', {
+          x: lx, y: ly + 4, fill: 'rgba(0,210,220,0.3)', 'font-size': '8',
+          'font-family': 'Orbitron, sans-serif', 'text-anchor': 'middle'
+        }));
+        r7.lastChild.textContent = l[0];
+      });
+      rings.push({ g: r7, speed: -1.2, filter: 'url(#g1)' });
+
+      // --- RING 6: Thick segmented arc ---
+      var r6 = el('g', {});
+      r6.appendChild(el('circle', { cx: CX, cy: CY, r: 205, fill: 'none', stroke: 'rgba(0,210,220,0.18)', 'stroke-width': '4', 'stroke-dasharray': '50 12 25 12 70 12 35 12 45 12', 'stroke-linecap': 'round' }));
+      // Bright highlight arc
+      r6.appendChild(el('circle', { cx: CX, cy: CY, r: 205, fill: 'none', stroke: 'rgba(0,240,250,0.55)', 'stroke-width': '4', 'stroke-dasharray': '60 1000', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      rings.push({ g: r6, speed: 2.0 });
+
+      // --- RING 5: Double thin rings ---
+      var r5 = el('g', {});
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(0,210,220,0.1)', 'stroke-width': '1' }));
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 186, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5', 'stroke-dasharray': '4 3' }));
+      // Bright accent arc
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(0,235,245,0.6)', 'stroke-width': '2.5', 'stroke-dasharray': '90 700', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      // Gold accent arc
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(253,203,110,0.45)', 'stroke-width': '2', 'stroke-dasharray': '45 750', 'stroke-dashoffset': '280', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r5, speed: -3.0 });
+
+      // --- RING 4: Heavy notched ring ---
+      var r4 = el('g', {});
+      r4.appendChild(el('circle', { cx: CX, cy: CY, r: 168, fill: 'none', stroke: 'rgba(0,210,220,0.12)', 'stroke-width': '8', 'stroke-dasharray': '6 3' }));
+      // Bright segment overlays
+      r4.appendChild(el('circle', { cx: CX, cy: CY, r: 168, fill: 'none', stroke: 'rgba(0,240,250,0.5)', 'stroke-width': '8', 'stroke-dasharray': '30 250 20 250', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r4, speed: 1.5 });
+
+      // --- RING 3: Dot marker ring ---
+      var r3 = el('g', {});
+      r3.appendChild(el('circle', { cx: CX, cy: CY, r: 148, fill: 'none', stroke: 'rgba(0,210,220,0.08)', 'stroke-width': '1' }));
+      for (var d = 0; d < 360; d += 22.5) {
+        var rad = (d - 90) * Math.PI / 180;
+        var dx = CX + 148 * Math.cos(rad);
+        var dy = CY + 148 * Math.sin(rad);
+        r3.appendChild(el('circle', { cx: dx, cy: dy, r: d % 45 === 0 ? '3' : '1.5', fill: d % 45 === 0 ? 'rgba(0,240,250,0.6)' : 'rgba(0,220,230,0.3)' }));
+      }
+      rings.push({ g: r3, speed: -2.5 });
+
+      // --- RING 2: Inner segmented arcs ---
+      var r2 = el('g', {});
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,210,220,0.1)', 'stroke-width': '2.5', 'stroke-dasharray': '12 6 5 6' }));
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,250,255,0.65)', 'stroke-width': '3', 'stroke-dasharray': '35 350', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,240,250,0.4)', 'stroke-width': '2', 'stroke-dasharray': '20 360', 'stroke-dashoffset': '180', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r2, speed: 4.0 });
+
+      // --- RING 1: Innermost fast spinner ---
+      var r1 = el('g', {});
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(0,220,230,0.08)', 'stroke-width': '1.5', 'stroke-dasharray': '3 4' }));
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(0,250,255,0.7)', 'stroke-width': '3', 'stroke-dasharray': '25 400', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      // Secondary arc
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(253,203,110,0.35)', 'stroke-width': '2', 'stroke-dasharray': '15 410', 'stroke-dashoffset': '120', 'stroke-linecap': 'round' }));
+      rings.push({ g: r1, speed: -6.0 });
+
+      // --- RING 0: Inner glow ring (static) ---
+      svg.appendChild(el('circle', { cx: CX, cy: CY, r: 88, fill: 'none', stroke: 'rgba(0,210,220,0.2)', 'stroke-width': '1.5', filter: 'url(#g1)' }));
+      svg.appendChild(el('circle', { cx: CX, cy: CY, r: 84, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5' }));
+
+      // Append all ring groups
+      rings.forEach(function(ring) {
+        if (ring.filter) ring.g.setAttribute('filter', ring.filter);
+        svg.appendChild(ring.g);
+      });
+
+      // === JAVASCRIPT-DRIVEN ROTATION (bulletproof) ===
+      var angles = rings.map(function() { return 0; });
+      var lastTime = performance.now();
+
+      function animate(now) {
+        var dt = (now - lastTime) / 1000; // seconds
+        lastTime = now;
+        for (var i = 0; i < rings.length; i++) {
+          angles[i] = (angles[i] + rings[i].speed * dt) % 360;
+          rings[i].g.setAttribute('transform', 'rotate(' + angles[i] + ' ' + CX + ' ' + CY + ')');
+        }
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+
+      // === REAL TIME ===
       var now = new Date();
       var h = now.getHours();
       var greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
       try { var u = JSON.parse(localStorage.getItem('jarvis_user')); if (u && u.name) greet += ', ' + u.name; } catch(e) {}
 
       var gEl = document.getElementById('splash-greeting');
-      var cEl = document.getElementById('splash-clock');
+      var clockEl = document.getElementById('hud-clock');
       var dEl = document.getElementById('splash-date');
       if (gEl) gEl.textContent = greet;
-      if (cEl) cEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      if (clockEl) clockEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       if (dEl) dEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
       setInterval(function() {
-        if (cEl) cEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }, 1000);
 
+      // === LIVE DATA FEED ===
       var feed = document.getElementById('splash-feed');
       var progress = document.getElementById('splash-progress');
       var statusEl = document.getElementById('splash-status');
@@ -311,16 +386,16 @@
       }
 
       setTimeout(function() {
-        setProgress(10, 'READING WORLD CLOCKS');
-        var zones = [['🗽','NY','America/New_York'],['🇬🇧','LON','Europe/London'],['🇯🇵','TYO','Asia/Tokyo'],['🌴','LA','America/Los_Angeles']];
+        setProgress(10, 'SCANNING WORLD CLOCKS');
+        var zones = [['NY','America/New_York'],['LON','Europe/London'],['TYO','Asia/Tokyo'],['LA','America/Los_Angeles']];
         var parts = zones.map(function(z) {
-          try { return z[0] + z[1] + ' <span class="accent">' + new Date().toLocaleTimeString('en-US',{timeZone:z[2],hour:'numeric',minute:'2-digit',hour12:true}) + '</span>'; } catch(e) { return ''; }
+          try { return z[0] + ' <span class="accent">' + new Date().toLocaleTimeString('en-US',{timeZone:z[1],hour:'numeric',minute:'2-digit',hour12:true}) + '</span>'; } catch(e) { return ''; }
         }).filter(Boolean);
         addFeedItem('🌍', 'WORLD CLOCKS', parts.join(' · '));
-      }, 300);
+      }, 400);
 
       setTimeout(function() {
-        setProgress(25, 'CHECKING SCHEDULE');
+        setProgress(25, 'READING SCHEDULE');
         try {
           var events = JSON.parse(localStorage.getItem('jarvis_events') || '[]');
           var tasks = JSON.parse(localStorage.getItem('jarvis_tasks') || '[]');
@@ -331,10 +406,10 @@
           if (te.length > 0) msg += ' · ' + te.slice(0,2).map(function(e){return e.title;}).join(', ');
           addFeedItem('📋', 'TODAY', msg);
         } catch(e) { addFeedItem('📋', 'TODAY', 'No data'); }
-      }, 800);
+      }, 900);
 
       setTimeout(function() {
-        setProgress(40, 'CHECKING TRAINS');
+        setProgress(40, 'QUERYING TRAINS');
         try {
           var sched = JSON.parse(localStorage.getItem('jarvis_trainSchedule') || '[]');
           var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -344,7 +419,7 @@
             addFeedItem('🚂', 'TRAINS', tt.map(function(t){return '<span class="hi">#'+t.train+'</span> '+t.boardStation;}).join(' · '));
           } else { addFeedItem('🚂', 'TRAINS', 'No trains today'); }
         } catch(e) { addFeedItem('🚂', 'TRAINS', 'No schedule'); }
-      }, 1300);
+      }, 1400);
 
       setTimeout(function() {
         setProgress(55, 'FETCHING WEATHER');
@@ -357,8 +432,8 @@
               '<span class="hi">' + c.temp_F + '°F</span> · ' + (c.weatherDesc&&c.weatherDesc[0]&&c.weatherDesc[0].value||'') +
               ' · Feels ' + c.FeelsLikeF + '°F · 💨' + c.windspeedMiles + 'mph');
           } else { addFeedItem('🌡', 'WEATHER', 'Unavailable'); }
-        }).catch(function() { addFeedItem('🌡', 'WEATHER', 'Offline — retry in app'); });
-      }, 1800);
+        }).catch(function() { addFeedItem('🌡', 'WEATHER', 'Offline'); });
+      }, 1900);
 
       setTimeout(function() {
         setProgress(75, 'PULLING HEADLINES');
@@ -368,7 +443,7 @@
               addFeedItem('📰', 'HEADLINES', d.items.slice(0,3).map(function(i){return '• '+i.title.replace(/ - [^-]+$/,'');}).join('<br>'));
             } else { addFeedItem('📰', 'NEWS', 'No headlines'); }
           }).catch(function() { addFeedItem('📰', 'NEWS', 'Offline'); });
-      }, 2400);
+      }, 2500);
 
       setTimeout(function() {
         setProgress(90, 'CHECKING REMINDERS');
@@ -379,16 +454,17 @@
             addFeedItem('⏰', 'REMINDERS', '<span class="warn">' + active.length + '</span> active · ' + (active[0].text||active[0].title||''));
           } else { addFeedItem('⏰', 'REMINDERS', 'All clear'); }
         } catch(e) { addFeedItem('⏰', 'REMINDERS', 'Clear'); }
-      }, 3000);
+      }, 3100);
 
+      // === HIDE SPLASH WHEN REACT MOUNTS ===
       var observer = new MutationObserver(function(mutations) {
         for (var i = 0; i < mutations.length; i++) {
           if (mutations[i].addedNodes.length > 0) {
             setProgress(100, 'ALL SYSTEMS ONLINE');
             var splash = document.getElementById('jarvis-splash');
             if (splash) {
-              setTimeout(function() { splash.classList.add('hide'); }, 800);
-              setTimeout(function() { splash.remove(); }, 1800);
+              setTimeout(function() { splash.classList.add('hide'); }, 1000);
+              setTimeout(function() { splash.remove(); }, 2200);
             }
             observer.disconnect();
             break;

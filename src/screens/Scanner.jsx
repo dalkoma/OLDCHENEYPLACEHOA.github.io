@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const DEMO_EXTRACTIONS = [
   {
@@ -145,7 +146,7 @@ export default function Scanner({ user, addMemory, R }) {
           padding: R.sp(40), border: `2px dashed ${colors.border}`, borderRadius: R.sp(16),
           textAlign: 'center', marginBottom: R.sp(16), background: colors.surfaceLight,
         }}>
-          <div style={{ fontSize: R.fs(40), marginBottom: R.sp(12), color: colors.secondary }}>◎</div>
+          <div style={{ marginBottom: R.sp(12) }}><HudIcon size={R.fs(40)} /></div>
           <div style={{ color: colors.text, fontSize: R.fs(14), marginBottom: R.sp(4) }}>Camera Scan</div>
           <div style={{ color: colors.textMuted, fontSize: R.fs(12), marginBottom: R.sp(12) }}>Point at a document, flyer, or whiteboard</div>
           <button onClick={() => simulateScan('Camera capture')} style={{
@@ -159,7 +160,7 @@ export default function Scanner({ user, addMemory, R }) {
       {/* Scanning Animation */}
       {scanning && (
         <div style={{ textAlign: 'center', padding: R.sp(24) }}>
-          <div style={{ fontSize: R.fs(32), color: colors.primary, animation: 'pulse 1s infinite' }}>◉</div>
+          <HudIcon size={R.fs(32)} />
           <div style={{ color: colors.primaryLight, fontSize: R.fs(14), marginTop: R.sp(8) }}>Analyzing document...</div>
           <div style={{ color: colors.textMuted, fontSize: R.fs(12), marginTop: R.sp(4) }}>Extracting events, tasks, and action items</div>
         </div>

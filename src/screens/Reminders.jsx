@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { HudIcon } from '../components/HudReactor'
 
 const modalOverlay = (R) => ({
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)',
@@ -69,7 +70,7 @@ export default function Reminders({ user, addMemory, R }) {
         padding: R.sp(14), background: `${colors.warning}10`, border: `${R.borderWidth}px solid ${colors.warning}25`,
         borderRadius: R.sp(12), marginBottom: R.sp(16), display: 'flex', gap: R.sp(10), alignItems: 'flex-start',
       }}>
-        <span style={{ color: colors.warning, fontSize: R.fs(18) }}>◉</span>
+        <HudIcon size={R.fs(18)} />
         <div>
           <div style={{ color: colors.warning, fontSize: R.fs(11), fontWeight: 600 }}>SMART REMINDERS</div>
           <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>
