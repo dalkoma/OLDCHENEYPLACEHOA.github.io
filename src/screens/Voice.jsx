@@ -135,11 +135,11 @@ export default function Voice({ user, addMemory, R }) {
   const isZFlip = R.device === 'zFlipCover'
   const isSmall = R.isSmall
   const ringSize = isZFlip ? 80 : isSmall ? Math.min(140, R.w * 0.35) : Math.min(160, R.w * 0.25)
-  const orbContainerSize = ringSize + (isZFlip ? 30 : 60)
+  const orbContainerSize = ringSize + R.sp(isZFlip ? 30 : 60)
   const rings = [1, 0.75, 0.5]
 
   return (
-    <div style={{ padding: R.sp(16), display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: `calc(100vh - ${R.isLandscape && isSmall ? 150 : 200}px)` }}>
+    <div style={{ padding: R.sp(16), display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: `calc(100vh - ${R.sp(R.isLandscape && isSmall ? 150 : 200)}px)` }}>
       <h2 style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700, marginBottom: 4, alignSelf: 'flex-start' }}>Voice Assistant</h2>
       <p style={{ color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(24), alignSelf: 'flex-start' }}>
         Talk to Jarvis hands-free. {mode === 'push' ? 'Hold the button to speak.' : 'Jarvis is always listening.'}

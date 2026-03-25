@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useResponsive } from '../useResponsive'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -35,6 +36,7 @@ function loadState(key, fallback) {
 }
 
 export default function MinimalMode() {
+  const R = useResponsive()
   const [trains, setTrains] = useState({})
   const [loading, setLoading] = useState(true)
   const [lastFetch, setLastFetch] = useState(null)
@@ -60,7 +62,6 @@ export default function MinimalMode() {
   const todayDay = DAYS[new Date().getDay()]
   const todaySchedule = schedule.filter(s => s.days?.includes(todayDay))
 
-  // If user has a schedule, show their trains; otherwise show both
   const trainCards = todaySchedule.length > 0 ? todaySchedule : [
     { train: '5', direction: 'westbound', boardStation: '' },
     { train: '6', direction: 'eastbound', boardStation: '' },
@@ -76,12 +77,10 @@ export default function MinimalMode() {
     const atStation = stationList.find(s => s.status === 'Station')
     const current = enroute || atStation
 
-    // Find user's boarding station
     const myStation = boardStation ? stationList.find(s => s.code === boardStation) : null
     const myDelay = myStation && myStation.schArr && myStation.arr ?
       Math.round((new Date(myStation.arr).getTime() - new Date(myStation.schArr).getTime()) / 60000) : null
 
-    // Overall delay
     const latestWithActual = [...stationList].reverse().find(s => s.arr || s.dep)
     const overallDelay = latestWithActual ? Math.round(
       (new Date(latestWithActual.arr || latestWithActual.dep).getTime() -
@@ -107,19 +106,19 @@ export default function MinimalMode() {
       position: 'fixed', inset: 0, background: '#0a0a1a',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 20,
+      padding: R.sp(20),
     }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
+      <div style={{ width: '100%', maxWidth: R.modalMaxWidth }}>
         {/* Small header */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <span style={{ fontSize: 20, color: '#6c5ce7' }}>◉</span>
-          <div style={{ fontSize: 12, color: '#555577', marginTop: 4, letterSpacing: 2 }}>CALIFORNIA ZEPHYR</div>
+        <div style={{ textAlign: 'center', marginBottom: R.sp(24) }}>
+          <span style={{ fontSize: R.fs(20), color: '#6c5ce7' }}>◉</span>
+          <div style={{ fontSize: R.fs(12), color: '#555577', marginTop: R.sp(4), letterSpacing: 2 }}>CALIFORNIA ZEPHYR</div>
         </div>
 
         {loading && !lastFetch ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🚂</div>
-            <div style={{ color: '#555577', fontSize: 14 }}>Loading train data...</div>
+          <div style={{ textAlign: 'center', padding: R.sp(40) }}>
+            <div style={{ fontSize: R.fs(32), marginBottom: R.sp(12) }}>🚂</div>
+            <div style={{ color: '#555577', fontSize: R.fs(14) }}>Loading train data...</div>
           </div>
         ) : (
           trainCards.map((sched, i) => {
@@ -128,24 +127,24 @@ export default function MinimalMode() {
 
             return (
               <div key={i} style={{
-                background: '#12122a', borderRadius: 20, padding: 24,
-                border: `1px solid #2a2a4a`, marginBottom: 16,
+                background: '#12122a', borderRadius: R.sp(20), padding: R.sp(24),
+                border: `${R.borderWidth}px solid #2a2a4a`, marginBottom: R.sp(16),
               }}>
                 {/* Train number & direction */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(16) }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(10) }}>
                     <div style={{
-                      width: 44, height: 44, borderRadius: 12, background: `${color}20`,
+                      width: R.sp(44), height: R.sp(44), borderRadius: R.sp(12), background: `${color}20`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <span style={{ color, fontSize: 18, fontWeight: 700 }}>#{sched.train}</span>
+                      <span style={{ color, fontSize: R.fs(18), fontWeight: 700 }}>#{sched.train}</span>
                     </div>
                     <div>
-                      <div style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>
+                      <div style={{ color: '#fff', fontSize: R.fs(16), fontWeight: 600 }}>
                         {sched.direction === 'westbound' ? '← Westbound' : 'Eastbound →'}
                       </div>
                       {sched.boardStation && (
-                        <div style={{ color: '#8888aa', fontSize: 12 }}>
+                        <div style={{ color: '#8888aa', fontSize: R.fs(12) }}>
                           Board at {sched.boardStation}{sched.exitStation ? ` → ${sched.exitStation}` : ''}
                         </div>
                       )}
@@ -156,29 +155,29 @@ export default function MinimalMode() {
                 {info ? (
                   <>
                     {/* Current position */}
-                    <div style={{ fontSize: 18, color: '#f0f0ff', fontWeight: 500, marginBottom: 8 }}>
+                    <div style={{ fontSize: R.fs(18), color: '#f0f0ff', fontWeight: 500, marginBottom: R.sp(8) }}>
                       {info.current}
                     </div>
 
                     {/* Speed */}
                     {info.velocity > 0 && (
-                      <div style={{ fontSize: 13, color: '#8888aa', marginBottom: 12 }}>
+                      <div style={{ fontSize: R.fs(13), color: '#8888aa', marginBottom: R.sp(12) }}>
                         {Math.round(info.velocity)} mph
                       </div>
                     )}
 
                     {/* Delay - the hero stat */}
                     <div style={{
-                      padding: '16px 20px', borderRadius: 14, textAlign: 'center',
+                      padding: `${R.sp(16)}px ${R.sp(20)}px`, borderRadius: R.sp(14), textAlign: 'center',
                       background: info.delay !== null ? (
                         info.delay <= 0 ? '#00b89412' : info.delay < 30 ? '#fdcb6e12' : '#e1705512'
                       ) : '#1a1a3a',
-                      border: `1px solid ${info.delay !== null ? (
+                      border: `${R.borderWidth}px solid ${info.delay !== null ? (
                         info.delay <= 0 ? '#00b89430' : info.delay < 30 ? '#fdcb6e30' : '#e1705530'
                       ) : '#2a2a4a'}`,
                     }}>
                       <div style={{
-                        fontSize: 32, fontWeight: 700,
+                        fontSize: R.fs(32), fontWeight: 700,
                         color: info.delay !== null ? (
                           info.delay <= 0 ? '#00b894' : info.delay < 30 ? '#fdcb6e' : info.delay < 60 ? '#e67e22' : '#e17055'
                         ) : '#555577',
@@ -188,7 +187,7 @@ export default function MinimalMode() {
                         ) : 'No delay data'}
                       </div>
                       {info.myStationName && (
-                        <div style={{ fontSize: 12, color: '#555577', marginTop: 4 }}>
+                        <div style={{ fontSize: R.fs(12), color: '#555577', marginTop: R.sp(4) }}>
                           at {info.myStationName}
                         </div>
                       )}
@@ -196,19 +195,19 @@ export default function MinimalMode() {
 
                     {/* Arrival times for user's station */}
                     {info.schArr && (
-                      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: R.sp(14) }}>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#555577', marginBottom: 2 }}>SCHEDULED</div>
-                          <div style={{ fontSize: 18, color: '#8888aa', fontVariantNumeric: 'tabular-nums' }}>{info.schArr}</div>
+                          <div style={{ fontSize: R.fs(11), color: '#555577', marginBottom: R.sp(2) }}>SCHEDULED</div>
+                          <div style={{ fontSize: R.fs(18), color: '#8888aa', fontVariantNumeric: 'tabular-nums' }}>{info.schArr}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#555577', marginBottom: 2 }}>ACTUAL</div>
-                          <div style={{ fontSize: 18, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{info.actArr}</div>
+                          <div style={{ fontSize: R.fs(11), color: '#555577', marginBottom: R.sp(2) }}>ACTUAL</div>
+                          <div style={{ fontSize: R.fs(18), color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{info.actArr}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#555577', marginBottom: 2 }}>STATUS</div>
+                          <div style={{ fontSize: R.fs(11), color: '#555577', marginBottom: R.sp(2) }}>STATUS</div>
                           <div style={{
-                            fontSize: 14, fontWeight: 600,
+                            fontSize: R.fs(14), fontWeight: 600,
                             color: info.myStationStatus === 'Departed' ? '#555577' :
                                    info.myStationStatus === 'Enroute' ? '#fdcb6e' :
                                    info.myStationStatus === 'Station' ? '#00b894' : '#8888aa',
@@ -218,9 +217,9 @@ export default function MinimalMode() {
                     )}
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: 20 }}>
-                    <div style={{ color: '#555577', fontSize: 16 }}>No active data</div>
-                    <div style={{ color: '#3a3a5a', fontSize: 12, marginTop: 4 }}>Train may not be running</div>
+                  <div style={{ textAlign: 'center', padding: R.sp(20) }}>
+                    <div style={{ color: '#555577', fontSize: R.fs(16) }}>No active data</div>
+                    <div style={{ color: '#3a3a5a', fontSize: R.fs(12), marginTop: R.sp(4) }}>Train may not be running</div>
                   </div>
                 )}
               </div>
@@ -229,16 +228,17 @@ export default function MinimalMode() {
         )}
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
+        <div style={{ textAlign: 'center', marginTop: R.sp(8) }}>
           {lastFetch && (
-            <div style={{ fontSize: 11, color: '#3a3a5a' }}>
+            <div style={{ fontSize: R.fs(11), color: '#3a3a5a' }}>
               Updated {lastFetch.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · Auto-refresh 60s
             </div>
           )}
           <button onClick={() => { window.location.search = '' }} style={{
-            marginTop: 12, padding: '8px 20px', background: '#1a1a3a',
-            border: '1px solid #2a2a4a', borderRadius: 20, color: '#555577',
-            fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            marginTop: R.sp(12), padding: `${R.sp(8)}px ${R.sp(20)}px`, background: '#1a1a3a',
+            border: `${R.borderWidth}px solid #2a2a4a`, borderRadius: R.sp(20), color: '#555577',
+            fontSize: R.fs(12), cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: R.minTouchTarget,
           }}>Exit Minimal Mode</button>
         </div>
       </div>
