@@ -410,10 +410,17 @@
 
       setTimeout(function() {
         setProgress(40, 'QUERYING LIVE TRAIN DATA');
-        // Hit the real Amtraker API for trains #5 and #6
+        // Your work schedule: #6 EB to LNK, #5 WB board OTM — Mon/Wed/Fri
+        var mySchedule = {
+          '6': { station: 'LNK', dir: 'EB', days: ['Mon','Wed','Fri'] },
+          '5': { station: 'OTM', dir: 'WB', days: ['Mon','Wed','Fri'] }
+        };
+        var daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        var today = daysOfWeek[new Date().getDay()];
+        var tomorrow = daysOfWeek[(new Date().getDay() + 1) % 7];
+
         var trainNums = ['5', '6'];
         var apiBase = 'https://api-v3.amtraker.com/v3/trains/';
-        var myStations = { '6': 'LNK', '5': 'OTM' }; // Your boarding stations
         var promises = trainNums.map(function(n) {
           return fetch(apiBase + n).then(function(r) { return r.json(); }).then(function(data) {
             return { train: n, data: data };
@@ -423,18 +430,16 @@
           var msgs = [];
           results.forEach(function(res) {
             if (!res.data) return;
-            // API returns object with train number keys, each containing array of instances
             var instances = res.data[res.train] || Object.values(res.data)[0];
             if (!instances || !Array.isArray(instances) || instances.length === 0) return;
+            var sched = mySchedule[res.train];
             instances.forEach(function(inst) {
               var stations = inst.stations || [];
               if (!Array.isArray(stations)) stations = Object.values(stations);
-              var mySt = myStations[res.train] || '';
-              var myStation = stations.find(function(s) { return s.code === mySt; });
+              var myStation = stations.find(function(s) { return s.code === sched.station; });
               var status = '';
               var timeStr = '';
               if (myStation) {
-                // Calculate delay
                 if (myStation.arr && myStation.schArr) {
                   var delay = Math.round((new Date(myStation.arr).getTime() - new Date(myStation.schArr).getTime()) / 60000);
                   var arrTime = new Date(myStation.arr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -445,26 +450,33 @@
                 } else if (myStation.schArr) {
                   var schTime = new Date(myStation.schArr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                   timeStr = ' · Sched ' + schTime;
-                  status = myStation.status || 'Scheduled';
+                  status = myStation.status || '';
                 } else {
                   status = myStation.status || '';
                 }
               }
-              // Find where the train currently is
               var current = stations.find(function(s) { return s.status === 'Enroute'; }) || stations.find(function(s) { return s.status === 'Station'; });
               var currentStr = current ? ' · Now: ' + (current.name || current.code) : '';
-              var dir = res.train === '6' ? 'EB' : 'WB';
-              msgs.push('<span class="hi">#' + res.train + '</span> ' + dir + ' → ' + mySt + timeStr + ' ' + status + currentStr);
+              // Highlight if this is a work schedule day
+              var isWorkTrain = sched.days.indexOf(today) >= 0 || sched.days.indexOf(tomorrow) >= 0;
+              var prefix = isWorkTrain ? '⭐ ' : '';
+              var workTag = isWorkTrain ? ' <span style="color:#fdcb6e;font-size:9px;background:rgba(253,203,110,0.15);padding:1px 5px;border-radius:4px;margin-left:4px">YOUR TRAIN</span>' : '';
+              msgs.push(prefix + '<span class="hi">#' + res.train + '</span> ' + sched.dir + ' → ' + sched.station + timeStr + ' ' + status + currentStr + workTag);
             });
           });
           if (msgs.length > 0) {
             addFeedItem('🚂', 'LIVE TRAINS', msgs.join('<br>'));
           } else {
-            // Fallback: show next scheduled train
-            addFeedItem('🚂', 'NEXT TRAIN', '<span class="hi">#6</span> EB → LNK · Next departure from EMY · Check schedule for details');
+            // No active trains — show next scheduled
+            var nextWorkDay = '';
+            for (var i = 1; i <= 7; i++) {
+              var checkDay = daysOfWeek[(new Date().getDay() + i) % 7];
+              if (mySchedule['6'].days.indexOf(checkDay) >= 0) { nextWorkDay = checkDay; break; }
+            }
+            addFeedItem('🚂', 'TRAINS', 'No active trains right now<br>⭐ Next: <span class="hi">#6</span> EB → LNK on ' + nextWorkDay);
           }
         }).catch(function() {
-          addFeedItem('🚂', 'TRAINS', 'API offline — check app for details');
+          addFeedItem('🚂', 'TRAINS', 'API offline — check app');
         });
       }, 1400);
 
