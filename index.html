@@ -2,17 +2,481 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0f0c08" />
-    <title>Trap Counter</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a0a1a" />
+    <meta name="description" content="Jarvis - Your personal AI life manager with calendar, tasks, train tracking, meals, and more." />
+    <title>Jarvis - Your Personal AI Assistant</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./icon-192.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #0f0c08; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+      body {
+        background: #060a12; overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+      }
+      #root { min-height: 100vh; min-height: 100dvh; }
+      @media (hover: none) and (pointer: coarse) { button, a, [role="button"], input, select, textarea { min-height: 40px; } }
+      @media (resolution >= 2dppx) { * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; } }
+      @media (orientation: landscape) { #root { transition: none; } }
+
+      /* ===== JARVIS FULL-SCREEN HUD BOOT ===== */
+      #jarvis-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        background: radial-gradient(ellipse at center, #0a1020 0%, #060a12 50%, #020406 100%);
+        display: flex; align-items: center; justify-content: center;
+        transition: opacity 1s ease, visibility 1s ease;
+      }
+      #jarvis-splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+      /* Subtle grid */
+      .hud-grid {
+        position: absolute; inset: 0; opacity: 0.03;
+        background-image:
+          linear-gradient(rgba(0,210,220,1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,210,220,1) 1px, transparent 1px);
+        background-size: 50px 50px;
+      }
+
+      /* Reactor takes up full viewport */
+      .hud-reactor {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .hud-reactor svg {
+        width: min(100vw, 100vh); height: min(100vw, 100vh);
+        max-width: 800px; max-height: 800px;
+      }
+
+      /* Core glow behind text */
+      .hud-core-glow {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 160px; height: 160px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,210,220,0.3) 0%, rgba(0,210,220,0.1) 30%, transparent 65%);
+        filter: blur(15px);
+        animation: coreGlow 2.5s ease-in-out infinite;
+      }
+      @keyframes coreGlow { 0%,100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.4); } }
+
+      /* Center overlay */
+      .hud-center {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        text-align: center; z-index: 3;
+      }
+      .hud-jarvis {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 22px; font-weight: 700; letter-spacing: 10px;
+        color: rgba(0, 225, 235, 0.95);
+        text-shadow: 0 0 25px rgba(0,210,220,0.6), 0 0 50px rgba(0,210,220,0.25);
+        animation: textGlow 2.5s ease-in-out infinite;
+      }
+      .hud-clock {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 14px; font-weight: 400; letter-spacing: 4px;
+        color: rgba(0,200,210,0.5); margin-top: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+      @keyframes textGlow { 0%,100% { text-shadow: 0 0 25px rgba(0,210,220,0.6), 0 0 50px rgba(0,210,220,0.25); } 50% { text-shadow: 0 0 40px rgba(0,210,220,0.9), 0 0 80px rgba(0,210,220,0.4); } }
+
+      /* Sonar expanding rings */
+      .hud-sonar {
+        position: absolute; top: 50%; left: 50%; border-radius: 50%;
+        border: 1px solid rgba(0,210,220,0.1);
+        transform: translate(-50%, -50%) scale(0.4);
+        animation: sonarExpand 4s ease-out infinite;
+        pointer-events: none;
+      }
+      .hud-sonar:nth-child(2) { width: 110%; height: 110%; animation-delay: 0s; }
+      .hud-sonar:nth-child(3) { width: 130%; height: 130%; animation-delay: 1s; }
+      .hud-sonar:nth-child(4) { width: 155%; height: 155%; animation-delay: 2s; }
+      .hud-sonar:nth-child(5) { width: 185%; height: 185%; animation-delay: 3s; }
+      @keyframes sonarExpand {
+        0% { transform: translate(-50%,-50%) scale(0.4); opacity: 0; }
+        12% { opacity: 0.35; }
+        100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+      }
+
+      /* Particles */
+      .splash-particle { position: absolute; border-radius: 50%; background: rgba(0,210,220,0.2); animation: pFloat linear infinite; pointer-events: none; }
+      @keyframes pFloat { 0% { transform: translateY(0) scale(1); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.3; } 100% { transform: translateY(-100vh) scale(0.2); opacity: 0; } }
+
+      /* Data feed overlay (bottom left) */
+      .splash-feed {
+        position: absolute; bottom: 80px; left: 20px; right: 20px;
+        max-width: 400px;
+        display: flex; flex-direction: column; gap: 4px;
+        z-index: 5;
+      }
+      .splash-feed-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 12px; border-radius: 6px;
+        background: rgba(0,15,25,0.85); border: 1px solid rgba(0,210,220,0.1);
+        backdrop-filter: blur(6px);
+        opacity: 0; transform: translateX(-15px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+      .splash-feed-item.show { opacity: 1; transform: translateX(0); }
+      .splash-feed-icon { font-size: 12px; flex-shrink: 0; width: 18px; text-align: center; }
+      .splash-feed-label { color: rgba(0,210,220,0.45); font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Orbitron', sans-serif; }
+      .splash-feed-value { color: #b0d8dc; font-size: 10px; line-height: 1.3; }
+      .splash-feed-value .hi { color: #00e5ef; }
+      .splash-feed-value .warn { color: #fdcb6e; }
+      .splash-feed-value .accent { color: #70d0d5; }
+
+      /* Greeting overlay (top) */
+      .splash-top {
+        position: absolute; top: 40px; left: 0; right: 0;
+        text-align: center; z-index: 5;
+        animation: textIn 1s ease 0.3s both;
+      }
+      .splash-greeting { color: #c0e8ec; font-size: 16px; font-weight: 500; margin-bottom: 2px; }
+      .splash-date { color: rgba(0,200,210,0.35); font-size: 11px; font-family: 'Orbitron', sans-serif; letter-spacing: 2px; }
+      @keyframes textIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Bottom progress */
+      .splash-bottom {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 5;
+        animation: textIn 0.8s ease 0.6s both;
+      }
+      .splash-progress { width: 180px; height: 2px; background: rgba(0,210,220,0.08); border-radius: 1px; overflow: hidden; }
+      .splash-progress-bar { height: 100%; width: 0; border-radius: 1px; background: linear-gradient(90deg, #006a72, #00dce6, #70d0d5); transition: width 0.3s ease; }
+      .splash-status-text { color: rgba(0,200,210,0.3); font-size: 9px; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; transition: opacity 0.2s; }
     </style>
   </head>
   <body>
+    <div id="jarvis-splash" aria-label="Loading Jarvis">
+      <div class="hud-grid"></div>
+
+      <!-- Particles -->
+      <div class="splash-particle" style="width:2px;height:2px;left:8%;bottom:-5px;animation-duration:7s;animation-delay:0s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:20%;bottom:-5px;animation-duration:9s;animation-delay:0.8s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:38%;bottom:-5px;animation-duration:6s;animation-delay:1.5s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:58%;bottom:-5px;animation-duration:8s;animation-delay:0.3s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:72%;bottom:-5px;animation-duration:7.5s;animation-delay:2s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:88%;bottom:-5px;animation-duration:6.5s;animation-delay:1s;"></div>
+      <div class="splash-particle" style="width:2px;height:2px;left:48%;bottom:-5px;animation-duration:8.5s;animation-delay:2.5s;"></div>
+      <div class="splash-particle" style="width:3px;height:3px;left:15%;bottom:-5px;animation-duration:10s;animation-delay:3s;"></div>
+
+      <!-- Full-screen HUD Reactor -->
+      <div class="hud-reactor">
+        <!-- Sonar rings -->
+        <div class="hud-sonar"></div><div class="hud-sonar"></div><div class="hud-sonar"></div><div class="hud-sonar"></div>
+
+        <!-- Core glow -->
+        <div class="hud-core-glow"></div>
+
+        <!-- The SVG — all rings built with JS for proper rotation -->
+        <svg id="hud-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg"></svg>
+
+        <!-- Center overlay -->
+        <div class="hud-center">
+          <div class="hud-jarvis">J.A.R.V.I.S</div>
+          <div class="hud-clock" id="hud-clock"></div>
+        </div>
+      </div>
+
+      <!-- Top greeting -->
+      <div class="splash-top">
+        <div class="splash-greeting" id="splash-greeting"></div>
+        <div class="splash-date" id="splash-date"></div>
+      </div>
+
+      <!-- Live data feed -->
+      <div class="splash-feed" id="splash-feed"></div>
+
+      <!-- Bottom progress -->
+      <div class="splash-bottom">
+        <div class="splash-progress"><div class="splash-progress-bar" id="splash-progress"></div></div>
+        <div class="splash-status-text" id="splash-status">INITIALIZING</div>
+      </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+    (function() {
+      // === BUILD THE HUD SVG WITH JAVASCRIPT ===
+      var svg = document.getElementById('hud-svg');
+      var NS = 'http://www.w3.org/2000/svg';
+      var CX = 250, CY = 250; // center of 500x500 viewBox
+
+      // Helper: create SVG element
+      function el(tag, attrs) {
+        var e = document.createElementNS(NS, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      }
+
+      // Defs: glow filters
+      var defs = el('defs', {});
+      // Soft glow
+      var f1 = el('filter', { id: 'g1' });
+      f1.appendChild(el('feGaussianBlur', { stdDeviation: '2', in: 'SourceGraphic', result: 'b' }));
+      var m1 = el('feMerge', {});
+      m1.appendChild(el('feMergeNode', { in: 'b' }));
+      m1.appendChild(el('feMergeNode', { in: 'SourceGraphic' }));
+      f1.appendChild(m1);
+      defs.appendChild(f1);
+      // Strong glow
+      var f2 = el('filter', { id: 'g2' });
+      f2.appendChild(el('feGaussianBlur', { stdDeviation: '4', in: 'SourceGraphic', result: 'b' }));
+      var m2 = el('feMerge', {});
+      m2.appendChild(el('feMergeNode', { in: 'b' }));
+      m2.appendChild(el('feMergeNode', { in: 'SourceGraphic' }));
+      f2.appendChild(m2);
+      defs.appendChild(f2);
+      svg.appendChild(defs);
+
+      // Ring definitions: [radius, elements[], speed (deg/s), filter]
+      var rings = [];
+
+      // --- RING 8: Outermost hairline dashed ---
+      var r8 = el('g', {});
+      r8.appendChild(el('circle', { cx: CX, cy: CY, r: 245, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5', 'stroke-dasharray': '2 6' }));
+      rings.push({ g: r8, speed: 0.5 });
+
+      // --- RING 7: Major tick marks (every 10°) + minor ticks (every 2°) ---
+      var r7 = el('g', {});
+      for (var a = 0; a < 360; a += 2) {
+        var major = a % 10 === 0;
+        var cardinal = a % 90 === 0;
+        r7.appendChild(el('line', {
+          x1: CX, y1: CY - 235, x2: CX, y2: CY - (cardinal ? 220 : major ? 225 : 230),
+          stroke: cardinal ? 'rgba(0,230,240,0.5)' : major ? 'rgba(0,210,220,0.25)' : 'rgba(0,210,220,0.08)',
+          'stroke-width': cardinal ? '1.5' : major ? '1' : '0.4',
+          transform: 'rotate(' + a + ' ' + CX + ' ' + CY + ')'
+        }));
+      }
+      // Cardinal labels
+      var labels = [['N', 0], ['E', 90], ['S', 180], ['W', 270]];
+      labels.forEach(function(l) {
+        var rad = (l[1] - 90) * Math.PI / 180;
+        var lx = CX + 210 * Math.cos(rad);
+        var ly = CY + 210 * Math.sin(rad);
+        r7.appendChild(el('text', {
+          x: lx, y: ly + 4, fill: 'rgba(0,210,220,0.3)', 'font-size': '8',
+          'font-family': 'Orbitron, sans-serif', 'text-anchor': 'middle'
+        }));
+        r7.lastChild.textContent = l[0];
+      });
+      rings.push({ g: r7, speed: -1.2, filter: 'url(#g1)' });
+
+      // --- RING 6: Thick segmented arc ---
+      var r6 = el('g', {});
+      r6.appendChild(el('circle', { cx: CX, cy: CY, r: 205, fill: 'none', stroke: 'rgba(0,210,220,0.18)', 'stroke-width': '4', 'stroke-dasharray': '50 12 25 12 70 12 35 12 45 12', 'stroke-linecap': 'round' }));
+      // Bright highlight arc
+      r6.appendChild(el('circle', { cx: CX, cy: CY, r: 205, fill: 'none', stroke: 'rgba(0,240,250,0.55)', 'stroke-width': '4', 'stroke-dasharray': '60 1000', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      rings.push({ g: r6, speed: 2.0 });
+
+      // --- RING 5: Double thin rings ---
+      var r5 = el('g', {});
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(0,210,220,0.1)', 'stroke-width': '1' }));
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 186, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5', 'stroke-dasharray': '4 3' }));
+      // Bright accent arc
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(0,235,245,0.6)', 'stroke-width': '2.5', 'stroke-dasharray': '90 700', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      // Gold accent arc
+      r5.appendChild(el('circle', { cx: CX, cy: CY, r: 190, fill: 'none', stroke: 'rgba(253,203,110,0.45)', 'stroke-width': '2', 'stroke-dasharray': '45 750', 'stroke-dashoffset': '280', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r5, speed: -3.0 });
+
+      // --- RING 4: Heavy notched ring ---
+      var r4 = el('g', {});
+      r4.appendChild(el('circle', { cx: CX, cy: CY, r: 168, fill: 'none', stroke: 'rgba(0,210,220,0.12)', 'stroke-width': '8', 'stroke-dasharray': '6 3' }));
+      // Bright segment overlays
+      r4.appendChild(el('circle', { cx: CX, cy: CY, r: 168, fill: 'none', stroke: 'rgba(0,240,250,0.5)', 'stroke-width': '8', 'stroke-dasharray': '30 250 20 250', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r4, speed: 1.5 });
+
+      // --- RING 3: Dot marker ring ---
+      var r3 = el('g', {});
+      r3.appendChild(el('circle', { cx: CX, cy: CY, r: 148, fill: 'none', stroke: 'rgba(0,210,220,0.08)', 'stroke-width': '1' }));
+      for (var d = 0; d < 360; d += 22.5) {
+        var rad = (d - 90) * Math.PI / 180;
+        var dx = CX + 148 * Math.cos(rad);
+        var dy = CY + 148 * Math.sin(rad);
+        r3.appendChild(el('circle', { cx: dx, cy: dy, r: d % 45 === 0 ? '3' : '1.5', fill: d % 45 === 0 ? 'rgba(0,240,250,0.6)' : 'rgba(0,220,230,0.3)' }));
+      }
+      rings.push({ g: r3, speed: -2.5 });
+
+      // --- RING 2: Inner segmented arcs ---
+      var r2 = el('g', {});
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,210,220,0.1)', 'stroke-width': '2.5', 'stroke-dasharray': '12 6 5 6' }));
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,250,255,0.65)', 'stroke-width': '3', 'stroke-dasharray': '35 350', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      r2.appendChild(el('circle', { cx: CX, cy: CY, r: 128, fill: 'none', stroke: 'rgba(0,240,250,0.4)', 'stroke-width': '2', 'stroke-dasharray': '20 360', 'stroke-dashoffset': '180', 'stroke-linecap': 'round', filter: 'url(#g1)' }));
+      rings.push({ g: r2, speed: 4.0 });
+
+      // --- RING 1: Innermost fast spinner ---
+      var r1 = el('g', {});
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(0,220,230,0.08)', 'stroke-width': '1.5', 'stroke-dasharray': '3 4' }));
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(0,250,255,0.7)', 'stroke-width': '3', 'stroke-dasharray': '25 400', 'stroke-linecap': 'round', filter: 'url(#g2)' }));
+      // Secondary arc
+      r1.appendChild(el('circle', { cx: CX, cy: CY, r: 108, fill: 'none', stroke: 'rgba(253,203,110,0.35)', 'stroke-width': '2', 'stroke-dasharray': '15 410', 'stroke-dashoffset': '120', 'stroke-linecap': 'round' }));
+      rings.push({ g: r1, speed: -6.0 });
+
+      // --- RING 0: Inner glow ring (static) ---
+      svg.appendChild(el('circle', { cx: CX, cy: CY, r: 88, fill: 'none', stroke: 'rgba(0,210,220,0.2)', 'stroke-width': '1.5', filter: 'url(#g1)' }));
+      svg.appendChild(el('circle', { cx: CX, cy: CY, r: 84, fill: 'none', stroke: 'rgba(0,210,220,0.06)', 'stroke-width': '0.5' }));
+
+      // Append all ring groups
+      rings.forEach(function(ring) {
+        if (ring.filter) ring.g.setAttribute('filter', ring.filter);
+        svg.appendChild(ring.g);
+      });
+
+      // === JAVASCRIPT-DRIVEN ROTATION (bulletproof) ===
+      var angles = rings.map(function() { return 0; });
+      var lastTime = performance.now();
+
+      function animate(now) {
+        var dt = (now - lastTime) / 1000; // seconds
+        lastTime = now;
+        for (var i = 0; i < rings.length; i++) {
+          angles[i] = (angles[i] + rings[i].speed * dt) % 360;
+          rings[i].g.setAttribute('transform', 'rotate(' + angles[i] + ' ' + CX + ' ' + CY + ')');
+        }
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+
+      // === REAL TIME ===
+      var now = new Date();
+      var h = now.getHours();
+      var greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+      try { var u = JSON.parse(localStorage.getItem('jarvis_user')); if (u && u.name) greet += ', ' + u.name; } catch(e) {}
+
+      var gEl = document.getElementById('splash-greeting');
+      var clockEl = document.getElementById('hud-clock');
+      var dEl = document.getElementById('splash-date');
+      if (gEl) gEl.textContent = greet;
+      if (clockEl) clockEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (dEl) dEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+      setInterval(function() {
+        if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }, 1000);
+
+      // === LIVE DATA FEED ===
+      var feed = document.getElementById('splash-feed');
+      var progress = document.getElementById('splash-progress');
+      var statusEl = document.getElementById('splash-status');
+      var step = 0, totalSteps = 6;
+
+      function setProgress(pct, label) {
+        if (progress) progress.style.width = pct + '%';
+        if (statusEl) { statusEl.style.opacity = '0'; setTimeout(function() { statusEl.textContent = label; statusEl.style.opacity = '1'; }, 150); }
+      }
+
+      function addFeedItem(icon, label, value) {
+        if (!feed) return;
+        var div = document.createElement('div');
+        div.className = 'splash-feed-item';
+        div.innerHTML = '<span class="splash-feed-icon">' + icon + '</span><div><div class="splash-feed-label">' + label + '</div><div class="splash-feed-value">' + value + '</div></div>';
+        feed.appendChild(div);
+        var items = feed.querySelectorAll('.splash-feed-item');
+        if (items.length > 5) items[0].remove();
+        setTimeout(function() { div.classList.add('show'); }, 30);
+        step++;
+        setProgress(Math.min(95, Math.round((step / totalSteps) * 100)), step >= totalSteps ? 'SYSTEMS ONLINE' : 'SCANNING');
+      }
+
+      setTimeout(function() {
+        setProgress(10, 'SCANNING WORLD CLOCKS');
+        var zones = [['NY','America/New_York'],['LON','Europe/London'],['TYO','Asia/Tokyo'],['LA','America/Los_Angeles']];
+        var parts = zones.map(function(z) {
+          try { return z[0] + ' <span class="accent">' + new Date().toLocaleTimeString('en-US',{timeZone:z[1],hour:'numeric',minute:'2-digit',hour12:true}) + '</span>'; } catch(e) { return ''; }
+        }).filter(Boolean);
+        addFeedItem('🌍', 'WORLD CLOCKS', parts.join(' · '));
+      }, 400);
+
+      setTimeout(function() {
+        setProgress(25, 'READING SCHEDULE');
+        try {
+          var events = JSON.parse(localStorage.getItem('jarvis_events') || '[]');
+          var tasks = JSON.parse(localStorage.getItem('jarvis_tasks') || '[]');
+          var todayStr = new Date().toISOString().split('T')[0];
+          var te = events.filter(function(e){return e.date===todayStr;});
+          var pt = tasks.filter(function(t){return !t.completed;});
+          var msg = '<span class="accent">' + te.length + '</span> events · <span class="warn">' + pt.length + '</span> tasks';
+          if (te.length > 0) msg += ' · ' + te.slice(0,2).map(function(e){return e.title;}).join(', ');
+          addFeedItem('📋', 'TODAY', msg);
+        } catch(e) { addFeedItem('📋', 'TODAY', 'No data'); }
+      }, 900);
+
+      setTimeout(function() {
+        setProgress(40, 'QUERYING TRAINS');
+        try {
+          var sched = JSON.parse(localStorage.getItem('jarvis_trainSchedule') || '[]');
+          var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          var today = days[new Date().getDay()];
+          var tt = sched.filter(function(s){return s.days && s.days.indexOf(today)>=0;});
+          if (tt.length > 0) {
+            addFeedItem('🚂', 'TRAINS', tt.map(function(t){return '<span class="hi">#'+t.train+'</span> '+t.boardStation;}).join(' · '));
+          } else { addFeedItem('🚂', 'TRAINS', 'No trains today'); }
+        } catch(e) { addFeedItem('🚂', 'TRAINS', 'No schedule'); }
+      }, 1400);
+
+      setTimeout(function() {
+        setProgress(55, 'FETCHING WEATHER');
+        fetch('https://wttr.in/?format=j1').then(function(r){return r.json();}).then(function(d) {
+          var c = d.current_condition && d.current_condition[0];
+          if (c) {
+            var area = d.nearest_area && d.nearest_area[0];
+            var city = area ? (area.areaName && area.areaName[0] && area.areaName[0].value) || '' : '';
+            addFeedItem('🌡', 'WEATHER' + (city ? ' · ' + city.toUpperCase() : ''),
+              '<span class="hi">' + c.temp_F + '°F</span> · ' + (c.weatherDesc&&c.weatherDesc[0]&&c.weatherDesc[0].value||'') +
+              ' · Feels ' + c.FeelsLikeF + '°F · 💨' + c.windspeedMiles + 'mph');
+          } else { addFeedItem('🌡', 'WEATHER', 'Unavailable'); }
+        }).catch(function() { addFeedItem('🌡', 'WEATHER', 'Offline'); });
+      }, 1900);
+
+      setTimeout(function() {
+        setProgress(75, 'PULLING HEADLINES');
+        fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fnews.google.com%2Frss%3Fhl%3Den-US%26gl%3DUS%26ceid%3DUS%3Aen')
+          .then(function(r){return r.json();}).then(function(d) {
+            if (d.items && d.items.length > 0) {
+              addFeedItem('📰', 'HEADLINES', d.items.slice(0,3).map(function(i){return '• '+i.title.replace(/ - [^-]+$/,'');}).join('<br>'));
+            } else { addFeedItem('📰', 'NEWS', 'No headlines'); }
+          }).catch(function() { addFeedItem('📰', 'NEWS', 'Offline'); });
+      }, 2500);
+
+      setTimeout(function() {
+        setProgress(90, 'CHECKING REMINDERS');
+        try {
+          var rem = JSON.parse(localStorage.getItem('jarvis_reminders') || '[]');
+          var active = rem.filter(function(r){return !r.dismissed;});
+          if (active.length > 0) {
+            addFeedItem('⏰', 'REMINDERS', '<span class="warn">' + active.length + '</span> active · ' + (active[0].text||active[0].title||''));
+          } else { addFeedItem('⏰', 'REMINDERS', 'All clear'); }
+        } catch(e) { addFeedItem('⏰', 'REMINDERS', 'Clear'); }
+      }, 3100);
+
+      // === HIDE SPLASH WHEN REACT MOUNTS ===
+      var observer = new MutationObserver(function(mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].addedNodes.length > 0) {
+            setProgress(100, 'ALL SYSTEMS ONLINE');
+            var splash = document.getElementById('jarvis-splash');
+            if (splash) {
+              setTimeout(function() { splash.classList.add('hide'); }, 1000);
+              setTimeout(function() { splash.remove(); }, 2200);
+            }
+            observer.disconnect();
+            break;
+          }
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() { navigator.serviceWorker.register('./sw.js').catch(function(){}); });
+      }
+    })();
+    </script>
   </body>
 </html>
