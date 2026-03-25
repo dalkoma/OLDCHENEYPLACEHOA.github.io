@@ -76,8 +76,12 @@ export default function Voice({ user, addMemory, R }) {
   const timeoutRef = useRef(null)
   const responseIndexRef = useRef(0)
 
-  // Cancel all speech synthesis on unmount (fixes repeat on page change)
+  // Preload voices (they load async in Chrome) and cleanup on unmount
   useEffect(() => {
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices() // trigger load
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices()
+    }
     return () => {
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel()
@@ -103,10 +107,21 @@ export default function Voice({ user, addMemory, R }) {
 
   const speak = useCallback((text) => {
     if ('speechSynthesis' in window) {
-      speechSynthesis.cancel() // Cancel any ongoing speech first
+      speechSynthesis.cancel()
       const utter = new SpeechSynthesisUtterance(text)
-      utter.rate = 1.0
-      utter.pitch = 1.0
+      // Jarvis-style voice: British English, slightly lower pitch, calm measured pace
+      const voices = speechSynthesis.getVoices()
+      // Prefer British English male voices for the Paul Bettany Jarvis feel
+      const preferred = voices.find(v => /Daniel/i.test(v.name) && /en/i.test(v.lang)) // macOS/iOS British Daniel
+        || voices.find(v => /\b(UK|British|GB)\b/i.test(v.name) && /male/i.test(v.name))
+        || voices.find(v => /en.GB/i.test(v.lang) && !/female/i.test(v.name))
+        || voices.find(v => /en.GB/i.test(v.lang))
+        || voices.find(v => /Google UK English Male/i.test(v.name))
+        || voices.find(v => /\bMale\b/i.test(v.name) && /en/i.test(v.lang))
+      if (preferred) utter.voice = preferred
+      utter.rate = 0.92    // Slightly slower — measured, composed
+      utter.pitch = 0.85   // Slightly deeper — calm authority
+      utter.volume = 1.0
       speechSynthesis.speak(utter)
     }
   }, [])
@@ -159,21 +174,54 @@ export default function Voice({ user, addMemory, R }) {
         ))}
       </div>
 
-      {/* Voice Orb */}
+      {/* Voice HUD Reactor */}
       <div style={{ position: 'relative', width: orbContainerSize, height: orbContainerSize, marginBottom: R.sp(isZFlip ? 16 : 32) }}>
-        {rings.map((scale, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            top: '50%', left: '50%',
-            width: ringSize * (1 + (listening ? amplitude * 0.3 * (i + 1) : 0)),
-            height: ringSize * (1 + (listening ? amplitude * 0.3 * (i + 1) : 0)),
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${colors.primary}${listening ? '40' : '10'}, transparent)`,
-            border: `1px solid ${colors.primary}${listening ? '60' : '20'}`,
-            transform: 'translate(-50%, -50%)',
-            transition: listening ? 'none' : 'all 0.3s ease',
-          }} />
-        ))}
+        {/* SVG HUD rings */}
+        <svg viewBox="0 0 200 200" style={{
+          position: 'absolute', top: '50%', left: '50%',
+          width: orbContainerSize, height: orbContainerSize,
+          transform: 'translate(-50%, -50%)',
+          filter: `drop-shadow(0 0 ${listening ? 15 : 8}px rgba(0,210,220,${listening ? 0.5 : 0.2}))`,
+          transition: 'filter 0.3s ease',
+        }}>
+          <defs>
+            <filter id="vglow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          {/* Outer tick ring */}
+          <g style={{ transformOrigin: '100px 100px', animation: 'hudSpin 15s linear infinite' }}>
+            <circle cx="100" cy="100" r="95" fill="none" stroke={`rgba(0,210,220,${listening ? 0.3 : 0.12})`} strokeWidth="0.5" strokeDasharray="3 8"/>
+            {[0,30,60,90,120,150,180,210,240,270,300,330].map(a => (
+              <line key={a} x1="100" y1="8" x2="100" y2="14" stroke={`rgba(0,210,220,${listening ? 0.5 : 0.2})`} strokeWidth="1" transform={`rotate(${a} 100 100)`}/>
+            ))}
+          </g>
+          {/* Segmented arc ring */}
+          <g style={{ transformOrigin: '100px 100px', animation: 'hudSpin 8s linear infinite reverse' }} filter="url(#vglow)">
+            <circle cx="100" cy="100" r="82" fill="none" stroke={`rgba(0,210,220,${listening ? 0.35 : 0.15})`} strokeWidth="3" strokeDasharray="20 8 10 8 30 8 15 8" strokeLinecap="round"/>
+          </g>
+          {/* Bright arc highlight */}
+          <g style={{ transformOrigin: '100px 100px', animation: 'hudSpin 6s linear infinite' }} filter="url(#vglow)">
+            <circle cx="100" cy="100" r="72" fill="none" stroke={`rgba(0,230,240,${listening ? 0.7 : 0.25})`} strokeWidth="2.5" strokeDasharray="35 250" strokeLinecap="round"/>
+            <circle cx="100" cy="100" r="72" fill="none" stroke={`rgba(253,203,110,${listening ? 0.6 : 0.2})`} strokeWidth="2" strokeDasharray="20 265" strokeDashoffset="100" strokeLinecap="round"/>
+          </g>
+          {/* Inner notch ring */}
+          <g style={{ transformOrigin: '100px 100px', animation: 'hudSpin 10s linear infinite reverse' }}>
+            <circle cx="100" cy="100" r="60" fill="none" stroke={`rgba(0,210,220,${listening ? 0.3 : 0.1})`} strokeWidth="4" strokeDasharray="5 3"/>
+            <circle cx="100" cy="100" r="60" fill="none" stroke={`rgba(0,240,250,${listening ? 0.6 : 0.2})`} strokeWidth="4" strokeDasharray="15 120" strokeLinecap="round" filter="url(#vglow)"/>
+          </g>
+          {/* Innermost fast ring */}
+          <g style={{ transformOrigin: '100px 100px', animation: `hudSpin ${listening ? '2s' : '4s'} linear infinite` }} filter="url(#vglow)">
+            <circle cx="100" cy="100" r="48" fill="none" stroke={`rgba(0,240,250,${listening ? 0.5 : 0.15})`} strokeWidth="2" strokeDasharray="10 5 4 5"/>
+            <circle cx="100" cy="100" r="48" fill="none" stroke={`rgba(0,250,255,${listening ? 0.8 : 0.3})`} strokeWidth="2.5" strokeDasharray="18 160" strokeLinecap="round"/>
+          </g>
+        </svg>
+        {/* Core glow */}
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: ringSize * 0.6, height: ringSize * 0.6, borderRadius: '50%',
+          background: `radial-gradient(circle, rgba(0,210,220,${listening ? 0.3 : 0.12}) 0%, transparent 70%)`,
+          filter: 'blur(8px)', transition: 'all 0.3s ease',
+        }} />
+        {/* Clickable center */}
         <button
           aria-label={processing ? 'Processing speech' : listening ? 'Release to stop listening' : mode === 'push' ? 'Hold to speak' : 'Tap to start listening'}
           onMouseDown={mode === 'push' ? startListening : undefined}
@@ -183,18 +231,24 @@ export default function Voice({ user, addMemory, R }) {
           onClick={mode === 'continuous' ? () => listening ? stopListening() : startListening() : undefined}
           style={{
             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            width: ringSize, height: ringSize, borderRadius: '50%',
-            background: colors.gradient1,
-            border: 'none', cursor: 'pointer',
+            width: ringSize * 0.55, height: ringSize * 0.55, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(0,210,220,0.15) 0%, rgba(10,14,24,0.9) 70%)',
+            border: `1.5px solid rgba(0,210,220,${listening ? 0.5 : 0.2})`,
+            cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: listening ? `0 0 40px ${colors.primary}60` : `0 0 20px ${colors.primary}30`,
-            transition: 'box-shadow 0.3s ease',
+            boxShadow: listening ? '0 0 30px rgba(0,210,220,0.4), inset 0 0 20px rgba(0,210,220,0.1)' : '0 0 15px rgba(0,210,220,0.15)',
+            transition: 'all 0.3s ease', zIndex: 2,
           }}
         >
-          <span style={{ fontSize: R.fs(isZFlip ? 28 : 48), color: '#fff' }}>
-            {processing ? '...' : listening ? '◎' : '◉'}
+          <span style={{
+            fontSize: R.fs(isZFlip ? 14 : 18), fontWeight: 600, letterSpacing: 3,
+            color: `rgba(0,220,230,${listening ? 0.9 : 0.6})`,
+            textShadow: listening ? '0 0 15px rgba(0,210,220,0.5)' : 'none',
+          }}>
+            {processing ? '...' : listening ? 'LISTENING' : 'J.A.R.V.I.S'}
           </span>
         </button>
+        <style>{`@keyframes hudSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
 
       <div style={{ color: listening ? colors.primaryLight : colors.textMuted, fontSize: R.fs(14), marginBottom: R.sp(24) }}>
