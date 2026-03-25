@@ -1072,7 +1072,7 @@ export default function TrapCounter() {
         @keyframes muzzleFlare{0%{opacity:0;transform:scale(0.2)}8%{opacity:1;transform:scale(1.3)}25%{opacity:0.7;transform:scale(1)}100%{opacity:0;transform:scale(0.4)}}
         @keyframes smokeUp{0%{opacity:0.4;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--sc))}}
         @keyframes clayFly{0%{left:5%;top:58%;transform:rotate(0deg) scale(0.7)}40%{top:32%;transform:rotate(-8deg) scale(1)}100%{left:72%;top:28%;transform:rotate(-15deg) scale(1)}}
-        @keyframes shotSpread{0%{left:22%;top:42%;opacity:0.7}100%{left:72%;top:28%;opacity:0.15}}
+        @keyframes shotSpread{0%{opacity:0.8;transform:translate(0,0)}100%{opacity:0.1;transform:translate(calc(72vw - 100%),calc(-38vh))}}
         @keyframes screenFlash{0%{opacity:0}4%{opacity:0.9}12%{opacity:0.4}100%{opacity:0}}
         @keyframes boomBall{0%{transform:scale(0.1);opacity:1}20%{transform:scale(1);opacity:1}100%{transform:scale(5);opacity:0}}
         @keyframes shardFly{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--ex),var(--ey)) rotate(var(--er)) scale(0.15)}}
@@ -1159,17 +1159,29 @@ export default function TrapCounter() {
         )}
       </div>
 
-      {/* ── MUZZLE FLASH — at end of barrel, right side ── */}
-      {bootPhase>=1&&bootPhase<2&&(
-        <div style={{position:"absolute",top:"35%",left:isTiny?"32%":"38%",pointerEvents:"none"}}>
-          <div style={{position:"absolute",top:-30,left:-30,width:60,height:60,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,220,0.95) 0%, rgba(255,200,50,0.7) 25%, rgba(255,120,0,0.3) 50%, transparent 70%)",animation:"muzzleFlare 0.3s ease-out forwards"}}/>
-          <div style={{position:"absolute",top:-45,left:-45,width:90,height:90,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,180,50,0.4) 0%, rgba(255,100,0,0.15) 40%, transparent 65%)",animation:"muzzleFlare 0.45s ease-out 0.02s forwards"}}/>
-          {/* Smoke drifting right and up from muzzle */}
+      {/* ── MUZZLE FLASH — positioned at barrel tip ── */}
+      {bootPhase>=1&&bootPhase<2&&(()=>{
+        // Barrel tip position: shooter(bottom:30%,left:5%) + gun offset(top:28,left:32) + barrel end
+        // Barrel is 120px (80 tiny) starting at left:20 inside gun, gun rotated -12deg
+        const bLen = isTiny ? 80 : 120;
+        const tipX = 32 + 20 + bLen; // px from shooter left edge
+        const tipY = 28 + 2 + 3; // px from shooter top (barrel vertical center)
+        // Rotation -12deg shifts tip: dx = cos(-12)*tipX - sin(-12)*tipY, dy = sin(-12)*tipX + cos(-12)*tipY
+        const rad = -12 * Math.PI / 180;
+        // But rotation origin is gun's "left center" at (32, 28+6), just approximate the screen pos
+        // Shooter is at bottom:30%, left:5%. Shooter body is ~90px tall.
+        // Barrel tip in screen coords roughly:
+        const muzzleLeft = `calc(5% + ${tipX - 15}px)`;
+        const muzzleBottom = `calc(30% + ${90 - tipY + 18}px)`;
+        return (
+        <div style={{position:"absolute",bottom:muzzleBottom,left:muzzleLeft,pointerEvents:"none",zIndex:5}}>
+          <div style={{position:"absolute",top:-30,left:-25,width:60,height:60,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,220,0.95) 0%, rgba(255,200,50,0.7) 25%, rgba(255,120,0,0.3) 50%, transparent 70%)",animation:"muzzleFlare 0.3s ease-out forwards"}}/>
+          <div style={{position:"absolute",top:-45,left:-40,width:90,height:90,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,180,50,0.4) 0%, rgba(255,100,0,0.15) 40%, transparent 65%)",animation:"muzzleFlare 0.45s ease-out 0.02s forwards"}}/>
           {[0,1,2,3,4].map(i=>(
             <div key={i} style={{position:"absolute",top:-10-i*4,left:10+i*8,width:18+i*12,height:18+i*12,borderRadius:"50%",background:`rgba(160,150,130,${0.2-i*0.03})`,opacity:0,"--dx":`${20+i*15}px`,"--dy":`${-30-i*12}px`,"--sc":2+i*0.5,animation:`smokeUp ${1.5+i*0.4}s ease-out ${0.05+i*0.06}s forwards`}}/>
           ))}
-        </div>
-      )}
+        </div>);
+      })()}
 
       {/* ── CLAY PIGEON — launches from trap house, arcs up-right ── */}
       {bootPhase>=0&&bootPhase<2&&(
@@ -1181,10 +1193,17 @@ export default function TrapCounter() {
         </div>
       )}
 
-      {/* ── SHOT PATTERN — visible dots chasing clay after fire ── */}
-      {bootPhase>=1&&bootPhase<2&&[0,1,2,3,4,5].map(i=>(
-        <div key={`sh${i}`} style={{position:"absolute",width:3,height:3,borderRadius:"50%",background:`rgba(200,180,140,${0.5-i*0.06})`,boxShadow:"0 0 3px rgba(200,180,140,0.3)",animation:`shotSpread ${0.9+i*0.04}s ease-in ${i*0.02}s forwards`,top:`${-2+i*1.5}%`,left:`${-1+i*0.8}%`}}/>
-      ))}
+      {/* ── SHOT PATTERN — pellets travel from barrel tip toward clay ── */}
+      {bootPhase>=1&&bootPhase<2&&(()=>{
+        const bLen = isTiny ? 80 : 120;
+        const startLeft = 5 + ((32 + 20 + bLen - 15) / (isTiny ? 3.2 : 4));
+        const startTop = 68 - (90 - 33 + 18) / (isTiny ? 6 : 8);
+        // Pellets fly from barrel tip toward clay impact at ~72%, 28%
+        return [0,1,2,3,4,5,6,7].map(i => {
+          const spread = (i - 3.5) * 1.2; // vertical spread
+          return <div key={`sh${i}`} style={{position:"absolute",width:3,height:3,borderRadius:"50%",background:`rgba(220,200,150,${0.6-i*0.05})`,boxShadow:"0 0 4px rgba(220,200,150,0.3)",animation:`shotSpread ${0.8+i*0.03}s ease-in ${i*0.015}s forwards`,top:`${startTop + spread}%`,left:`${startLeft}%`}}/>;
+        });
+      })()}
 
       {/* ── EXPLOSION — right side of screen where clay was ── */}
       {bootPhase>=2&&(
