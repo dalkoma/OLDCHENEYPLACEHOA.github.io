@@ -582,16 +582,20 @@ function NumInput({label,value,onChange,min=1,max=99,t}) {
 export default function TrapCounter() {
   const scr = useScreenSize();
   const [booting, setBooting] = useState(() => !sessionStorage.getItem("trap_booted"));
-  const [bootPhase, setBootPhase] = useState(0); // 0=barrel, 1=slug flying, 2=clay explode, 3=fade out
+  const [bootPhase, setBootPhase] = useState(0);
+  // 0=barrel visible at angle, 1=fires(muzzle flash+slug launches), 2=slug flying+clay enters, 3=impact explosion, 4=fade out
 
-  // Boot sequence
+  // Boot sequence timing
   useEffect(() => {
     if (!booting) return;
-    const t1 = setTimeout(() => setBootPhase(1), 800);   // slug fires
-    const t2 = setTimeout(() => setBootPhase(2), 1600);  // clay explodes
-    const t3 = setTimeout(() => setBootPhase(3), 2400);  // fade out
-    const t4 = setTimeout(() => { setBooting(false); sessionStorage.setItem("trap_booted","1"); }, 3000);
-    return () => [t1,t2,t3,t4].forEach(clearTimeout);
+    const timers = [
+      setTimeout(() => setBootPhase(1), 1000),   // fire!
+      setTimeout(() => setBootPhase(2), 1500),   // slug flying, clay enters
+      setTimeout(() => setBootPhase(3), 2400),   // impact — full screen explosion
+      setTimeout(() => setBootPhase(4), 3600),   // fade out
+      setTimeout(() => { setBooting(false); sessionStorage.setItem("trap_booted","1"); }, 4200),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [booting]);
 
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
@@ -1030,96 +1034,189 @@ export default function TrapCounter() {
   // ════════════════════════════
   // ── BOOT SCREEN ──
   // ════════════════════════════
-  if (booting) return (
-    <div style={{position:"fixed",inset:0,background:"#0a0804",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",zIndex:9999,opacity:bootPhase===3?0:1,transition:"opacity 0.6s ease-out",fontFamily:"'Courier New',Courier,monospace"}}>
+  if (booting) {
+    const ANG = 40; // barrel angle in degrees
+    const RAD = ANG * Math.PI / 180;
+    return (
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(180deg,#1a2a3a 0%,#0f1a28 30%,#0a0804 70%)",zIndex:9999,overflow:"hidden",opacity:bootPhase===4?0:1,transition:"opacity 0.6s ease-out",fontFamily:"'Courier New',Courier,monospace"}}>
       <style>{`
-        @keyframes slugFly{0%{left:-10%;opacity:1}60%{left:70%;opacity:1}100%{left:72%;opacity:0}}
-        @keyframes clayExplode{0%{transform:scale(1);opacity:1}30%{transform:scale(1.8);opacity:1}100%{transform:scale(3);opacity:0}}
-        @keyframes barrelGlow{0%{box-shadow:0 0 20px rgba(255,140,0,0)}50%{box-shadow:0 0 60px rgba(255,140,0,0.6)}100%{box-shadow:0 0 20px rgba(255,140,0,0)}}
-        @keyframes muzzleFlash{0%{opacity:0;transform:scale(0.5)}10%{opacity:1;transform:scale(1.5)}40%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.3)}}
-        @keyframes smokeRise{0%{opacity:0.6;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-40px) scale(2)}}
-        @keyframes shardFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(0.3)}}
-        @keyframes bootPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+        @keyframes gunRecoil{0%{transform:rotate(-${ANG}deg) translate(0,0)}15%{transform:rotate(-${ANG}deg) translate(12px,8px)}50%{transform:rotate(-${ANG}deg) translate(4px,2px)}100%{transform:rotate(-${ANG}deg) translate(0,0)}}
+        @keyframes muzzleBlast{0%{opacity:0;transform:rotate(-${ANG}deg) scale(0.3)}8%{opacity:1;transform:rotate(-${ANG}deg) scale(1.4)}30%{opacity:0.8;transform:rotate(-${ANG}deg) scale(1)}100%{opacity:0;transform:rotate(-${ANG}deg) scale(0.5)}}
+        @keyframes smokeRise{0%{opacity:0.5;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(-20px,-60px) scale(3)}}
+        @keyframes slugTravel{0%{transform:translate(0,0) rotate(-${ANG}deg)}100%{transform:translate(${Math.cos(RAD)*55}vw,${-Math.sin(RAD)*55}vh) rotate(-${ANG}deg)}}
+        @keyframes clayTravel{0%{transform:translate(40vw,${-Math.sin(RAD)*40}vh) rotate(15deg)}100%{transform:translate(0,0) rotate(-5deg)}}
+        @keyframes screenFlash{0%{opacity:0}5%{opacity:0.8}15%{opacity:0.3}100%{opacity:0}}
+        @keyframes shardExplode{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--ex),var(--ey)) rotate(var(--er)) scale(0.2)}}
+        @keyframes fireball{0%{transform:scale(0.2);opacity:1}25%{transform:scale(1);opacity:1}100%{transform:scale(4);opacity:0}}
+        @keyframes dustExpand{0%{transform:scale(0.5);opacity:0.7}100%{transform:scale(6);opacity:0}}
+        @keyframes sparkShoot{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--sx),var(--sy))}}
+        @keyframes textReveal{0%{opacity:0;transform:translateY(20px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes bootPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+        @keyframes shellEject{0%{opacity:1;transform:translate(0,0) rotate(0deg)}100%{opacity:0;transform:translate(30px,-50px) rotate(180deg)}}
       `}</style>
 
-      {/* Barrel view — concentric rings like looking down a shotgun barrel */}
-      <div style={{position:"relative",width:isTiny?140:200,height:isTiny?140:200,marginBottom:40}}>
-        {/* Outer barrel */}
-        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"4px solid #3a2a10",background:"radial-gradient(circle, #1a1208 0%, #0a0804 60%, #2a1a08 100%)",animation:bootPhase>=1?"barrelGlow 0.4s ease-out":"none"}}>
-          {/* Rifling grooves */}
-          {[0,45,90,135].map(deg=>(
-            <div key={deg} style={{position:"absolute",top:"50%",left:"50%",width:"90%",height:2,background:"rgba(100,70,20,0.3)",transform:`translate(-50%,-50%) rotate(${deg}deg)`,transformOrigin:"center"}}/>
+      {/* Sky — subtle stars */}
+      {[...Array(12)].map((_,i)=>(
+        <div key={i} style={{position:"absolute",top:`${5+Math.random()*30}%`,left:`${Math.random()*100}%`,width:2,height:2,borderRadius:"50%",background:"rgba(200,210,230,0.3)"}}/>
+      ))}
+
+      {/* Ground line */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"30%",background:"linear-gradient(180deg,transparent,rgba(20,15,5,0.8))"}}/>
+
+      {/* ── SHOTGUN ── bottom-left, angled up at 40° */}
+      <div style={{position:"absolute",bottom:"12%",left:"8%",transformOrigin:"bottom left",animation:bootPhase>=1&&bootPhase<3?"gunRecoil 0.3s ease-out forwards":`rotate(-${ANG}deg)`}}>
+        {/* Stock */}
+        <div style={{position:"absolute",bottom:-4,left:-80,width:80,height:20,background:"linear-gradient(180deg,#5a3a1a,#3a2210,#5a3a1a)",borderRadius:"2px 4px 6px 8px",border:"1px solid #6a4a2a",boxShadow:"inset 0 2px 4px rgba(0,0,0,0.3)"}}>
+          {/* Wood grain lines */}
+          {[4,9,14].map(y=><div key={y} style={{position:"absolute",top:y,left:5,right:10,height:1,background:"rgba(100,60,20,0.3)"}}/>)}
+          {/* Grip checkering */}
+          <div style={{position:"absolute",right:5,top:3,width:20,height:14,background:"repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(80,50,15,0.3) 2px,rgba(80,50,15,0.3) 3px)"}}/>
+        </div>
+        {/* Receiver / action */}
+        <div style={{position:"absolute",bottom:0,left:-2,width:40,height:18,background:"linear-gradient(180deg,#4a4a4a,#2a2a2a,#3a3a3a)",borderRadius:2,border:"1px solid #555",boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
+          {/* Trigger guard */}
+          <div style={{position:"absolute",bottom:-8,left:15,width:16,height:10,border:"2px solid #444",borderTop:"none",borderRadius:"0 0 8px 8px"}}/>
+          {/* Trigger */}
+          <div style={{position:"absolute",bottom:-5,left:20,width:3,height:6,background:"#555",borderRadius:1}}/>
+        </div>
+        {/* Barrel — long */}
+        <div style={{position:"absolute",bottom:2,left:36,width:isTiny?120:180,height:10,background:"linear-gradient(180deg,#555,#333,#444)",borderRadius:"2px 3px 3px 2px",border:"1px solid #666",boxShadow:"0 2px 6px rgba(0,0,0,0.3)"}}>
+          {/* Barrel rib (top sight line) */}
+          <div style={{position:"absolute",top:-1,left:20,right:0,height:2,background:"linear-gradient(90deg,#666,#555)",borderRadius:1}}/>
+          {/* Front bead sight */}
+          <div style={{position:"absolute",top:-3,right:2,width:4,height:4,borderRadius:"50%",background:"#ff8800",boxShadow:"0 0 4px rgba(255,136,0,0.6)"}}/>
+          {/* Barrel sheen */}
+          <div style={{position:"absolute",top:1,left:10,right:10,height:2,background:"rgba(255,255,255,0.06)",borderRadius:1}}/>
+        </div>
+        {/* Forend (front grip) */}
+        <div style={{position:"absolute",bottom:-2,left:36,width:50,height:14,background:"linear-gradient(180deg,#5a3a1a,#3a2210)",borderRadius:3,border:"1px solid #6a4a2a"}}>
+          {[3,7,11].map(y=><div key={y} style={{position:"absolute",top:y,left:3,right:3,height:1,background:"rgba(100,60,20,0.2)"}}/>)}
+        </div>
+
+        {/* Shell ejecting after fire */}
+        {bootPhase>=1&&bootPhase<3&&(
+          <div style={{position:"absolute",bottom:16,left:10,width:8,height:18,background:"linear-gradient(180deg,#d4a030,#b88820)",borderRadius:"3px 3px 1px 1px",border:"1px solid #e8b840",animation:"shellEject 0.6s ease-out 0.1s forwards",opacity:0.9}}>
+            <div style={{position:"absolute",bottom:0,left:1,right:1,height:3,background:"#c83030",borderRadius:"0 0 1px 1px"}}/>
+          </div>
+        )}
+      </div>
+
+      {/* ── MUZZLE FLASH ── at the end of the barrel */}
+      {bootPhase>=1&&bootPhase<3&&(
+        <div style={{position:"absolute",bottom:`${12+Math.sin(RAD)*(isTiny?33:47)}%`,left:`${8+Math.cos(RAD)*(isTiny?33:47)}%`,pointerEvents:"none"}}>
+          {/* Primary flash — bright white/yellow starburst */}
+          <div style={{position:"absolute",top:-40,left:-40,width:80,height:80,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,220,0.95) 0%, rgba(255,200,50,0.8) 20%, rgba(255,120,0,0.4) 50%, transparent 70%)",animation:"muzzleBlast 0.35s ease-out forwards",transformOrigin:"center"}}/>
+          {/* Secondary flash — bigger orange */}
+          <div style={{position:"absolute",top:-55,left:-55,width:110,height:110,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,150,30,0.5) 0%, rgba(255,80,0,0.2) 40%, transparent 70%)",animation:"muzzleBlast 0.5s ease-out 0.02s forwards"}}/>
+          {/* Smoke puffs */}
+          {[0,1,2,3].map(i=>(
+            <div key={i} style={{position:"absolute",top:-15-i*8,left:-10+i*12,width:25+i*10,height:25+i*10,borderRadius:"50%",background:`rgba(${140+i*15},${130+i*10},${110+i*10},${0.25-i*0.05})`,animation:`smokeRise ${1.2+i*0.3}s ease-out ${i*0.08}s forwards`,opacity:0}}/>
           ))}
         </div>
-        {/* Inner ring 1 */}
-        <div style={{position:"absolute",top:"15%",left:"15%",right:"15%",bottom:"15%",borderRadius:"50%",border:"3px solid #2a1a08",background:"radial-gradient(circle, #0f0c08 0%, #1a1208 100%)"}}/>
-        {/* Inner ring 2 — bore */}
-        <div style={{position:"absolute",top:"30%",left:"30%",right:"30%",bottom:"30%",borderRadius:"50%",border:"2px solid #1a1005",background:"radial-gradient(circle, #000 0%, #0a0702 100%)"}}/>
-        {/* Center dark hole */}
-        <div style={{position:"absolute",top:"42%",left:"42%",right:"42%",bottom:"42%",borderRadius:"50%",background:"#000"}}/>
+      )}
 
-        {/* Muzzle flash — shows when slug fires */}
-        {bootPhase>=1&&bootPhase<2&&(
-          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:isTiny?100:140,height:isTiny?100:140,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,200,50,0.9) 0%, rgba(255,120,0,0.6) 40%, transparent 70%)",animation:"muzzleFlash 0.5s ease-out forwards"}}/>
-        )}
-        {/* Smoke wisps after firing */}
-        {bootPhase>=1&&[0,1,2].map(i=>(
-          <div key={i} style={{position:"absolute",top:`${35+i*10}%`,left:`${40+i*8}%`,width:20+i*10,height:20+i*10,borderRadius:"50%",background:"rgba(150,140,120,0.15)",animation:`smokeRise ${1+i*0.3}s ease-out ${0.2+i*0.15}s forwards`,opacity:0}}/>
-        ))}
-      </div>
-
-      {/* Slug flying across */}
-      <div style={{position:"absolute",top:"50%",left:0,right:0,height:40,overflow:"hidden",pointerEvents:"none"}}>
-        {bootPhase>=1&&bootPhase<2&&(
-          <div style={{position:"absolute",top:"50%",transform:"translateY(-50%)",animation:"slugFly 0.8s ease-in forwards"}}>
-            {/* Slug body */}
-            <div style={{width:28,height:12,background:"linear-gradient(90deg,#c8a050,#f5c060,#c8a050)",borderRadius:"2px 8px 8px 2px",boxShadow:"0 0 12px rgba(245,192,96,0.5),2px 0 20px rgba(255,160,0,0.3)"}}>
-              {/* Slug nose */}
-              <div style={{position:"absolute",right:-4,top:2,width:8,height:8,background:"#f5d080",borderRadius:"50%"}}/>
+      {/* ── SLUG ── flies from muzzle to center screen along 40° trajectory */}
+      {bootPhase>=1&&bootPhase<3&&(
+        <div style={{position:"absolute",bottom:`${12+Math.sin(RAD)*47}%`,left:`${8+Math.cos(RAD)*47}%`,animation:`slugTravel ${bootPhase>=2?"0.9s":"0.9s"} ease-in forwards`,pointerEvents:"none"}}>
+          <div style={{transform:`rotate(-${ANG}deg)`}}>
+            {/* Slug body — brass colored with lead tip */}
+            <div style={{width:20,height:8,background:"linear-gradient(90deg,#b88820,#d4a030,#b88820)",borderRadius:"2px 6px 6px 2px",boxShadow:"0 0 10px rgba(255,180,50,0.5),4px 0 15px rgba(255,140,0,0.3)",position:"relative"}}>
+              <div style={{position:"absolute",right:-3,top:1,width:6,height:6,background:"radial-gradient(circle,#888,#666)",borderRadius:"50%"}}/>
             </div>
-            {/* Trail sparks */}
-            {[0,1,2].map(i=>(
-              <div key={i} style={{position:"absolute",left:-8-i*6,top:4+Math.sin(i)*3,width:4,height:2,background:`rgba(255,180,50,${0.6-i*0.2})`,borderRadius:1}}/>
+            {/* Heat trail */}
+            {[0,1,2,3].map(i=>(
+              <div key={i} style={{position:"absolute",left:-6-i*5,top:2+Math.sin(i*1.5)*2,width:5-i,height:3-i*0.5,background:`rgba(255,${160-i*30},${50-i*12},${0.6-i*0.15})`,borderRadius:2,filter:"blur(0.5px)"}}/>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Clay pigeon on the right — before explosion */}
-      <div style={{position:"absolute",top:"45%",right:"15%",pointerEvents:"none"}}>
-        {bootPhase<2&&(
-          <div style={{width:40,height:12,background:"linear-gradient(180deg,#e05020,#c03010)",borderRadius:"50%",border:"2px solid #ff6030",boxShadow:"0 0 10px rgba(255,80,30,0.3)"}}/>
-        )}
-        {/* Explosion */}
-        {bootPhase>=2&&(
-          <div style={{position:"relative"}}>
-            {/* Main explosion burst */}
-            <div style={{position:"absolute",top:-20,left:-20,width:80,height:80,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,150,30,0.9) 0%, rgba(255,80,0,0.6) 30%, rgba(200,50,0,0.3) 60%, transparent 80%)",animation:"clayExplode 0.8s ease-out forwards"}}/>
-            {/* Flying shards */}
-            {[
-              {sx:"-40px",sy:"-50px",c:"#e05020"},{sx:"50px",sy:"-30px",c:"#c03010"},
-              {sx:"-30px",sy:"40px",c:"#ff6030"},{sx:"60px",sy:"20px",c:"#e05020"},
-              {sx:"-50px",sy:"10px",c:"#c03010"},{sx:"30px",sy:"-60px",c:"#ff6030"},
-              {sx:"40px",sy:"50px",c:"#e05020"},{sx:"-20px",sy:"-40px",c:"#ff6030"},
-            ].map((s,i)=>(
-              <div key={i} style={{position:"absolute",top:-2+Math.random()*4,left:-2+Math.random()*4,width:6+Math.random()*6,height:4+Math.random()*3,background:s.c,borderRadius:1,opacity:1,"--sx":s.sx,"--sy":s.sy,animation:`shardFly ${0.5+Math.random()*0.4}s ease-out ${Math.random()*0.1}s forwards`}}/>
-            ))}
-            {/* Orange dust cloud */}
-            <div style={{position:"absolute",top:-30,left:-30,width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,100,0,0.3) 0%, transparent 70%)",animation:"clayExplode 1.2s ease-out 0.1s forwards"}}/>
-          </div>
-        )}
-      </div>
-
-      {/* Text */}
-      <div style={{textAlign:"center",marginTop:20}}>
-        <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:"#4a3010",marginBottom:6}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
-        <div style={{fontSize:isTiny?22:30,fontWeight:"900",letterSpacing:6,color:"#f5c060",animation:"bootPulse 1.5s ease-in-out infinite"}}>TRAP COUNTER</div>
-        <div style={{fontSize:9,fontWeight:"bold",letterSpacing:4,color:"#3a2a10",marginTop:10}}>
-          {bootPhase<1?"LOADING...":bootPhase<2?"PULL!":"DEAD BIRD!"}
         </div>
+      )}
+
+      {/* ── CLAY PIGEON ── enters from upper-right, same angle trajectory */}
+      {bootPhase>=2&&bootPhase<3&&(
+        <div style={{position:"absolute",top:"30%",left:"45%",animation:"clayTravel 0.9s ease-in forwards",pointerEvents:"none"}}>
+          {/* Clay disc — orange dome shape */}
+          <div style={{width:44,height:14,background:"linear-gradient(180deg,#ff6030,#e04020,#c03010)",borderRadius:"50%",border:"2px solid #ff7040",boxShadow:"0 0 12px rgba(255,80,30,0.4),0 2px 6px rgba(0,0,0,0.3)",position:"relative"}}>
+            {/* Top dome highlight */}
+            <div style={{position:"absolute",top:1,left:"15%",right:"15%",height:4,background:"rgba(255,255,255,0.15)",borderRadius:"50%"}}/>
+            {/* Ring detail */}
+            <div style={{position:"absolute",top:5,left:"10%",right:"10%",height:1,background:"rgba(0,0,0,0.2)"}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── FULL SCREEN EXPLOSION ── phase 3 */}
+      {bootPhase>=3&&(
+        <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+          {/* Screen flash — white */}
+          <div style={{position:"absolute",inset:0,background:"rgba(255,240,200,0.8)",animation:"screenFlash 0.6s ease-out forwards"}}/>
+
+          {/* Central fireball */}
+          <div style={{position:"absolute",width:"40vmin",height:"40vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,200,1) 0%, rgba(255,180,30,0.9) 20%, rgba(255,100,0,0.7) 40%, rgba(200,50,0,0.4) 60%, transparent 80%)",animation:"fireball 1s ease-out forwards"}}/>
+          {/* Secondary fireball ring */}
+          <div style={{position:"absolute",width:"30vmin",height:"30vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,200,100,0.6) 0%, rgba(255,120,0,0.3) 50%, transparent 80%)",animation:"fireball 0.8s ease-out 0.05s forwards"}}/>
+
+          {/* Dust/smoke cloud — massive */}
+          <div style={{position:"absolute",width:"60vmin",height:"60vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(180,120,60,0.4) 0%, rgba(100,70,30,0.2) 40%, transparent 70%)",animation:"dustExpand 1.2s ease-out 0.1s forwards"}}/>
+
+          {/* Orange clay shards flying everywhere */}
+          {[
+            {ex:"-45vw",ey:"-35vh",er:"720deg",w:18,h:8,c:"#e05020"},
+            {ex:"40vw",ey:"-40vh",er:"-540deg",w:14,h:6,c:"#ff6030"},
+            {ex:"-35vw",ey:"30vh",er:"450deg",w:20,h:7,c:"#c03010"},
+            {ex:"45vw",ey:"25vh",er:"-630deg",w:12,h:5,c:"#ff7040"},
+            {ex:"-25vw",ey:"-45vh",er:"360deg",w:16,h:6,c:"#e05020"},
+            {ex:"30vw",ey:"40vh",er:"-480deg",w:15,h:7,c:"#c03010"},
+            {ex:"-40vw",ey:"15vh",er:"540deg",w:10,h:4,c:"#ff6030"},
+            {ex:"20vw",ey:"-30vh",er:"-400deg",w:22,h:8,c:"#e04020"},
+            {ex:"-15vw",ey:"45vh",er:"600deg",w:13,h:5,c:"#ff7040"},
+            {ex:"48vw",ey:"-10vh",er:"-300deg",w:17,h:6,c:"#d04020"},
+            {ex:"-48vw",ey:"-20vh",er:"420deg",w:11,h:5,c:"#ff6030"},
+            {ex:"35vw",ey:"45vh",er:"-560deg",w:19,h:7,c:"#c03010"},
+            {ex:"-10vw",ey:"-48vh",er:"380deg",w:14,h:6,c:"#e05020"},
+            {ex:"15vw",ey:"35vh",er:"-440deg",w:16,h:5,c:"#ff7040"},
+            {ex:"-42vw",ey:"40vh",er:"500deg",w:12,h:4,c:"#d04020"},
+            {ex:"42vw",ey:"-45vh",er:"-620deg",w:20,h:8,c:"#e05020"},
+          ].map((s,i)=>(
+            <div key={i} style={{position:"absolute",width:s.w,height:s.h,background:`linear-gradient(180deg,${s.c},${s.c}dd)`,borderRadius:2,boxShadow:`0 0 6px ${s.c}88`,"--ex":s.ex,"--ey":s.ey,"--er":s.er,animation:`shardExplode ${0.6+i*0.04}s ease-out ${i*0.02}s forwards`}}/>
+          ))}
+
+          {/* Hot sparks — small bright dots flying outward */}
+          {[...Array(20)].map((_,i)=>{
+            const ang = (i/20)*Math.PI*2 + Math.random()*0.5;
+            const dist = 30+Math.random()*40;
+            return <div key={`sp${i}`} style={{position:"absolute",width:3+Math.random()*3,height:3+Math.random()*3,borderRadius:"50%",background:i%3===0?"#fff":i%3===1?"#ffcc44":"#ff8800",boxShadow:`0 0 4px ${i%2===0?"#fff":"#ff8800"}`,"--sx":`${Math.cos(ang)*dist}vw`,"--sy":`${Math.sin(ang)*dist}vh`,animation:`sparkShoot ${0.4+Math.random()*0.4}s ease-out ${Math.random()*0.1}s forwards`}}/>;
+          })}
+
+          {/* Smoke wisps after explosion */}
+          {[0,1,2,3,4].map(i=>(
+            <div key={`sm${i}`} style={{position:"absolute",top:`${-5+i*12}%`,left:`${20+i*15}%`,width:60+i*20,height:60+i*20,borderRadius:"50%",background:`rgba(${120+i*10},${100+i*10},${80+i*10},${0.15-i*0.02})`,animation:`dustExpand ${1.5+i*0.3}s ease-out ${0.2+i*0.1}s forwards`}}/>
+          ))}
+        </div>
+      )}
+
+      {/* ── TEXT ── */}
+      <div style={{position:"absolute",bottom:"6%",left:0,right:0,textAlign:"center",zIndex:10}}>
+        {bootPhase<1&&(
+          <div style={{animation:"bootPulse 1.2s ease-in-out infinite"}}>
+            <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:"#3a5060",marginBottom:6}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
+            <div style={{fontSize:isTiny?22:30,fontWeight:"900",letterSpacing:6,color:"#f5c060"}}>TRAP COUNTER</div>
+          </div>
+        )}
+        {bootPhase>=1&&bootPhase<3&&(
+          <div style={{animation:"textReveal 0.3s ease-out forwards"}}>
+            <div style={{fontSize:isTiny?28:42,fontWeight:"900",letterSpacing:8,color:"#f5c060",textShadow:"0 0 20px rgba(245,192,96,0.5)"}}>PULL!</div>
+          </div>
+        )}
+        {bootPhase>=3&&bootPhase<4&&(
+          <div style={{animation:"textReveal 0.3s ease-out forwards"}}>
+            <div style={{fontSize:isTiny?24:36,fontWeight:"900",letterSpacing:6,color:"#ff4020",textShadow:"0 0 30px rgba(255,64,32,0.6)"}}>DEAD BIRD!</div>
+            <div style={{fontSize:10,fontWeight:"bold",letterSpacing:6,color:"#f5c060",marginTop:8}}>TRAP COUNTER</div>
+          </div>
+        )}
       </div>
     </div>
-  );
+    );
+  }
 
   // ════════════════════════════
   // ── SETUP SCREEN ──
