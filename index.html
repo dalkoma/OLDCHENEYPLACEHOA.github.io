@@ -410,14 +410,14 @@
 
       setTimeout(function() {
         setProgress(40, 'QUERYING LIVE TRAIN DATA');
-        // Your work schedule: #6 EB to LNK, #5 WB board OTM — Mon/Wed/Fri
+        // Work schedule:
+        //   #6 EB: departs EMY ~2 days before, arrives LNK Mon/Wed/Fri. Board LNK, work to OTM.
+        //   #5 WB: departs CHI Mon/Wed/Fri, arrives OTM same day. Board OTM, work to LNK (~0030 next day).
         var mySchedule = {
-          '6': { station: 'LNK', dir: 'EB', days: ['Mon','Wed','Fri'] },
-          '5': { station: 'OTM', dir: 'WB', days: ['Mon','Wed','Fri'] }
+          '6': { board: 'LNK', dest: 'OTM', dir: 'EB', workDays: [1,3,5], label: 'LNK→OTM' },
+          '5': { board: 'OTM', dest: 'LNK', dir: 'WB', workDays: [1,3,5], label: 'OTM→LNK' }
         };
         var daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-        var today = daysOfWeek[new Date().getDay()];
-        var tomorrow = daysOfWeek[(new Date().getDay() + 1) % 7];
 
         var trainNums = ['5', '6'];
         var apiBase = 'https://api-v3.amtraker.com/v3/trains/';
@@ -436,44 +436,49 @@
             instances.forEach(function(inst) {
               var stations = inst.stations || [];
               if (!Array.isArray(stations)) stations = Object.values(stations);
-              var myStation = stations.find(function(s) { return s.code === sched.station; });
+              // Show arrival at boarding station
+              var boardSt = stations.find(function(s) { return s.code === sched.board; });
               var status = '';
               var timeStr = '';
-              if (myStation) {
-                if (myStation.arr && myStation.schArr) {
-                  var delay = Math.round((new Date(myStation.arr).getTime() - new Date(myStation.schArr).getTime()) / 60000);
-                  var arrTime = new Date(myStation.arr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              var isWorkTrain = false;
+              if (boardSt) {
+                // Check if the train arrives at boarding station on a work day (M/W/F)
+                var arrDate = boardSt.schArr ? new Date(boardSt.schArr) : null;
+                if (arrDate) {
+                  isWorkTrain = sched.workDays.indexOf(arrDate.getDay()) >= 0;
+                }
+                if (boardSt.arr && boardSt.schArr) {
+                  var delay = Math.round((new Date(boardSt.arr).getTime() - new Date(boardSt.schArr).getTime()) / 60000);
+                  var arrTime = new Date(boardSt.arr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                   if (delay <= 0) { status = '<span class="hi">On time</span>'; }
                   else if (delay < 60) { status = '<span class="warn">' + delay + 'm late</span>'; }
                   else { status = '<span class="warn">' + Math.floor(delay/60) + 'h ' + (delay%60) + 'm late</span>'; }
                   timeStr = ' · Arr ' + arrTime;
-                } else if (myStation.schArr) {
-                  var schTime = new Date(myStation.schArr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                } else if (boardSt.schArr) {
+                  var schTime = new Date(boardSt.schArr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                   timeStr = ' · Sched ' + schTime;
-                  status = myStation.status || '';
+                  status = boardSt.status || '';
                 } else {
-                  status = myStation.status || '';
+                  status = boardSt.status || '';
                 }
               }
               var current = stations.find(function(s) { return s.status === 'Enroute'; }) || stations.find(function(s) { return s.status === 'Station'; });
               var currentStr = current ? ' · Now: ' + (current.name || current.code) : '';
-              // Highlight if this is a work schedule day
-              var isWorkTrain = sched.days.indexOf(today) >= 0 || sched.days.indexOf(tomorrow) >= 0;
               var prefix = isWorkTrain ? '⭐ ' : '';
-              var workTag = isWorkTrain ? ' <span style="color:#fdcb6e;font-size:9px;background:rgba(253,203,110,0.15);padding:1px 5px;border-radius:4px;margin-left:4px">YOUR TRAIN</span>' : '';
-              msgs.push(prefix + '<span class="hi">#' + res.train + '</span> ' + sched.dir + ' → ' + sched.station + timeStr + ' ' + status + currentStr + workTag);
+              var workTag = isWorkTrain ? ' <span style="color:#fdcb6e;font-size:9px;background:rgba(253,203,110,0.15);padding:1px 5px;border-radius:4px;margin-left:4px">YOUR TRAIN · ' + sched.label + '</span>' : '';
+              msgs.push(prefix + '<span class="hi">#' + res.train + '</span> ' + sched.dir + ' → ' + sched.board + timeStr + ' ' + status + currentStr + workTag);
             });
           });
           if (msgs.length > 0) {
             addFeedItem('🚂', 'LIVE TRAINS', msgs.join('<br>'));
           } else {
-            // No active trains — show next scheduled
+            var today = new Date().getDay();
             var nextWorkDay = '';
             for (var i = 1; i <= 7; i++) {
-              var checkDay = daysOfWeek[(new Date().getDay() + i) % 7];
-              if (mySchedule['6'].days.indexOf(checkDay) >= 0) { nextWorkDay = checkDay; break; }
+              var d = (today + i) % 7;
+              if ([1,3,5].indexOf(d) >= 0) { nextWorkDay = daysOfWeek[d]; break; }
             }
-            addFeedItem('🚂', 'TRAINS', 'No active trains right now<br>⭐ Next: <span class="hi">#6</span> EB → LNK on ' + nextWorkDay);
+            addFeedItem('🚂', 'TRAINS', 'No active trains right now<br>⭐ Next work trains on ' + nextWorkDay);
           }
         }).catch(function() {
           addFeedItem('🚂', 'TRAINS', 'API offline — check app');
