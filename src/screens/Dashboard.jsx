@@ -152,7 +152,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
 
   useEffect(() => {
     const todayDay = DAYS[new Date().getDay()]
-    const todayTrains = trainSchedule.filter(s => s.days.includes(todayDay))
+    const todayTrains = trainSchedule.filter(s => s.days?.includes(todayDay))
     if (todayTrains.length === 0) return
     const trainNums = [...new Set(todayTrains.map(s => s.train))]
     Promise.all(trainNums.map(n => fetch(`https://api-v3.amtraker.com/v3/trains/${n}`).then(r => r.json()).catch(err => { logIssue({ type: 'api', severity: 'low', message: `Train API failed for #${n}: ${err.message}`, timestamp: new Date().toISOString() }); return null })))

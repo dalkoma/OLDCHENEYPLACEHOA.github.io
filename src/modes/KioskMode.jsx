@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { logIssue } from '../ErrorBoundary'
 
 const API_BASE = 'https://api-v3.amtraker.com/v3/trains'
 
@@ -76,7 +77,7 @@ export default function KioskMode() {
       if (data6['6']) parsed['6'] = data6['6']
       setTrains(parsed)
       setLastFetch(new Date())
-    } catch {}
+    } catch (err) { logIssue({ type: 'api', severity: 'medium', message: `KioskMode train fetch failed: ${err?.message}`, timestamp: new Date().toISOString() }) }
   }, [])
 
   useEffect(() => { fetchTrains(); const id = setInterval(fetchTrains, 60000); return () => clearInterval(id) }, [fetchTrains])

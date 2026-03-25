@@ -152,7 +152,7 @@ export default function Chat({ user, addMemory, R }) {
             minHeight: R.minTouchTarget,
           }}
         />
-        <button onClick={send} disabled={!input.trim()} style={{
+        <button onClick={send} disabled={!input.trim()} aria-label="Send message" style={{
           width: R.sp(44), height: R.sp(44), minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
           borderRadius: '50%', background: input.trim() ? colors.gradient1 : colors.surfaceLight,
           border: 'none', color: '#fff', fontSize: R.fs(18), cursor: 'pointer',

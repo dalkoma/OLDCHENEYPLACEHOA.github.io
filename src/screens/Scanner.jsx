@@ -176,7 +176,7 @@ export default function Scanner({ user, addMemory, R }) {
               <div style={{ color: colors.success, fontSize: R.fs(12), fontWeight: 600 }}>EXTRACTED FROM {result.type.toUpperCase()}</div>
               <div style={{ color: colors.textSecondary, fontSize: R.fs(11) }}>{result.items.length} items found</div>
             </div>
-            <button onClick={() => setResult(null)} style={{
+            <button onClick={() => setResult(null)} aria-label="Dismiss scan results" style={{
               background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(16),
               minHeight: R.minTouchTarget, minWidth: R.minTouchTarget,
             }}>✕</button>

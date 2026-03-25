@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { colors, loadState } from '../App'
+import { colors, loadState, saveState } from '../App'
 
 function getContextualResponses() {
   const tasks = loadState('tasks', [])
@@ -69,7 +69,7 @@ function getContextualResponses() {
 export default function Voice({ user, addMemory, R }) {
   const [listening, setListening] = useState(false)
   const [processing, setProcessing] = useState(false)
-  const [conversation, setConversation] = useState([])
+  const [conversation, setConversation] = useState(() => loadState('voiceConversation', []))
   const [mode, setMode] = useState('push')
   const [amplitude, setAmplitude] = useState(0)
   const animRef = useRef(null)
@@ -175,6 +175,7 @@ export default function Voice({ user, addMemory, R }) {
           }} />
         ))}
         <button
+          aria-label={processing ? 'Processing speech' : listening ? 'Release to stop listening' : mode === 'push' ? 'Hold to speak' : 'Tap to start listening'}
           onMouseDown={mode === 'push' ? startListening : undefined}
           onMouseUp={mode === 'push' ? stopListening : undefined}
           onTouchStart={mode === 'push' ? (e) => { e.preventDefault(); startListening() } : undefined}
@@ -215,7 +216,7 @@ export default function Voice({ user, addMemory, R }) {
                 border: msg.role === 'ai' ? `${R.borderWidth}px solid ${colors.border}` : 'none',
               }}>
                 {msg.role === 'ai' && (
-                  <div style={{ color: colors.primaryLight, fontSize: R.fs(10), fontWeight: 600, marginBottom: 4 }}>JARVIS</div>
+                  <div style={{ color: colors.primaryLight, fontSize: R.fs(10), fontWeight: 600, marginBottom: R.sp(4) }}>JARVIS</div>
                 )}
                 <p style={{ color: '#fff', fontSize: R.fs(13), margin: 0, lineHeight: 1.4 }}>{msg.text}</p>
               </div>

@@ -112,7 +112,7 @@ export default function Settings({ user, updateUser, addMemory, R }) {
                 <div style={{ color: colors.text, fontSize: R.fs(13) }}>{member.name}</div>
                 <div style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{member.phone} · {member.role}</div>
               </div>
-              <button onClick={() => removeCircleMember(member.id)} style={{
+              <button onClick={() => removeCircleMember(member.id)} aria-label={`Remove ${member.name}`} style={{
                 background: 'none', border: 'none', color: colors.textMuted, fontSize: R.fs(14), cursor: 'pointer', minHeight: R.minTouchTarget,
               }}>✕</button>
             </div>
@@ -165,7 +165,7 @@ export default function Settings({ user, updateUser, addMemory, R }) {
               <div style={{ color: colors.text, fontSize: R.fs(13) }}>{int.name}</div>
               <div style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{int.desc}</div>
             </div>
-            <button onClick={() => toggleIntegration(int.key)} style={{
+            <button onClick={() => toggleIntegration(int.key)} aria-label={`Toggle ${int.name}`} aria-pressed={!!user.integrations?.[int.key]} style={{
               width: R.sp(44), height: R.sp(24), borderRadius: R.sp(12), border: 'none', cursor: 'pointer',
               background: user.integrations?.[int.key] ? colors.success : colors.surfaceHover,
               position: 'relative', transition: 'background 0.2s', minHeight: R.minTouchTarget,
@@ -203,7 +203,7 @@ export default function Settings({ user, updateUser, addMemory, R }) {
                     padding: `${R.sp(6)}px 0`, borderBottom: `${R.borderWidth}px solid ${colors.border}`,
                     fontSize: R.fs(11), color: colors.textSecondary,
                   }}>
-                    <span style={{ color: colors.textMuted }}>{new Date(m.date).toLocaleDateString()}</span>
+                    <span style={{ color: colors.textMuted }}>{m.date ? new Date(m.date).toLocaleDateString() : ''}</span>
                     {' '}{m.text}
                   </div>
                 ))

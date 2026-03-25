@@ -69,9 +69,9 @@ export default function Calendar({ user, addMemory, R }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: R.sp(12) }}>
-        <button onClick={prevMonth} style={navBtn(R)}>‹</button>
+        <button onClick={prevMonth} aria-label="Previous month" style={navBtn(R)}>‹</button>
         <span style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>{MONTHS[month]} {year}</span>
-        <button onClick={nextMonth} style={navBtn(R)}>›</button>
+        <button onClick={nextMonth} aria-label="Next month" style={navBtn(R)}>›</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: R.sp(2), marginBottom: R.sp(4) }}>
@@ -134,7 +134,7 @@ export default function Calendar({ user, addMemory, R }) {
                   <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(8), background: `${colors.primary}22`, color: colors.primaryLight }}>{e.calendar}</span>
                 </div>
               </div>
-              <button onClick={() => deleteEvent(e.id)} style={{
+              <button onClick={() => deleteEvent(e.id)} aria-label={`Delete event ${e.title}`} style={{
                 background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(16),
                 minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -166,7 +166,7 @@ export default function Calendar({ user, addMemory, R }) {
             <div style={{ display: 'flex', gap: R.sp(8) }}>
               <input type="time" value={newEvent.time} onChange={e => setNewEvent({ ...newEvent, time: e.target.value })}
                 style={{ ...formInput(R), flex: 1 }} />
-              <select value={newEvent.calendar} onChange={e => setNewEvent({ ...newEvent, calendar: e.target.value, color: calColors[['personal', 'work', 'family', 'school'].indexOf(e.target.value)] })}
+              <select value={newEvent.calendar} onChange={e => { const idx = ['personal', 'work', 'family', 'school'].indexOf(e.target.value); setNewEvent({ ...newEvent, calendar: e.target.value, color: idx >= 0 ? calColors[idx] : colors.primary }) }}
                 style={{ ...formInput(R), flex: 1 }}>
                 <option value="personal">Personal</option>
                 <option value="work">Work</option>

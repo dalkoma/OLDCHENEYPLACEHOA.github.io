@@ -108,8 +108,8 @@ export default function Reminders({ user, addMemory, R }) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: R.sp(4) }}>
-              <button onClick={() => dismiss(r.id)} style={iconBtn} title="Dismiss">✓</button>
-              <button onClick={() => deleteReminder(r.id)} style={{ ...iconBtn, color: colors.danger }}>✕</button>
+              <button onClick={() => dismiss(r.id)} style={iconBtn} aria-label={`Dismiss reminder: ${r.text}`}>✓</button>
+              <button onClick={() => deleteReminder(r.id)} style={{ ...iconBtn, color: colors.danger }} aria-label={`Delete reminder: ${r.text}`}>✕</button>
             </div>
           </div>
         ))

@@ -82,7 +82,7 @@ export default function Tasks({ user, addMemory, R }) {
             background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
             borderRadius: R.sp(10), marginBottom: R.sp(8), opacity: t.completed ? 0.6 : 1,
           }}>
-            <button onClick={() => toggle(t.id)} style={{
+            <button onClick={() => toggle(t.id)} aria-label={t.completed ? `Mark ${t.title} incomplete` : `Mark ${t.title} complete`} style={{
               width: R.sp(22), height: R.sp(22), minWidth: R.sp(22), borderRadius: R.sp(6), flexShrink: 0, marginTop: R.sp(1),
               background: t.completed ? colors.success : 'transparent',
               border: `2px solid ${t.completed ? colors.success : colors.textMuted}`,
@@ -101,7 +101,7 @@ export default function Tasks({ user, addMemory, R }) {
                 {t.recurring && <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${colors.accent}22`, color: colors.accent }}>↻ Recurring</span>}
               </div>
             </div>
-            <button onClick={() => deleteTask(t.id)} style={{
+            <button onClick={() => deleteTask(t.id)} aria-label={`Delete task ${t.title}`} style={{
               background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(14), padding: R.sp(4),
               minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -146,8 +146,8 @@ export default function Tasks({ user, addMemory, R }) {
               placeholder="Assign to (name or phone)" style={formInput(R)} />
             <input type="date" value={newTask.dueDate} onChange={e => setNewTask({ ...newTask, dueDate: e.target.value })}
               style={formInput(R)} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(12), cursor: 'pointer' }}>
-              <input type="checkbox" checked={newTask.recurring} onChange={e => setNewTask({ ...newTask, recurring: e.target.checked })} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: R.sp(8), color: colors.textSecondary, fontSize: R.fs(13), marginBottom: R.sp(12), cursor: 'pointer' }}>
+              <input type="checkbox" checked={newTask.recurring} onChange={e => setNewTask({ ...newTask, recurring: e.target.checked })} aria-label="Recurring task" />
               Recurring task
             </label>
             <div style={{ display: 'flex', gap: R.sp(8) }}>

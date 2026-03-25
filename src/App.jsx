@@ -70,7 +70,21 @@ const loadState = (key, fallback) => {
   } catch { return fallback }
 }
 const saveState = (key, value) => {
-  try { localStorage.setItem('jarvis_' + key, JSON.stringify(value)) } catch {}
+  try {
+    localStorage.setItem('jarvis_' + key, JSON.stringify(value))
+  } catch (e) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      // Storage full — try to free space by trimming large collections
+      try {
+        const issueLog = JSON.parse(localStorage.getItem('jarvis_issueLog') || '[]')
+        if (issueLog.length > 50) localStorage.setItem('jarvis_issueLog', JSON.stringify(issueLog.slice(0, 50)))
+        const chatMessages = JSON.parse(localStorage.getItem('jarvis_chatMessages') || '[]')
+        if (chatMessages.length > 20) localStorage.setItem('jarvis_chatMessages', JSON.stringify(chatMessages.slice(0, 20)))
+        // Retry the original save
+        localStorage.setItem('jarvis_' + key, JSON.stringify(value))
+      } catch {}
+    }
+  }
 }
 
 export { loadState, saveState }
@@ -232,6 +246,7 @@ export default function App() {
         </div>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           style={{
             background: 'none', border: 'none', color: colors.textSecondary,
             fontSize: R.fs(22), cursor: 'pointer', padding: R.sp(4),
@@ -262,6 +277,7 @@ export default function App() {
               <button
                 key={key}
                 onClick={() => navigate(key)}
+                aria-label={`Navigate to ${SCREENS[key]?.label}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: R.sp(12), width: '100%',
                   padding: `${R.sp(12)}px ${R.sp(20)}px`,
@@ -288,7 +304,7 @@ export default function App() {
       </main>
 
       {/* Bottom nav */}
-      <nav style={{
+      <nav aria-label="Main navigation" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         display: 'flex', background: colors.surface,
         borderTop: `${R.isRetina ? 0.5 : 1}px solid ${colors.border}`,
@@ -301,6 +317,8 @@ export default function App() {
           <button
             key={key}
             onClick={() => navigate(key)}
+            aria-label={SCREENS[key]?.label}
+            aria-current={screen === key ? 'page' : undefined}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               padding: isLandscapePhone ? '4px 0 3px' : `${R.sp(8)}px 0 ${R.sp(6)}px`,
