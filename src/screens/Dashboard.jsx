@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { colors, loadState, saveState } from '../App'
+import { logIssue } from '../ErrorBoundary'
 
 const greetings = (name) => {
   const h = new Date().getHours()
@@ -114,7 +115,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
             wind_mph: d.current_condition?.[0]?.windspeedMiles,
             feels_f: d.current_condition?.[0]?.FeelsLikeF,
           }))
-          .catch(() => null)
+          .catch(err => { logIssue({ type: 'api', severity: 'low', message: `Weather API failed for ${city}: ${err.message}`, timestamp: new Date().toISOString() }); return null })
       )
     ).then(results => {
       const data = results.filter(Boolean)
@@ -146,7 +147,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
           saveState('dashNewsAge', now)
         }
       })
-      .catch(() => {})
+      .catch(err => { logIssue({ type: 'api', severity: 'low', message: `News API failed: ${err.message}`, timestamp: new Date().toISOString() }) })
   }, [])
 
   useEffect(() => {
@@ -154,7 +155,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
     const todayTrains = trainSchedule.filter(s => s.days.includes(todayDay))
     if (todayTrains.length === 0) return
     const trainNums = [...new Set(todayTrains.map(s => s.train))]
-    Promise.all(trainNums.map(n => fetch(`https://api-v3.amtraker.com/v3/trains/${n}`).then(r => r.json()).catch(() => null)))
+    Promise.all(trainNums.map(n => fetch(`https://api-v3.amtraker.com/v3/trains/${n}`).then(r => r.json()).catch(err => { logIssue({ type: 'api', severity: 'low', message: `Train API failed for #${n}: ${err.message}`, timestamp: new Date().toISOString() }); return null })))
       .then(results => {
         const data = {}
         trainNums.forEach((num, i) => { if (results[i]?.[num]) data[num] = results[i][num] })

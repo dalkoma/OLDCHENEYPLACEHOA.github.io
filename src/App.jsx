@@ -13,6 +13,7 @@ import AppBuilder from './screens/AppBuilder'
 import Settings from './screens/Settings'
 import Reminders from './screens/Reminders'
 import TrainTracker from './screens/TrainTracker'
+import IssueTracker from './screens/IssueTracker'
 import KioskMode from './modes/KioskMode'
 import DisplayMode from './modes/DisplayMode'
 import ConductorMode from './modes/ConductorMode'
@@ -32,10 +33,11 @@ const SCREENS = {
   builder: { label: 'Builder', icon: '⬡', component: AppBuilder },
   reminders: { label: 'Remind', icon: '⏰', component: Reminders },
   settings: { label: 'Settings', icon: '⚙', component: Settings },
+  issues: { label: 'Issues', icon: '⚑', component: IssueTracker },
 }
 
 const NAV_ITEMS = ['dashboard', 'trains', 'chat', 'tasks', 'settings']
-const MENU_ITEMS = ['meals', 'scanner', 'channels', 'voice', 'travel', 'builder', 'reminders']
+const MENU_ITEMS = ['meals', 'scanner', 'channels', 'voice', 'travel', 'builder', 'reminders', 'issues']
 
 const colors = {
   bg: '#0a0a1a',
@@ -144,10 +146,10 @@ export default function App() {
           {onboardStep === 0 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
               <div style={{ fontSize: R.fs(isZFlip ? 40 : 64), marginBottom: R.sp(24) }}>◉</div>
-              <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 22 : 32), fontWeight: 700, marginBottom: 8 }}>Jarvis</h1>
-              {!isZFlip && <p style={{ color: colors.primaryLight, fontSize: R.fs(18), marginBottom: 8 }}>Your Personal AI Life Manager</p>}
+              <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 22 : 32), fontWeight: 700, marginBottom: R.sp(8) }}>Jarvis</h1>
+              {!isZFlip && <p style={{ color: colors.primaryLight, fontSize: R.fs(18), marginBottom: R.sp(8) }}>Your Personal AI Life Manager</p>}
               {!isZFlip && (
-                <p style={{ color: colors.textSecondary, fontSize: R.fs(14), lineHeight: 1.6, marginBottom: 32 }}>
+                <p style={{ color: colors.textSecondary, fontSize: R.fs(14), lineHeight: 1.6, marginBottom: R.sp(32) }}>
                   Calendar, tasks, meals, messaging, travel, and more — all managed by AI that learns you.
                 </p>
               )}
@@ -156,8 +158,8 @@ export default function App() {
           )}
           {onboardStep === 1 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: 8 }}>What should I call you?</h2>
-              {!isZFlip && <p style={{ color: colors.textSecondary, fontSize: R.fs(14), marginBottom: 24 }}>I'll remember your name and preferences over time.</p>}
+              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: R.sp(8) }}>What should I call you?</h2>
+              {!isZFlip && <p style={{ color: colors.textSecondary, fontSize: R.fs(14), marginBottom: R.sp(24) }}>I'll remember your name and preferences over time.</p>}
               <input
                 value={onboardName}
                 onChange={e => setOnboardName(e.target.value)}
@@ -166,13 +168,13 @@ export default function App() {
                 autoFocus
                 onKeyDown={e => e.key === 'Enter' && setOnboardStep(2)}
               />
-              <button onClick={() => setOnboardStep(2)} style={{ ...btnStyle(R), marginTop: 16 }}>Continue</button>
+              <button onClick={() => setOnboardStep(2)} style={{ ...btnStyle(R), marginTop: R.sp(16) }}>Continue</button>
             </div>
           )}
           {onboardStep === 2 && (
             <div style={{ animation: 'fadeIn 0.6s ease' }}>
-              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: 8 }}>Here's what I can do</h2>
-              <div style={{ textAlign: 'left', margin: '24px 0' }}>
+              <h2 style={{ color: colors.text, fontSize: R.fs(24), marginBottom: R.sp(8) }}>Here's what I can do</h2>
+              <div style={{ textAlign: 'left', margin: `${R.sp(24)}px 0` }}>
                 {(isZFlip ? [
                   ['◉', 'AI Chat & Voice'],
                   ['▦', 'Smart Calendar'],
@@ -188,8 +190,8 @@ export default function App() {
                   ['➤', 'Travel Planning', 'Plan trips with AI assistance'],
                   ['⬡', 'App Builder', 'Create custom mini-apps on the fly'],
                 ]).map(([icon, title, desc]) => (
-                  <div key={title} style={{ display: 'flex', gap: R.sp(12), padding: `${R.sp(10)}px 0`, borderBottom: `1px solid ${colors.border}` }}>
-                    <span style={{ fontSize: R.fs(20), color: colors.primary, width: 28, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+                  <div key={title} style={{ display: 'flex', gap: R.sp(12), padding: `${R.sp(10)}px 0`, borderBottom: `${R.borderWidth}px solid ${colors.border}` }}>
+                    <span style={{ fontSize: R.fs(20), color: colors.primary, width: R.sp(28), textAlign: 'center', flexShrink: 0 }}>{icon}</span>
                     <div>
                       <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600 }}>{title}</div>
                       {desc && <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{desc}</div>}
@@ -232,7 +234,7 @@ export default function App() {
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
             background: 'none', border: 'none', color: colors.textSecondary,
-            fontSize: R.fs(22), cursor: 'pointer', padding: 4,
+            fontSize: R.fs(22), cursor: 'pointer', padding: R.sp(4),
             minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -252,7 +254,7 @@ export default function App() {
             background: colors.surface, borderLeft: `${R.isRetina ? 0.5 : 1}px solid ${colors.border}`,
             padding: `${R.sp(60)}px 0 ${R.sp(20)}px`, overflowY: 'auto', animation: 'slideIn 0.25s ease',
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: `0 ${R.sp(16)}px ${R.sp(16)}px`, borderBottom: `1px solid ${colors.border}`, marginBottom: 8 }}>
+            <div style={{ padding: `0 ${R.sp(16)}px ${R.sp(16)}px`, borderBottom: `${R.borderWidth}px solid ${colors.border}`, marginBottom: R.sp(8) }}>
               <div style={{ color: colors.text, fontSize: R.fs(16), fontWeight: 600 }}>Hi, {user.name}!</div>
               <div style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>All Features</div>
             </div>
@@ -269,10 +271,10 @@ export default function App() {
                   minHeight: R.minTouchTarget,
                 }}
               >
-                <span style={{ fontSize: R.fs(18), width: 24, textAlign: 'center' }}>{SCREENS[key]?.icon}</span>
+                <span style={{ fontSize: R.fs(18), width: R.sp(24), textAlign: 'center' }}>{SCREENS[key]?.icon}</span>
                 {SCREENS[key]?.label}
                 {['travel', 'builder'].includes(key) && (
-                  <span style={{ marginLeft: 'auto', fontSize: 9, color: colors.accent, background: `${colors.accent}22`, padding: '2px 6px', borderRadius: 8 }}>NEW</span>
+                  <span style={{ marginLeft: 'auto', fontSize: R.fs(9), color: colors.accent, background: `${colors.accent}22`, padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(8) }}>NEW</span>
                 )}
               </button>
             ))}
@@ -304,7 +306,7 @@ export default function App() {
               padding: isLandscapePhone ? '4px 0 3px' : `${R.sp(8)}px 0 ${R.sp(6)}px`,
               background: 'none', border: 'none',
               color: screen === key ? colors.primary : colors.textMuted,
-              fontSize: R.fs(isLandscapePhone ? 8 : 10), cursor: 'pointer', gap: 2,
+              fontSize: R.fs(isLandscapePhone ? 8 : 10), cursor: 'pointer', gap: R.sp(2),
               minHeight: R.minTouchTarget,
             }}
           >
@@ -334,14 +336,14 @@ export default function App() {
 
 const btnStyle = (R) => ({
   width: '100%', padding: `${R.sp(14)}px ${R.sp(24)}px`, background: colors.gradient1,
-  color: '#fff', border: 'none', borderRadius: 12, fontSize: R.fs(16),
+  color: '#fff', border: 'none', borderRadius: R.sp(12), fontSize: R.fs(16),
   fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
   minHeight: R.minTouchTarget,
 })
 
 const inputStyle = (R) => ({
   width: '100%', padding: `${R.sp(14)}px ${R.sp(16)}px`, background: colors.surfaceLight,
-  color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 12,
+  color: colors.text, border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: R.sp(12),
   fontSize: R.fs(16), fontFamily: 'inherit',
   minHeight: R.minTouchTarget,
 })

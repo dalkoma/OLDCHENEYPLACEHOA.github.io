@@ -107,7 +107,7 @@ export default function Settings({ user, updateUser, addMemory, R }) {
                 width: R.sp(32), height: R.sp(32), borderRadius: '50%', background: `${colors.secondary}30`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: colors.secondary, fontSize: R.fs(14), fontWeight: 600,
-              }}>{member.name[0]}</div>
+              }}>{(member.name || '?')[0]}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ color: colors.text, fontSize: R.fs(13) }}>{member.name}</div>
                 <div style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{member.phone} · {member.role}</div>
