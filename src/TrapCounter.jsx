@@ -581,6 +581,19 @@ function NumInput({label,value,onChange,min=1,max=99,t}) {
 // ── Main App ──
 export default function TrapCounter() {
   const scr = useScreenSize();
+  const [booting, setBooting] = useState(() => !sessionStorage.getItem("trap_booted"));
+  const [bootPhase, setBootPhase] = useState(0); // 0=barrel, 1=slug flying, 2=clay explode, 3=fade out
+
+  // Boot sequence
+  useEffect(() => {
+    if (!booting) return;
+    const t1 = setTimeout(() => setBootPhase(1), 800);   // slug fires
+    const t2 = setTimeout(() => setBootPhase(2), 1600);  // clay explodes
+    const t3 = setTimeout(() => setBootPhase(3), 2400);  // fade out
+    const t4 = setTimeout(() => { setBooting(false); sessionStorage.setItem("trap_booted","1"); }, 3000);
+    return () => [t1,t2,t3,t4].forEach(clearTimeout);
+  }, [booting]);
+
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
   const [mode, setMode] = useLS("mode", "quick");
   const [screen, setScreen] = useLS("screen", "setup");
@@ -850,6 +863,13 @@ export default function TrapCounter() {
     setQShooters(Array.from({length:qNumShooters},(_,i)=>freshShooter(qSetup[i].name,qSetup[i].gun,qSetup[i].choke)));
     setQActiveIdx(0); setScreen("range");
   };
+  // Instant quick start — 1 shooter, no setup needed
+  const instantStart = () => {
+    setMode("quick");
+    setCurrentShootId(Date.now());
+    setQShooters([freshShooter(qSetup[0].name, qSetup[0].gun, qSetup[0].choke)]);
+    setQActiveIdx(0); setScreen("range");
+  };
   const updateQShooter = (i,changes) => setQShooters(p=>p.map((s,idx)=>idx===i?{...s,...changes}:s));
   const saveQRound = (i) => setQShooters(p=>p.map((s,idx)=>{
     if(idx!==i)return s;
@@ -1008,6 +1028,100 @@ export default function TrapCounter() {
   });
 
   // ════════════════════════════
+  // ── BOOT SCREEN ──
+  // ════════════════════════════
+  if (booting) return (
+    <div style={{position:"fixed",inset:0,background:"#0a0804",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",zIndex:9999,opacity:bootPhase===3?0:1,transition:"opacity 0.6s ease-out",fontFamily:"'Courier New',Courier,monospace"}}>
+      <style>{`
+        @keyframes slugFly{0%{left:-10%;opacity:1}60%{left:70%;opacity:1}100%{left:72%;opacity:0}}
+        @keyframes clayExplode{0%{transform:scale(1);opacity:1}30%{transform:scale(1.8);opacity:1}100%{transform:scale(3);opacity:0}}
+        @keyframes barrelGlow{0%{box-shadow:0 0 20px rgba(255,140,0,0)}50%{box-shadow:0 0 60px rgba(255,140,0,0.6)}100%{box-shadow:0 0 20px rgba(255,140,0,0)}}
+        @keyframes muzzleFlash{0%{opacity:0;transform:scale(0.5)}10%{opacity:1;transform:scale(1.5)}40%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.3)}}
+        @keyframes smokeRise{0%{opacity:0.6;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-40px) scale(2)}}
+        @keyframes shardFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(0.3)}}
+        @keyframes bootPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+      `}</style>
+
+      {/* Barrel view — concentric rings like looking down a shotgun barrel */}
+      <div style={{position:"relative",width:isTiny?140:200,height:isTiny?140:200,marginBottom:40}}>
+        {/* Outer barrel */}
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"4px solid #3a2a10",background:"radial-gradient(circle, #1a1208 0%, #0a0804 60%, #2a1a08 100%)",animation:bootPhase>=1?"barrelGlow 0.4s ease-out":"none"}}>
+          {/* Rifling grooves */}
+          {[0,45,90,135].map(deg=>(
+            <div key={deg} style={{position:"absolute",top:"50%",left:"50%",width:"90%",height:2,background:"rgba(100,70,20,0.3)",transform:`translate(-50%,-50%) rotate(${deg}deg)`,transformOrigin:"center"}}/>
+          ))}
+        </div>
+        {/* Inner ring 1 */}
+        <div style={{position:"absolute",top:"15%",left:"15%",right:"15%",bottom:"15%",borderRadius:"50%",border:"3px solid #2a1a08",background:"radial-gradient(circle, #0f0c08 0%, #1a1208 100%)"}}/>
+        {/* Inner ring 2 — bore */}
+        <div style={{position:"absolute",top:"30%",left:"30%",right:"30%",bottom:"30%",borderRadius:"50%",border:"2px solid #1a1005",background:"radial-gradient(circle, #000 0%, #0a0702 100%)"}}/>
+        {/* Center dark hole */}
+        <div style={{position:"absolute",top:"42%",left:"42%",right:"42%",bottom:"42%",borderRadius:"50%",background:"#000"}}/>
+
+        {/* Muzzle flash — shows when slug fires */}
+        {bootPhase>=1&&bootPhase<2&&(
+          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:isTiny?100:140,height:isTiny?100:140,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,200,50,0.9) 0%, rgba(255,120,0,0.6) 40%, transparent 70%)",animation:"muzzleFlash 0.5s ease-out forwards"}}/>
+        )}
+        {/* Smoke wisps after firing */}
+        {bootPhase>=1&&[0,1,2].map(i=>(
+          <div key={i} style={{position:"absolute",top:`${35+i*10}%`,left:`${40+i*8}%`,width:20+i*10,height:20+i*10,borderRadius:"50%",background:"rgba(150,140,120,0.15)",animation:`smokeRise ${1+i*0.3}s ease-out ${0.2+i*0.15}s forwards`,opacity:0}}/>
+        ))}
+      </div>
+
+      {/* Slug flying across */}
+      <div style={{position:"absolute",top:"50%",left:0,right:0,height:40,overflow:"hidden",pointerEvents:"none"}}>
+        {bootPhase>=1&&bootPhase<2&&(
+          <div style={{position:"absolute",top:"50%",transform:"translateY(-50%)",animation:"slugFly 0.8s ease-in forwards"}}>
+            {/* Slug body */}
+            <div style={{width:28,height:12,background:"linear-gradient(90deg,#c8a050,#f5c060,#c8a050)",borderRadius:"2px 8px 8px 2px",boxShadow:"0 0 12px rgba(245,192,96,0.5),2px 0 20px rgba(255,160,0,0.3)"}}>
+              {/* Slug nose */}
+              <div style={{position:"absolute",right:-4,top:2,width:8,height:8,background:"#f5d080",borderRadius:"50%"}}/>
+            </div>
+            {/* Trail sparks */}
+            {[0,1,2].map(i=>(
+              <div key={i} style={{position:"absolute",left:-8-i*6,top:4+Math.sin(i)*3,width:4,height:2,background:`rgba(255,180,50,${0.6-i*0.2})`,borderRadius:1}}/>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Clay pigeon on the right — before explosion */}
+      <div style={{position:"absolute",top:"45%",right:"15%",pointerEvents:"none"}}>
+        {bootPhase<2&&(
+          <div style={{width:40,height:12,background:"linear-gradient(180deg,#e05020,#c03010)",borderRadius:"50%",border:"2px solid #ff6030",boxShadow:"0 0 10px rgba(255,80,30,0.3)"}}/>
+        )}
+        {/* Explosion */}
+        {bootPhase>=2&&(
+          <div style={{position:"relative"}}>
+            {/* Main explosion burst */}
+            <div style={{position:"absolute",top:-20,left:-20,width:80,height:80,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,150,30,0.9) 0%, rgba(255,80,0,0.6) 30%, rgba(200,50,0,0.3) 60%, transparent 80%)",animation:"clayExplode 0.8s ease-out forwards"}}/>
+            {/* Flying shards */}
+            {[
+              {sx:"-40px",sy:"-50px",c:"#e05020"},{sx:"50px",sy:"-30px",c:"#c03010"},
+              {sx:"-30px",sy:"40px",c:"#ff6030"},{sx:"60px",sy:"20px",c:"#e05020"},
+              {sx:"-50px",sy:"10px",c:"#c03010"},{sx:"30px",sy:"-60px",c:"#ff6030"},
+              {sx:"40px",sy:"50px",c:"#e05020"},{sx:"-20px",sy:"-40px",c:"#ff6030"},
+            ].map((s,i)=>(
+              <div key={i} style={{position:"absolute",top:-2+Math.random()*4,left:-2+Math.random()*4,width:6+Math.random()*6,height:4+Math.random()*3,background:s.c,borderRadius:1,opacity:1,"--sx":s.sx,"--sy":s.sy,animation:`shardFly ${0.5+Math.random()*0.4}s ease-out ${Math.random()*0.1}s forwards`}}/>
+            ))}
+            {/* Orange dust cloud */}
+            <div style={{position:"absolute",top:-30,left:-30,width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,100,0,0.3) 0%, transparent 70%)",animation:"clayExplode 1.2s ease-out 0.1s forwards"}}/>
+          </div>
+        )}
+      </div>
+
+      {/* Text */}
+      <div style={{textAlign:"center",marginTop:20}}>
+        <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:"#4a3010",marginBottom:6}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
+        <div style={{fontSize:isTiny?22:30,fontWeight:"900",letterSpacing:6,color:"#f5c060",animation:"bootPulse 1.5s ease-in-out infinite"}}>TRAP COUNTER</div>
+        <div style={{fontSize:9,fontWeight:"bold",letterSpacing:4,color:"#3a2a10",marginTop:10}}>
+          {bootPhase<1?"LOADING...":bootPhase<2?"PULL!":"DEAD BIRD!"}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ════════════════════════════
   // ── SETUP SCREEN ──
   // ════════════════════════════
   if (screen === "setup") return (
@@ -1031,14 +1145,22 @@ export default function TrapCounter() {
         </div>
         {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
 
-        {/* Quick Start button */}
-        <button onClick={mode==="quick"?startQuick:startEvent} style={{
-          width:"100%",padding:"18px 0",
-          background:sunMode?"linear-gradient(160deg,#cc4400,#993300)":"linear-gradient(160deg,#ff5500,#cc4400)",
-          border:`2px solid ${t.accent}`,borderRadius:10,color:"#fff",
-          fontSize:18,fontWeight:"900",letterSpacing:4,cursor:"pointer",fontFamily:"inherit",
-          marginBottom:12,
-        }}>START SHOOTING</button>
+        {/* Quick Start — one tap, start scoring instantly */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          <button onClick={instantStart} style={{
+            padding:"16px 0",
+            background:sunMode?"linear-gradient(160deg,#cc4400,#993300)":"linear-gradient(160deg,#ff5500,#cc4400)",
+            border:`2px solid ${t.accent}`,borderRadius:10,color:"#fff",
+            fontSize:14,fontWeight:"900",letterSpacing:3,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u26A1"} QUICK START</button>
+          <button onClick={mode==="quick"?startQuick:startEvent} style={{
+            padding:"16px 0",
+            background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",
+            border:`2px solid ${t.good}`,borderRadius:10,color:"#fff",
+            fontSize:14,fontWeight:"900",letterSpacing:3,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u25B6"} START</button>
+        </div>
+        <div style={{fontSize:9,color:t.textDim,textAlign:"center",marginTop:-6,marginBottom:10,letterSpacing:1}}>QUICK START = 1 shooter, instant go &nbsp;|&nbsp; START = use settings below</div>
 
         {/* Family Group Sync */}
         <div style={{...sectionStyle,padding:"14px 16px"}}>
@@ -1228,13 +1350,6 @@ export default function TrapCounter() {
           </div>
         )}
 
-        <button onClick={mode==="quick"?startQuick:startEvent} style={{
-          width:"100%",padding:"18px",
-          background:sunMode?"linear-gradient(160deg,#cc6600,#994400)":"linear-gradient(160deg,#b86000,#7a3800)",
-          border:`3px solid ${sunMode?"#ee7700":"#e08820"}`,borderRadius:10,
-          color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:4,
-          cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 20px rgba(200,100,0,0.3)",
-        }}>{"\u25B6"} {mode==="quick"?"START SESSION":"START EVENT"}</button>
         <div style={{textAlign:"center",marginTop:20,fontSize:10,fontWeight:"bold",letterSpacing:4,color:t.textDimmer}}>PULL!</div>
       </div>
     </div>
