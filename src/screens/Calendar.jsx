@@ -62,8 +62,8 @@ export default function Calendar({ user, addMemory, R }) {
       <div style={{ display: 'flex', gap: R.sp(8), marginBottom: R.sp(16), flexWrap: 'wrap' }}>
         {['Personal', 'Work', 'Family', 'School'].map((cal, i) => (
           <span key={cal} style={{
-            padding: `${R.sp(4)}px ${R.sp(10)}px`, borderRadius: 12, fontSize: R.fs(11),
-            background: `${calColors[i]}22`, color: calColors[i], border: `1px solid ${calColors[i]}44`,
+            padding: `${R.sp(4)}px ${R.sp(10)}px`, borderRadius: R.sp(12), fontSize: R.fs(11),
+            background: `${calColors[i]}22`, color: calColors[i], border: `${R.borderWidth}px solid ${calColors[i]}44`,
           }}>{cal}</span>
         ))}
       </div>
@@ -74,13 +74,13 @@ export default function Calendar({ user, addMemory, R }) {
         <button onClick={nextMonth} style={navBtn(R)}>›</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: R.sp(2), marginBottom: R.sp(4) }}>
         {DAYS.map(d => (
-          <div key={d} style={{ textAlign: 'center', color: colors.textMuted, fontSize: R.fs(11), padding: 4 }}>{d}</div>
+          <div key={d} style={{ textAlign: 'center', color: colors.textMuted, fontSize: R.fs(11), padding: R.sp(4) }}>{d}</div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: R.sp(20) }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: R.sp(2), marginBottom: R.sp(20) }}>
         {calendarDays.map((day, i) => {
           if (day === null) return <div key={`e${i}`} />
           const dateStr = getDateStr(day)
@@ -102,8 +102,8 @@ export default function Calendar({ user, addMemory, R }) {
               {day}
               {has && (
                 <span style={{
-                  position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)',
-                  width: 4, height: 4, borderRadius: '50%', background: isSelected ? '#fff' : colors.accent,
+                  position: 'absolute', bottom: R.sp(2), left: '50%', transform: 'translateX(-50%)',
+                  width: R.sp(4), height: R.sp(4), borderRadius: '50%', background: isSelected ? '#fff' : colors.accent,
                 }} />
               )}
             </button>
@@ -124,18 +124,18 @@ export default function Calendar({ user, addMemory, R }) {
             <div key={e.id} style={{
               display: 'flex', alignItems: 'flex-start', gap: R.sp(12), padding: R.sp(14),
               background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
-              borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${e.color || colors.primary}`,
+              borderRadius: R.sp(10), marginBottom: R.sp(8), borderLeft: `3px solid ${e.color || colors.primary}`,
             }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 500 }}>{e.title}</div>
-                <div style={{ color: colors.primaryLight, fontSize: R.fs(12), marginTop: 2 }}>{e.time}</div>
-                {e.location && <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: 2 }}>{e.location}</div>}
-                <div style={{ marginTop: 4 }}>
-                  <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 8, background: `${colors.primary}22`, color: colors.primaryLight }}>{e.calendar}</span>
+                <div style={{ color: colors.primaryLight, fontSize: R.fs(12), marginTop: R.sp(2) }}>{e.time}</div>
+                {e.location && <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>{e.location}</div>}
+                <div style={{ marginTop: R.sp(4) }}>
+                  <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(8), background: `${colors.primary}22`, color: colors.primaryLight }}>{e.calendar}</span>
                 </div>
               </div>
               <button onClick={() => deleteEvent(e.id)} style={{
-                background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: 16,
+                background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(16),
                 minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>✕</button>
@@ -145,13 +145,13 @@ export default function Calendar({ user, addMemory, R }) {
       </div>
 
       <div style={{
-        padding: R.sp(14), background: `${colors.primary}10`, border: `1px solid ${colors.primary}25`,
-        borderRadius: 10, display: 'flex', gap: R.sp(10), alignItems: 'center',
+        padding: R.sp(14), background: `${colors.primary}10`, border: `${R.borderWidth}px solid ${colors.primary}25`,
+        borderRadius: R.sp(10), display: 'flex', gap: R.sp(10), alignItems: 'center',
       }}>
         <span style={{ color: colors.primary, fontSize: R.fs(16) }}>◉</span>
         <div>
           <div style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>SMART SUGGESTION</div>
-          <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: 2 }}>
+          <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>
             {dayEvents.length > 2 ? "Busy day! Consider blocking time for breaks." : "Looks manageable. Want me to find time for a focus block?"}
           </div>
         </div>
@@ -193,7 +193,7 @@ const smallBtn = (R) => ({
   minHeight: R.minTouchTarget,
 })
 const navBtn = (R) => ({
-  background: 'none', border: 'none', color: colors.text, fontSize: R.fs(22), cursor: 'pointer', padding: `4px ${R.sp(12)}px`,
+  background: 'none', border: 'none', color: colors.text, fontSize: R.fs(22), cursor: 'pointer', padding: `${R.sp(4)}px ${R.sp(12)}px`,
   minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 })

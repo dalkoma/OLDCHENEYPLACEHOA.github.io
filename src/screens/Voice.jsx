@@ -41,11 +41,12 @@ function getContextualResponses() {
     responses.push({ transcript: "Do I have any reminders?", response: "No active reminders right now. Want me to set one?" })
   }
 
-  // Meal plan
-  const todayDayFull = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-  const todayMeals = mealPlan[todayDayFull]
-  if (todayMeals && (todayMeals.dinner || todayMeals.lunch)) {
-    const meal = todayMeals.dinner || todayMeals.lunch
+  // Meal plan (keys are like "Mon_dinner", "Mon_lunch" etc.)
+  const todayDayAbbr = DAYS[new Date().getDay()]
+  const todayDinner = mealPlan[`${todayDayAbbr}_dinner`]
+  const todayLunch = mealPlan[`${todayDayAbbr}_lunch`]
+  if (todayDinner || todayLunch) {
+    const meal = (todayDinner || todayLunch).name || todayDinner || todayLunch
     responses.push({ transcript: "What's for dinner tonight?", response: `Tonight's plan is ${meal}. Want me to pull up the recipe or adjust the meal plan?` })
   } else {
     responses.push({ transcript: "Plan dinner for tonight", response: "You don't have anything planned for tonight yet. I can suggest something based on your preferences. Want me to open the meal planner?" })

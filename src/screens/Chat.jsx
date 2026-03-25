@@ -95,23 +95,23 @@ export default function Chat({ user, addMemory, R }) {
               borderBottomLeftRadius: msg.role === 'ai' ? 4 : 16,
             }}>
               {msg.role === 'ai' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(6), marginBottom: R.sp(6) }}>
                   <span style={{ color: colors.primary, fontSize: R.fs(12) }}>◉</span>
                   <span style={{ color: colors.primaryLight, fontSize: R.fs(11), fontWeight: 600 }}>Jarvis</span>
                 </div>
               )}
               <p style={{ color: '#fff', fontSize: R.fs(14), lineHeight: 1.5, margin: 0 }}>{msg.text}</p>
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: R.fs(10), marginTop: 6, textAlign: 'right' }}>{msg.time}</div>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: R.fs(10), marginTop: R.sp(6), textAlign: 'right' }}>{msg.time}</div>
             </div>
           </div>
         ))}
         {typing && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: R.sp(12) }}>
             <div style={{ padding: `${R.sp(12)}px ${R.sp(20)}px`, background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`, borderRadius: 16, borderBottomLeftRadius: 4 }}>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ display: 'flex', gap: R.sp(4) }}>
                 {[0, 1, 2].map(i => (
                   <span key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%', background: colors.primary,
+                    width: R.sp(8), height: R.sp(8), borderRadius: '50%', background: colors.primary,
                     animation: `bounce 1.4s infinite ${i * 0.2}s`,
                   }} />
                 ))}

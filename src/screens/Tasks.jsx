@@ -50,8 +50,8 @@ export default function Tasks({ user, addMemory, R }) {
           [tasks.filter(t => !!t.assignee).length, 'Delegated', colors.primary],
         ].map(([n, l, c]) => (
           <div key={l} style={{
-            flex: 1, padding: `${R.sp(12)}px ${R.sp(8)}px`, background: `${c}15`, border: `1px solid ${c}30`,
-            borderRadius: 10, textAlign: 'center',
+            flex: 1, padding: `${R.sp(12)}px ${R.sp(8)}px`, background: `${c}15`, border: `${R.borderWidth}px solid ${c}30`,
+            borderRadius: R.sp(10), textAlign: 'center',
           }}>
             <div style={{ color: c, fontSize: R.fs(20), fontWeight: 700 }}>{n}</div>
             <div style={{ color: colors.textSecondary, fontSize: R.fs(10) }}>{l}</div>
@@ -80,10 +80,10 @@ export default function Tasks({ user, addMemory, R }) {
           <div key={t.id} style={{
             display: 'flex', alignItems: 'flex-start', gap: R.sp(12), padding: R.sp(14),
             background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
-            borderRadius: 10, marginBottom: 8, opacity: t.completed ? 0.6 : 1,
+            borderRadius: R.sp(10), marginBottom: R.sp(8), opacity: t.completed ? 0.6 : 1,
           }}>
             <button onClick={() => toggle(t.id)} style={{
-              width: R.sp(22), height: R.sp(22), minWidth: R.sp(22), borderRadius: 6, flexShrink: 0, marginTop: 1,
+              width: R.sp(22), height: R.sp(22), minWidth: R.sp(22), borderRadius: R.sp(6), flexShrink: 0, marginTop: R.sp(1),
               background: t.completed ? colors.success : 'transparent',
               border: `2px solid ${t.completed ? colors.success : colors.textMuted}`,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -94,15 +94,15 @@ export default function Tasks({ user, addMemory, R }) {
             <div style={{ flex: 1 }}>
               <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 500, textDecoration: t.completed ? 'line-through' : 'none' }}>{t.title}</div>
               <div style={{ display: 'flex', gap: R.sp(6), marginTop: R.sp(6), flexWrap: 'wrap' }}>
-                <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 6, background: `${priorityColors[t.priority]}22`, color: priorityColors[t.priority] }}>{t.priority}</span>
-                <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 6, background: `${colors.primary}22`, color: colors.primaryLight }}>{t.category}</span>
-                {t.assignee && <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 6, background: `${colors.secondary}22`, color: colors.secondary }}>→ {t.assignee}</span>}
-                {t.dueDate && <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 6, background: `${colors.warning}22`, color: colors.warning }}>{t.dueDate}</span>}
-                {t.recurring && <span style={{ fontSize: R.fs(10), padding: '2px 6px', borderRadius: 6, background: `${colors.accent}22`, color: colors.accent }}>↻ Recurring</span>}
+                <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${priorityColors[t.priority]}22`, color: priorityColors[t.priority] }}>{t.priority}</span>
+                <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${colors.primary}22`, color: colors.primaryLight }}>{t.category}</span>
+                {t.assignee && <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${colors.secondary}22`, color: colors.secondary }}>→ {t.assignee}</span>}
+                {t.dueDate && <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${colors.warning}22`, color: colors.warning }}>{t.dueDate}</span>}
+                {t.recurring && <span style={{ fontSize: R.fs(10), padding: `${R.sp(2)}px ${R.sp(6)}px`, borderRadius: R.sp(6), background: `${colors.accent}22`, color: colors.accent }}>↻ Recurring</span>}
               </div>
             </div>
             <button onClick={() => deleteTask(t.id)} style={{
-              background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(14), padding: 4,
+              background: 'none', border: 'none', color: colors.textMuted, cursor: 'pointer', fontSize: R.fs(14), padding: R.sp(4),
               minWidth: R.minTouchTarget, minHeight: R.minTouchTarget,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>✕</button>
@@ -111,13 +111,13 @@ export default function Tasks({ user, addMemory, R }) {
       )}
 
       <div style={{
-        marginTop: R.sp(16), padding: R.sp(14), background: `${colors.secondary}10`, border: `1px solid ${colors.secondary}25`,
-        borderRadius: 10, display: 'flex', gap: R.sp(10), alignItems: 'flex-start',
+        marginTop: R.sp(16), padding: R.sp(14), background: `${colors.secondary}10`, border: `${R.borderWidth}px solid ${colors.secondary}25`,
+        borderRadius: R.sp(10), display: 'flex', gap: R.sp(10), alignItems: 'flex-start',
       }}>
         <span style={{ color: colors.secondary, fontSize: R.fs(16), flexShrink: 0 }}>⊶</span>
         <div>
           <div style={{ color: colors.secondary, fontSize: R.fs(11), fontWeight: 600 }}>DELEGATION</div>
-          <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: 2 }}>
+          <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(2) }}>
             Assign tasks to circle members. They'll get notified via SMS even if they don't use the app.
           </div>
         </div>

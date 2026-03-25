@@ -90,7 +90,7 @@ export default function MealPlanner({ user, addMemory, R }) {
             width: '100%', padding: R.sp(14), background: colors.gradient1, color: '#fff',
             border: 'none', borderRadius: 12, fontSize: R.fs(14), fontWeight: 600,
             cursor: 'pointer', marginBottom: R.sp(16), fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: R.sp(8),
             minHeight: R.minTouchTarget,
           }}>
             <span>◉</span> Generate Weekly Plan with AI
@@ -116,7 +116,7 @@ export default function MealPlanner({ user, addMemory, R }) {
                 padding: R.sp(14), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
                 borderRadius: 10, marginBottom: R.sp(10),
               }}>
-                <div style={{ color: colors.textMuted, fontSize: R.fs(11), fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>{type}</div>
+                <div style={{ color: colors.textMuted, fontSize: R.fs(11), fontWeight: 600, textTransform: 'uppercase', marginBottom: R.sp(8) }}>{type}</div>
                 {meal ? (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -183,7 +183,7 @@ export default function MealPlanner({ user, addMemory, R }) {
               ))}
               <div style={{
                 marginTop: R.sp(16), padding: R.sp(14), background: `${colors.success}10`,
-                border: `1px solid ${colors.success}25`, borderRadius: 10,
+                border: `${R.borderWidth}px solid ${colors.success}25`, borderRadius: R.sp(10),
                 display: 'flex', gap: R.sp(10), alignItems: 'center',
               }}>
                 <span style={{ fontSize: R.fs(20) }}>🛒</span>
@@ -210,7 +210,7 @@ export default function MealPlanner({ user, addMemory, R }) {
                 cursor: 'pointer', textAlign: 'left', minHeight: R.minTouchTarget,
               }}>
                 <div style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 500 }}>{meal.name}</div>
-                <div style={{ display: 'flex', gap: R.sp(12), marginTop: 4 }}>
+                <div style={{ display: 'flex', gap: R.sp(12), marginTop: R.sp(4) }}>
                   <span style={{ color: colors.textSecondary, fontSize: R.fs(11) }}>{meal.time}</span>
                   <span style={{ color: colors.textSecondary, fontSize: R.fs(11) }}>{meal.cal} cal</span>
                   <span style={{ color: colors.textMuted, fontSize: R.fs(11) }}>{meal.ingredients.length} items</span>

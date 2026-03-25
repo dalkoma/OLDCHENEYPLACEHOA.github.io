@@ -197,12 +197,12 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
     <div style={{ padding: R.sp(16) }}>
       {/* Greeting */}
       <div style={{ marginBottom: R.sp(20) }}>
-        <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 18 : 24), fontWeight: 700, marginBottom: 4 }}>
+        <h1 style={{ color: colors.text, fontSize: R.fs(isZFlip ? 18 : 24), fontWeight: 700, marginBottom: R.sp(4) }}>
           {greetings(user.name)}
         </h1>
         <p style={{ color: colors.textSecondary, fontSize: R.fs(14) }}>{briefing.date}</p>
         {!isZFlip && (
-          <p style={{ color: colors.textMuted, fontSize: R.fs(11), marginTop: 2 }}>
+          <p style={{ color: colors.textMuted, fontSize: R.fs(11), marginTop: R.sp(2) }}>
             Day {dayOfYear} · Week {weekNum} · 🌅 {sunTimes.sunrise} · 🌇 {sunTimes.sunset}
           </p>
         )}
@@ -211,22 +211,22 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
       {/* Day & Year Progress */}
       {!isZFlip && (
         <div style={{ display: 'flex', gap: R.sp(10), marginBottom: R.sp(16) }}>
-          <div style={{ flex: 1, background: colors.surfaceLight, borderRadius: 12, padding: `${R.sp(10)}px ${R.sp(14)}px`, border: `${R.borderWidth}px solid ${colors.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ flex: 1, background: colors.surfaceLight, borderRadius: R.sp(12), padding: `${R.sp(10)}px ${R.sp(14)}px`, border: `${R.borderWidth}px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: R.sp(6) }}>
               <span style={{ color: colors.textSecondary, fontSize: R.fs(10), fontWeight: 600 }}>DAY PROGRESS</span>
               <span style={{ color: colors.primaryLight, fontSize: R.fs(10) }}>{dayProgress}%</span>
             </div>
-            <div style={{ height: 4, background: colors.border, borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${dayProgress}%`, height: '100%', background: colors.gradient1, borderRadius: 2 }} />
+            <div style={{ height: R.sp(4), background: colors.border, borderRadius: R.sp(2), overflow: 'hidden' }}>
+              <div style={{ width: `${dayProgress}%`, height: '100%', background: colors.gradient1, borderRadius: R.sp(2) }} />
             </div>
           </div>
-          <div style={{ flex: 1, background: colors.surfaceLight, borderRadius: 12, padding: `${R.sp(10)}px ${R.sp(14)}px`, border: `${R.borderWidth}px solid ${colors.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ flex: 1, background: colors.surfaceLight, borderRadius: R.sp(12), padding: `${R.sp(10)}px ${R.sp(14)}px`, border: `${R.borderWidth}px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: R.sp(6) }}>
               <span style={{ color: colors.textSecondary, fontSize: R.fs(10), fontWeight: 600 }}>YEAR PROGRESS</span>
               <span style={{ color: colors.secondary, fontSize: R.fs(10) }}>{yearProgress}%</span>
             </div>
-            <div style={{ height: 4, background: colors.border, borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ width: `${yearProgress}%`, height: '100%', background: colors.gradient2, borderRadius: 2 }} />
+            <div style={{ height: R.sp(4), background: colors.border, borderRadius: R.sp(2), overflow: 'hidden' }}>
+              <div style={{ width: `${yearProgress}%`, height: '100%', background: colors.gradient2, borderRadius: R.sp(2) }} />
             </div>
           </div>
         </div>
@@ -238,10 +238,10 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${clockCols}, 1fr)`, gap: R.sp(8) }}>
           {(isZFlip ? WORLD_CLOCKS.slice(0, 4) : WORLD_CLOCKS).map(({ label, tz, flag }) => (
             <div key={tz} style={{
-              background: colors.surfaceLight, borderRadius: 10, padding: `${R.sp(10)}px ${R.sp(8)}px`,
+              background: colors.surfaceLight, borderRadius: R.sp(10), padding: `${R.sp(10)}px ${R.sp(8)}px`,
               border: `${R.borderWidth}px solid ${colors.border}`, textAlign: 'center',
             }}>
-              <div style={{ fontSize: R.fs(14), marginBottom: 2 }}>{flag}</div>
+              <div style={{ fontSize: R.fs(14), marginBottom: R.sp(2) }}>{flag}</div>
               <div style={{ color: colors.text, fontSize: R.fs(isZFlip ? 11 : 13), fontWeight: 600 }}>{getTimeInTZ(tz)}</div>
               <div style={{ color: colors.textMuted, fontSize: R.fs(isZFlip ? 8 : 9) }}>{label}</div>
               {!isZFlip && <div style={{ color: colors.textMuted, fontSize: R.fs(8) }}>{getDateInTZ(tz)}</div>}
@@ -254,18 +254,18 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
       {weather && weather.length > 0 && !isZFlip && (
         <div style={{ marginBottom: R.sp(16) }}>
           <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>🌤 LIVE WEATHER</h3>
-          <div style={{ overflowX: 'auto', display: 'flex', gap: R.sp(8), paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ overflowX: 'auto', display: 'flex', gap: R.sp(8), paddingBottom: R.sp(4), WebkitOverflowScrolling: 'touch' }}>
             {weather.map(w => (
               <div key={w.city} style={{
-                minWidth: weatherMinWidth, background: colors.surfaceLight, borderRadius: 12, padding: R.sp(12),
+                minWidth: weatherMinWidth, background: colors.surfaceLight, borderRadius: R.sp(12), padding: R.sp(12),
                 border: `${R.borderWidth}px solid ${colors.border}`, flexShrink: 0,
               }}>
-                <div style={{ fontSize: R.fs(24), marginBottom: 4 }}>{getWeatherEmoji(w.code)}</div>
+                <div style={{ fontSize: R.fs(24), marginBottom: R.sp(4) }}>{getWeatherEmoji(w.code)}</div>
                 <div style={{ color: colors.text, fontSize: R.fs(20), fontWeight: 700 }}>{w.temp_f}°F</div>
-                <div style={{ color: colors.textMuted, fontSize: R.fs(10), marginBottom: 4 }}>{w.temp_c}°C</div>
-                <div style={{ color: colors.textSecondary, fontSize: R.fs(11), fontWeight: 500, marginBottom: 2 }}>{w.city}</div>
+                <div style={{ color: colors.textMuted, fontSize: R.fs(10), marginBottom: R.sp(4) }}>{w.temp_c}°C</div>
+                <div style={{ color: colors.textSecondary, fontSize: R.fs(11), fontWeight: 500, marginBottom: R.sp(2) }}>{w.city}</div>
                 <div style={{ color: colors.textMuted, fontSize: R.fs(9) }}>{w.desc}</div>
-                <div style={{ color: colors.textMuted, fontSize: R.fs(9), marginTop: 4 }}>
+                <div style={{ color: colors.textMuted, fontSize: R.fs(9), marginTop: R.sp(4) }}>
                   💧 {w.humidity}% · 💨 {w.wind_mph}mph
                 </div>
                 <div style={{ color: colors.textMuted, fontSize: R.fs(9) }}>Feels {w.feels_f}°F</div>
@@ -277,11 +277,11 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
 
       {/* Morning Briefing Card */}
       <div style={{
-        background: colors.gradient1, borderRadius: 16, padding: R.sp(20), marginBottom: R.sp(16),
+        background: colors.gradient1, borderRadius: R.sp(16), padding: R.sp(20), marginBottom: R.sp(16),
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -20, right: -20, fontSize: 80, opacity: 0.1 }}>◉</div>
-        <h3 style={{ color: '#fff', fontSize: R.fs(14), fontWeight: 600, marginBottom: 12, opacity: 0.9 }}>TODAY'S BRIEFING</h3>
+        <div style={{ position: 'absolute', top: -20, right: -20, fontSize: R.fs(80), opacity: 0.1 }}>◉</div>
+        <h3 style={{ color: '#fff', fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(12), opacity: 0.9 }}>TODAY'S BRIEFING</h3>
         <div style={{ display: 'flex', gap: R.sp(16) }}>
           {[
             [briefing.events, 'Events', colors.warning],
@@ -295,7 +295,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
           ))}
         </div>
         {briefing.events === 0 && briefing.tasks === 0 && (
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: R.fs(13), marginTop: 12 }}>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: R.fs(13), marginTop: R.sp(12) }}>
             Your day is clear! Time to relax or plan ahead.
           </p>
         )}
@@ -306,7 +306,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
         <div style={{ marginBottom: R.sp(16) }}>
           <h3 style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 600, marginBottom: R.sp(10) }}>📰 TOP HEADLINES</h3>
           <div style={{
-            background: colors.surfaceLight, borderRadius: 12, border: `${R.borderWidth}px solid ${colors.border}`,
+            background: colors.surfaceLight, borderRadius: R.sp(12), border: `${R.borderWidth}px solid ${colors.border}`,
             overflow: 'hidden',
           }}>
             {news.map((item, i) => (
@@ -317,12 +317,12 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
                 rel="noopener noreferrer"
                 style={{
                   display: 'block', padding: `${R.sp(10)}px ${R.sp(14)}px`,
-                  borderBottom: i < news.length - 1 ? `1px solid ${colors.border}` : 'none',
+                  borderBottom: i < news.length - 1 ? `${R.borderWidth}px solid ${colors.border}` : 'none',
                   textDecoration: 'none', cursor: 'pointer',
                   minHeight: R.minTouchTarget,
                 }}
               >
-                <div style={{ color: colors.text, fontSize: R.fs(13), lineHeight: 1.4, marginBottom: 2 }}>
+                <div style={{ color: colors.text, fontSize: R.fs(13), lineHeight: 1.4, marginBottom: R.sp(2) }}>
                   {item.title}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -341,11 +341,11 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
       {trainData && trainData.todayTrains.length > 0 && (
         <button onClick={() => navigate('trains')} style={{
           width: '100%', padding: R.sp(14), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
-          borderRadius: 12, marginBottom: R.sp(16), cursor: 'pointer', textAlign: 'left',
+          borderRadius: R.sp(12), marginBottom: R.sp(16), cursor: 'pointer', textAlign: 'left',
           minHeight: R.minTouchTarget,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 16 }}>🚂</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(8), marginBottom: R.sp(8) }}>
+            <span style={{ fontSize: R.fs(16) }}>🚂</span>
             <span style={{ color: colors.text, fontSize: R.fs(13), fontWeight: 600 }}>YOUR TRAINS TODAY</span>
           </div>
           {trainData.todayTrains.map(s => {
@@ -371,14 +371,14 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
               if (current) statusText += ` · Now: ${current.name}`
             }
             return (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                <span style={{ color: s.train === '5' ? colors.secondary : colors.accent, fontSize: R.fs(14), fontWeight: 700, width: 28 }}>#{s.train}</span>
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: R.sp(8), padding: `${R.sp(4)}px 0` }}>
+                <span style={{ color: s.train === '5' ? colors.secondary : colors.accent, fontSize: R.fs(14), fontWeight: 700, width: R.sp(28) }}>#{s.train}</span>
                 <span style={{ color: colors.textSecondary, fontSize: R.fs(12) }}>{s.boardStation}</span>
                 <span style={{ color: statusColor, fontSize: R.fs(12), fontWeight: 500 }}>{statusText}</span>
               </div>
             )
           })}
-          <div style={{ color: colors.primaryLight, fontSize: R.fs(11), marginTop: 6 }}>Tap for full details →</div>
+          <div style={{ color: colors.primaryLight, fontSize: R.fs(11), marginTop: R.sp(6) }}>Tap for full details →</div>
         </button>
       )}
 
@@ -399,7 +399,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: R.sp(6),
                 padding: `${R.sp(14)}px ${R.sp(8)}px`, background: colors.surfaceLight,
                 border: `${R.borderWidth}px solid ${colors.border}`,
-                borderRadius: 12, color: col, cursor: 'pointer', fontSize: R.fs(22),
+                borderRadius: R.sp(12), color: col, cursor: 'pointer', fontSize: R.fs(22),
                 minHeight: R.minTouchTarget,
               }}
             >
@@ -423,7 +423,7 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
                 <span style={{ color: colors.text, fontSize: R.fs(14), fontWeight: 500 }}>{e.title}</span>
                 <span style={{ color: colors.primaryLight, fontSize: R.fs(12) }}>{e.time}</span>
               </div>
-              {e.location && <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: 4 }}>{e.location}</div>}
+              {e.location && <div style={{ color: colors.textSecondary, fontSize: R.fs(12), marginTop: R.sp(4) }}>{e.location}</div>}
             </div>
           ))}
         </div>
@@ -438,11 +438,11 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
           </div>
           {briefing.pendingTasks.map((t, i) => (
             <div key={i} style={cardStyle(R)}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: R.sp(8) }}>
                 <span style={{ color: t.priority === 'high' ? colors.danger : colors.textSecondary }}>●</span>
                 <span style={{ color: colors.text, fontSize: R.fs(14) }}>{t.title}</span>
               </div>
-              {t.assignee && <div style={{ color: colors.textSecondary, fontSize: R.fs(11), marginTop: 4, marginLeft: 20 }}>Assigned to {t.assignee}</div>}
+              {t.assignee && <div style={{ color: colors.textSecondary, fontSize: R.fs(11), marginTop: R.sp(4), marginLeft: R.sp(20) }}>Assigned to {t.assignee}</div>}
             </div>
           ))}
         </div>
@@ -464,11 +464,11 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
                 onClick={() => navigate(target)}
                 style={{
                   padding: R.sp(16), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
-                  borderRadius: 12, textAlign: 'left', cursor: 'pointer',
+                  borderRadius: R.sp(12), textAlign: 'left', cursor: 'pointer',
                   minHeight: R.minTouchTarget,
                 }}
               >
-                <div style={{ fontSize: R.fs(24), marginBottom: 8, color: col }}>{icon}</div>
+                <div style={{ fontSize: R.fs(24), marginBottom: R.sp(8), color: col }}>{icon}</div>
                 <div style={{ color: colors.text, fontSize: R.fs(13), fontWeight: 600 }}>{title}</div>
                 <div style={{ color: colors.textSecondary, fontSize: R.fs(11) }}>{desc}</div>
               </button>
@@ -482,10 +482,11 @@ export default function Dashboard({ user, navigate, addMemory, R }) {
 
 const cardStyle = (R) => ({
   padding: R.sp(14), background: colors.surfaceLight, border: `${R.borderWidth}px solid ${colors.border}`,
-  borderRadius: 10, marginBottom: 8,
+  borderRadius: R.sp(10), marginBottom: R.sp(8),
 })
 
 const linkBtn = {
   background: 'none', border: 'none', color: colors.primaryLight,
   fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
 }
+// Note: linkBtn.fontSize stays static — it's used outside R scope. The value is small enough to not matter.

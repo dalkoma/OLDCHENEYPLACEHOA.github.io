@@ -194,7 +194,7 @@ export default function Settings({ user, updateUser, addMemory, R }) {
             {showMemory ? 'Hide' : 'View'} Memories
           </button>
           {showMemory && (
-            <div style={{ marginTop: R.sp(10), maxHeight: 200, overflowY: 'auto' }}>
+            <div style={{ marginTop: R.sp(10), maxHeight: R.sp(200), overflowY: 'auto' }}>
               {user.memory.length === 0 ? (
                 <div style={{ color: colors.textMuted, fontSize: R.fs(12) }}>No memories yet. Use the app and I'll learn!</div>
               ) : (
