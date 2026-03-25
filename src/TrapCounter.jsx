@@ -735,9 +735,12 @@ export default function TrapCounter() {
   // Poll cloud for updates every 3s
   useEffect(() => {
     if (!syncOn || !sessionId) return;
+    let failCount = 0;
     const poll = async () => {
       const data = await cloudLoad("session:" + sessionId);
-      if (!data || !data.updatedAt) return;
+      if (data === null) { failCount++; if (failCount >= 3) setSyncStatus("offline"); return; }
+      failCount = 0; setSyncStatus("synced");
+      if (!data.updatedAt) return;
       const localTime = parseInt(localStorage.getItem("trap_lastSync") || "0");
       if (data.updatedAt <= localTime) return;
       localStorage.setItem("trap_lastSync", String(data.updatedAt));
@@ -991,9 +994,11 @@ export default function TrapCounter() {
       setImportMsg(`Loaded ${data.squads.length} squad(s), ${data.traps.length} trap(s)`);
       setTimeout(() => setImportMsg(null), 3000);
 
+      setCurrentShootId(Date.now()); // fresh shoot for import
       if (data.traps.length <= 1 && data.squads.length <= 1) {
         // Single trap/squad - use quick mode
         setMode("quick");
+        setScores({}); // clear event data
         const sq = data.squads[0] || { num:1, shooters:[] };
         setQSquad(sq.num);
         setQTrap(data.traps[0] || 1);
@@ -1016,6 +1021,7 @@ export default function TrapCounter() {
       } else {
         // Multi trap/squad - use event mode
         setMode("event");
+        setQShooters([]); // clear quick mode data
         setEventName(data.eventName);
         setWeather(data.weather);
         setNotes(data.notes);
@@ -1322,7 +1328,7 @@ export default function TrapCounter() {
             <div style={{textAlign:"center"}}>
               <div style={{fontSize:10,color:t.textDim,marginBottom:6}}>YOUR GROUP CODE — SHARE WITH FAMILY</div>
               <div style={{fontSize:32,fontWeight:"900",letterSpacing:8,color:t.accent,marginBottom:8,userSelect:"all"}}>{sessionId}</div>
-              <div style={{fontSize:10,color:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:4}}>CONNECTED</div>
+              <div style={{fontSize:10,color:syncStatus==="offline"?t.bad:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:4}}>{syncStatus==="offline"?"OFFLINE — RETRYING":"CONNECTED"}</div>
               <div style={{fontSize:9,color:t.textDim,marginBottom:10,lineHeight:1.5}}>All scores & history sync across devices.<br/>Anyone with this code can see scores — even remotely.</div>
               <button onClick={stopSync} style={{padding:"8px 20px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:11,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>LEAVE GROUP</button>
             </div>
@@ -1531,7 +1537,7 @@ export default function TrapCounter() {
             </div>
             {!(scr.landscape&&!isWide)&&locationName&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim,marginTop:2}}>{locationName}</div>}
             {!(scr.landscape&&!isWide)&&weather&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim}}>{weather}</div>}
-            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.good,marginTop:2}}>GROUP {sessionId}</div>}
+            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:syncStatus==="offline"?t.bad:t.good,marginTop:2}}>{syncStatus==="offline"?"OFFLINE":"GROUP"} {sessionId}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <button onClick={toggleSunMode} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
