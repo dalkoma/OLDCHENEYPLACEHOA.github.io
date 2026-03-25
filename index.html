@@ -409,16 +409,63 @@
       }, 900);
 
       setTimeout(function() {
-        setProgress(40, 'QUERYING TRAINS');
-        try {
-          var sched = JSON.parse(localStorage.getItem('jarvis_trainSchedule') || '[]');
-          var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-          var today = days[new Date().getDay()];
-          var tt = sched.filter(function(s){return s.days && s.days.indexOf(today)>=0;});
-          if (tt.length > 0) {
-            addFeedItem('🚂', 'TRAINS', tt.map(function(t){return '<span class="hi">#'+t.train+'</span> '+t.boardStation;}).join(' · '));
-          } else { addFeedItem('🚂', 'TRAINS', 'No trains today'); }
-        } catch(e) { addFeedItem('🚂', 'TRAINS', 'No schedule'); }
+        setProgress(40, 'QUERYING LIVE TRAIN DATA');
+        // Hit the real Amtraker API for trains #5 and #6
+        var trainNums = ['5', '6'];
+        var apiBase = 'https://api-v3.amtraker.com/v3/trains/';
+        var myStations = { '6': 'LNK', '5': 'OTM' }; // Your boarding stations
+        var promises = trainNums.map(function(n) {
+          return fetch(apiBase + n).then(function(r) { return r.json(); }).then(function(data) {
+            return { train: n, data: data };
+          }).catch(function() { return { train: n, data: null }; });
+        });
+        Promise.all(promises).then(function(results) {
+          var msgs = [];
+          results.forEach(function(res) {
+            if (!res.data) return;
+            // API returns object with train number keys, each containing array of instances
+            var instances = res.data[res.train] || Object.values(res.data)[0];
+            if (!instances || !Array.isArray(instances) || instances.length === 0) return;
+            instances.forEach(function(inst) {
+              var stations = inst.stations || [];
+              if (!Array.isArray(stations)) stations = Object.values(stations);
+              var mySt = myStations[res.train] || '';
+              var myStation = stations.find(function(s) { return s.code === mySt; });
+              var status = '';
+              var timeStr = '';
+              if (myStation) {
+                // Calculate delay
+                if (myStation.arr && myStation.schArr) {
+                  var delay = Math.round((new Date(myStation.arr).getTime() - new Date(myStation.schArr).getTime()) / 60000);
+                  var arrTime = new Date(myStation.arr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  if (delay <= 0) { status = '<span class="hi">On time</span>'; }
+                  else if (delay < 60) { status = '<span class="warn">' + delay + 'm late</span>'; }
+                  else { status = '<span class="warn">' + Math.floor(delay/60) + 'h ' + (delay%60) + 'm late</span>'; }
+                  timeStr = ' · Arr ' + arrTime;
+                } else if (myStation.schArr) {
+                  var schTime = new Date(myStation.schArr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  timeStr = ' · Sched ' + schTime;
+                  status = myStation.status || 'Scheduled';
+                } else {
+                  status = myStation.status || '';
+                }
+              }
+              // Find where the train currently is
+              var current = stations.find(function(s) { return s.status === 'Enroute'; }) || stations.find(function(s) { return s.status === 'Station'; });
+              var currentStr = current ? ' · Now: ' + (current.name || current.code) : '';
+              var dir = res.train === '6' ? 'EB' : 'WB';
+              msgs.push('<span class="hi">#' + res.train + '</span> ' + dir + ' → ' + mySt + timeStr + ' ' + status + currentStr);
+            });
+          });
+          if (msgs.length > 0) {
+            addFeedItem('🚂', 'LIVE TRAINS', msgs.join('<br>'));
+          } else {
+            // Fallback: show next scheduled train
+            addFeedItem('🚂', 'NEXT TRAIN', '<span class="hi">#6</span> EB → LNK · Next departure from EMY · Check schedule for details');
+          }
+        }).catch(function() {
+          addFeedItem('🚂', 'TRAINS', 'API offline — check app for details');
+        });
       }, 1400);
 
       setTimeout(function() {
