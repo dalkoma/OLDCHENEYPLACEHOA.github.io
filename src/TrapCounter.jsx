@@ -98,10 +98,37 @@ function getDeviceInfo() {
   return { device, userAgent: ua };
 }
 
+// ── Error tracking ──
+const errorLog = [];
+function trackError(type, message, extra = {}) {
+  const entry = { type, message, ...extra, device: getDeviceInfo().device, ts: new Date().toISOString() };
+  errorLog.push(entry);
+  // Push to cloud (fire-and-forget)
+  try {
+    fetch("/api/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "errors:" + new Date().toISOString().slice(0,10), data: { entry, id: Date.now() }, append: true }),
+    }).catch(() => {});
+  } catch {}
+}
+
+// Global error handler — catches unhandled exceptions and promise rejections
+if (typeof window !== "undefined" && !window.__trapErrorsSetup) {
+  window.__trapErrorsSetup = true;
+  window.addEventListener("error", (e) => {
+    trackError("unhandled", e.message, { file: e.filename, line: e.lineno, col: e.colno });
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    trackError("promise", String(e.reason), {});
+  });
+}
+
 // Silent IP-based geolocation (no permission prompt)
 async function getLocationSilent() {
   try {
     const res = await fetch("https://ipapi.co/json/");
+    if (!res.ok) { trackError("geo", `IP geolocation failed: ${res.status}`); return null; }
     const data = await res.json();
     if (data.city) {
       return {
@@ -110,7 +137,7 @@ async function getLocationSilent() {
       };
     }
     return null;
-  } catch { return null; }
+  } catch (e) { trackError("geo", e.message); return null; }
 }
 
 // ── Responsive screen size hook ──
@@ -141,24 +168,30 @@ function useScreenSize() {
 }
 
 // ── Cloud sync helpers ──
-const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
+const genCode = () => {
+  const arr = new Uint8Array(4);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => b.toString(36).padStart(2, "0")).join("").slice(0, 6).toUpperCase();
+};
 
 async function cloudSave(key, data) {
   try {
-    await fetch("/api/state", {
+    const res = await fetch("/api/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, data }),
     });
-  } catch {}
+    if (!res.ok) trackError("cloud-save", `Save failed: ${res.status}`, { key });
+  } catch (e) { trackError("cloud-save", e.message, { key }); }
 }
 
 async function cloudLoad(key) {
   try {
-    const res = await fetch("/api/state?key=" + key);
+    const res = await fetch("/api/state?key=" + encodeURIComponent(key));
+    if (!res.ok) { trackError("cloud-load", `Load failed: ${res.status}`, { key }); return null; }
     const data = await res.json();
     return data;
-  } catch { return null; }
+  } catch (e) { trackError("cloud-load", e.message, { key }); return null; }
 }
 
 const freshShooter = (name, gun, choke) => ({
@@ -821,7 +854,7 @@ export default function TrapCounter() {
     if (screen !== "range" && screen !== "leaderboard") return;
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => saveToHistory(), 500);
-  }, [qShooters, scores]);
+  }, [screen, qShooters, scores]);
 
   // Screenshot
   const takeScreenshot = async () => {

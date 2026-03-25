@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trap Counter — Error Dashboard</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0804;color:#e8d5a0;font-family:'Courier New',Courier,monospace;padding:20px;min-height:100vh}
+    h1{font-size:18px;font-weight:900;letter-spacing:4px;color:#f5c060;margin-bottom:8px}
+    .sub{font-size:10px;letter-spacing:3px;color:#6a5020;margin-bottom:20px}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+    .stat{background:rgba(20,14,4,0.8);border:2px solid #2a1a08;border-radius:8px;padding:14px;text-align:center}
+    .stat-num{font-size:28px;font-weight:900;color:#f5c060}
+    .stat-label{font-size:9px;letter-spacing:2px;color:#6a5020;margin-top:4px}
+    .stat.bad .stat-num{color:#e05040}
+    .stat.good .stat-num{color:#4adf80}
+    .day{background:rgba(20,14,4,0.8);border:2px solid #2a1a08;border-radius:8px;margin-bottom:12px;overflow:hidden}
+    .day-header{padding:12px 14px;border-bottom:1px solid #2a1a08;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+    .day-header:hover{background:rgba(40,28,8,0.4)}
+    .day-date{font-size:13px;font-weight:900;letter-spacing:2px;color:#f5c060}
+    .day-count{font-size:11px;font-weight:bold;color:#e05040;background:rgba(200,50,30,0.15);padding:3px 10px;border-radius:10px}
+    .day-errors{display:none;padding:8px}
+    .day-errors.open{display:block}
+    .err{padding:8px 10px;border-bottom:1px solid rgba(42,26,8,0.5);font-size:11px;line-height:1.5}
+    .err:last-child{border-bottom:none}
+    .err-type{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:bold;letter-spacing:1px;margin-right:8px}
+    .err-type.unhandled{background:rgba(200,50,30,0.2);color:#e05040}
+    .err-type.promise{background:rgba(200,150,30,0.2);color:#f5c060}
+    .err-type.cloud-save,.err-type.cloud-load{background:rgba(50,100,200,0.2);color:#60a0f5}
+    .err-type.geo{background:rgba(80,200,80,0.2);color:#4adf80}
+    .err-msg{color:#b8a070;word-break:break-all}
+    .err-meta{font-size:9px;color:#4a3010;margin-top:4px}
+    .loading{text-align:center;padding:40px;color:#6a5020;font-size:12px;letter-spacing:3px}
+    .empty{text-align:center;padding:60px 20px;color:#4a3010}
+    .empty-icon{font-size:40px;margin-bottom:12px}
+    .empty-text{font-size:14px;font-weight:bold;letter-spacing:3px;color:#6a5020}
+    .refresh{background:rgba(200,100,0,0.15);border:2px solid #2a1a08;border-radius:6px;color:#f5c060;padding:8px 16px;font-size:11px;font-weight:bold;letter-spacing:2px;cursor:pointer;font-family:inherit;margin-bottom:20px}
+    .refresh:hover{background:rgba(200,100,0,0.3)}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+    .filter{background:rgba(20,14,4,0.8);border:2px solid #2a1a08;border-radius:6px;color:#e8d5a0;padding:6px 12px;font-size:11px;font-weight:bold;font-family:inherit;cursor:pointer;letter-spacing:1px}
+    .filter.active{border-color:#f5c060;color:#f5c060}
+    .bot-section{background:rgba(20,14,4,0.8);border:2px solid #2a1a08;border-radius:8px;padding:16px;margin-bottom:20px}
+    .bot-title{font-size:12px;font-weight:900;letter-spacing:3px;color:#f5c060;margin-bottom:10px}
+    .bot-insight{padding:8px 0;border-bottom:1px solid rgba(42,26,8,0.3);font-size:11px;line-height:1.6;color:#b8a070}
+    .bot-insight:last-child{border-bottom:none}
+    .bot-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:bold;letter-spacing:1px;margin-right:6px}
+    .bot-badge.critical{background:rgba(200,50,30,0.2);color:#e05040}
+    .bot-badge.warning{background:rgba(200,150,30,0.2);color:#f5c060}
+    .bot-badge.info{background:rgba(50,100,200,0.2);color:#60a0f5}
+    .bot-badge.ok{background:rgba(80,200,80,0.2);color:#4adf80}
+  </style>
+</head>
+<body>
+  <h1>ERROR DASHBOARD</h1>
+  <div class="sub">TRAP COUNTER — AUTOMATED ERROR TRACKING</div>
+
+  <div class="toolbar">
+    <button class="refresh" onclick="loadErrors()">REFRESH</button>
+    <button class="filter active" data-type="all" onclick="setFilter('all',this)">ALL</button>
+    <button class="filter" data-type="unhandled" onclick="setFilter('unhandled',this)">CRASHES</button>
+    <button class="filter" data-type="cloud" onclick="setFilter('cloud',this)">CLOUD</button>
+    <button class="filter" data-type="geo" onclick="setFilter('geo',this)">GEO</button>
+    <button class="filter" data-type="promise" onclick="setFilter('promise',this)">PROMISES</button>
+  </div>
+
+  <div id="stats" class="stats"></div>
+  <div id="bot" class="bot-section" style="display:none"></div>
+  <div id="content"><div class="loading">LOADING ERROR LOGS...</div></div>
+
+  <script>
+    let allData = null;
+    let currentFilter = "all";
+
+    async function loadErrors() {
+      document.getElementById("content").innerHTML = '<div class="loading">LOADING...</div>';
+      try {
+        const res = await fetch("/api/errors?days=14");
+        allData = await res.json();
+        renderStats();
+        runBot();
+        renderLogs();
+      } catch (e) {
+        document.getElementById("content").innerHTML = '<div class="loading">FAILED TO LOAD: ' + e.message + '</div>';
+      }
+    }
+
+    function renderStats() {
+      if (!allData) return;
+      const all = allData.logs.flatMap(d => d.errors);
+      const types = {};
+      all.forEach(e => { types[e.entry?.type || e.type || "unknown"] = (types[e.entry?.type || e.type || "unknown"] || 0) + 1; });
+      const devices = {};
+      all.forEach(e => { const d = e.entry?.device || e.device || "?"; devices[d] = (devices[d] || 0) + 1; });
+      const topDevice = Object.entries(devices).sort((a,b) => b[1]-a[1])[0];
+
+      let html = '';
+      html += '<div class="stat ' + (allData.totalCount > 0 ? "bad" : "good") + '"><div class="stat-num">' + allData.totalCount + '</div><div class="stat-label">TOTAL ERRORS (14D)</div></div>';
+      html += '<div class="stat"><div class="stat-num">' + allData.logs.filter(d=>d.count>0).length + '</div><div class="stat-label">DAYS WITH ERRORS</div></div>';
+      html += '<div class="stat ' + ((types["unhandled"]||0) > 0 ? "bad" : "good") + '"><div class="stat-num">' + (types["unhandled"]||0) + '</div><div class="stat-label">CRASHES</div></div>';
+      html += '<div class="stat"><div class="stat-num">' + (types["cloud-save"]||0)+(types["cloud-load"]||0) + '</div><div class="stat-label">CLOUD ERRORS</div></div>';
+      document.getElementById("stats").innerHTML = html;
+    }
+
+    function runBot() {
+      if (!allData || allData.totalCount === 0) {
+        document.getElementById("bot").style.display = "block";
+        document.getElementById("bot").innerHTML = '<div class="bot-title">BOT ANALYSIS</div><div class="bot-insight"><span class="bot-badge ok">ALL CLEAR</span>No errors detected in the last 14 days. Everything is running smoothly.</div>';
+        return;
+      }
+
+      const all = allData.logs.flatMap(d => d.errors);
+      const insights = [];
+
+      // Count by type
+      const types = {};
+      all.forEach(e => { const t = e.entry?.type || e.type || "unknown"; types[t] = (types[t] || 0) + 1; });
+
+      // Crashes
+      if (types["unhandled"]) {
+        insights.push({ badge: "critical", label: "CRITICAL", text: types["unhandled"] + " unhandled crashes detected. These are JavaScript errors that broke the app for users. Check the error messages below for stack traces." });
+      }
+
+      // Cloud sync issues
+      const cloudErrors = (types["cloud-save"]||0) + (types["cloud-load"]||0);
+      if (cloudErrors > 10) {
+        insights.push({ badge: "warning", label: "WARNING", text: cloudErrors + " cloud sync failures. Users may be losing data or not seeing synced scores. Could be network issues or API rate limits." });
+      } else if (cloudErrors > 0) {
+        insights.push({ badge: "info", label: "INFO", text: cloudErrors + " minor cloud sync hiccups. Likely intermittent network issues — normal for mobile users." });
+      }
+
+      // Promise rejections
+      if (types["promise"]) {
+        insights.push({ badge: "warning", label: "WARNING", text: types["promise"] + " unhandled promise rejections. An async operation failed without proper error handling." });
+      }
+
+      // Geo errors
+      if (types["geo"] > 5) {
+        insights.push({ badge: "info", label: "INFO", text: types["geo"] + " geolocation failures. IP-based location service may be rate-limiting or blocked for some users." });
+      }
+
+      // Device breakdown
+      const devices = {};
+      all.forEach(e => { const d = e.entry?.device || e.device || "?"; devices[d] = (devices[d] || 0) + 1; });
+      const deviceList = Object.entries(devices).sort((a,b) => b[1]-a[1]);
+      if (deviceList.length > 0) {
+        const top = deviceList.slice(0,3).map(([d,c]) => d + " (" + c + ")").join(", ");
+        insights.push({ badge: "info", label: "DEVICES", text: "Most errors from: " + top });
+      }
+
+      // Trending — compare last 7 days vs prior 7
+      const recent = allData.logs.slice(0,7).reduce((s,d) => s + d.count, 0);
+      const prior = allData.logs.slice(7,14).reduce((s,d) => s + d.count, 0);
+      if (recent > prior * 2 && recent > 5) {
+        insights.push({ badge: "critical", label: "TRENDING UP", text: "Errors are increasing: " + recent + " this week vs " + prior + " last week. Something may have broken in a recent deploy." });
+      } else if (prior > recent * 2 && prior > 5) {
+        insights.push({ badge: "ok", label: "IMPROVING", text: "Errors are down: " + recent + " this week vs " + prior + " last week. Recent fixes are working." });
+      }
+
+      // Repeated error messages
+      const msgs = {};
+      all.forEach(e => { const m = (e.entry?.message || e.message || "").slice(0,80); if (m) msgs[m] = (msgs[m] || 0) + 1; });
+      const repeated = Object.entries(msgs).filter(([_,c]) => c >= 3).sort((a,b) => b[1]-a[1]);
+      if (repeated.length > 0) {
+        repeated.slice(0,3).forEach(([msg,count]) => {
+          insights.push({ badge: "warning", label: "REPEAT x" + count, text: '"' + msg + '"' });
+        });
+      }
+
+      if (insights.length === 0) {
+        insights.push({ badge: "ok", label: "ALL CLEAR", text: "Only minor issues detected. Nothing requiring immediate attention." });
+      }
+
+      let html = '<div class="bot-title">BOT ANALYSIS</div>';
+      insights.forEach(i => {
+        html += '<div class="bot-insight"><span class="bot-badge ' + i.badge + '">' + i.label + '</span>' + i.text + '</div>';
+      });
+      document.getElementById("bot").style.display = "block";
+      document.getElementById("bot").innerHTML = html;
+    }
+
+    function renderLogs() {
+      if (!allData || allData.logs.length === 0) {
+        document.getElementById("content").innerHTML = '<div class="empty"><div class="empty-icon">&#x2705;</div><div class="empty-text">NO ERRORS FOUND</div></div>';
+        return;
+      }
+
+      let html = '';
+      allData.logs.forEach(day => {
+        let errors = day.errors;
+        if (currentFilter !== "all") {
+          errors = errors.filter(e => {
+            const t = e.entry?.type || e.type || "";
+            if (currentFilter === "cloud") return t.startsWith("cloud");
+            return t === currentFilter;
+          });
+        }
+        if (errors.length === 0) return;
+
+        html += '<div class="day">';
+        html += '<div class="day-header" onclick="this.nextElementSibling.classList.toggle(\'open\')">';
+        html += '<span class="day-date">' + day.date + '</span>';
+        html += '<span class="day-count">' + errors.length + ' ERROR' + (errors.length!==1?'S':'') + '</span>';
+        html += '</div>';
+        html += '<div class="day-errors">';
+
+        errors.forEach(e => {
+          const entry = e.entry || e;
+          const type = entry.type || "unknown";
+          html += '<div class="err">';
+          html += '<span class="err-type ' + type + '">' + type.toUpperCase() + '</span>';
+          html += '<span class="err-msg">' + (entry.message || "No message").replace(/</g,"&lt;") + '</span>';
+          const meta = [];
+          if (entry.device) meta.push(entry.device);
+          if (entry.file) meta.push(entry.file.split("/").pop() + ":" + (entry.line||"?"));
+          if (e._ip) meta.push(e._ip);
+          if (e._country) meta.push(e._country);
+          const ts = entry.ts || e._ts || "";
+          if (ts) meta.push(ts.slice(11,19) + " UTC");
+          if (meta.length) html += '<div class="err-meta">' + meta.join(" &middot; ") + '</div>';
+          html += '</div>';
+        });
+
+        html += '</div></div>';
+      });
+
+      if (!html) html = '<div class="empty"><div class="empty-icon">&#x1F50D;</div><div class="empty-text">NO MATCHING ERRORS</div></div>';
+      document.getElementById("content").innerHTML = html;
+    }
+
+    function setFilter(type, el) {
+      currentFilter = type;
+      document.querySelectorAll(".filter").forEach(f => f.classList.remove("active"));
+      el.classList.add("active");
+      renderLogs();
+    }
+
+    loadErrors();
+    // Auto-refresh every 30 seconds
+    setInterval(loadErrors, 30000);
+  </script>
+</body>
+</html>
