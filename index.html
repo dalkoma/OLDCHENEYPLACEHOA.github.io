@@ -1036,8 +1036,27 @@
           }
         }
 
-        // Start ambient listening after boot sequence
-        setTimeout(startRecognition, 4000);
+        // Start ambient listening — require a user gesture first so the
+        // browser mic-permission prompt is tappable on mobile.
+        var micStarted = false;
+        function firstGestureStart() {
+          if (micStarted) return;
+          micStarted = true;
+          document.removeEventListener('click', firstGestureStart, true);
+          document.removeEventListener('touchend', firstGestureStart, true);
+          // Small delay so the gesture event finishes before we request mic
+          setTimeout(startRecognition, 300);
+        }
+        // Try auto-start after a longer delay (works on desktop where no gesture needed)
+        setTimeout(function() {
+          if (!micStarted) {
+            micStarted = true;
+            startRecognition();
+          }
+        }, 6000);
+        // On mobile, wait for first tap anywhere on the page
+        document.addEventListener('click', firstGestureStart, true);
+        document.addEventListener('touchend', firstGestureStart, true);
       } else {
         // No speech recognition — show tap-only mode
         if (micLabel) micLabel.textContent = 'TAP TO TALK';
