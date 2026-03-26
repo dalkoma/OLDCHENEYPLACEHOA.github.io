@@ -999,6 +999,7 @@
         recognition.onerror = function(event) {
           if (event.error === 'not-allowed') {
             if (micLabel) micLabel.textContent = 'MIC BLOCKED';
+            if (responseTextEl) responseTextEl.textContent = 'Tap the lock icon in your browser address bar → Site settings → Microphone → Allow, then reload.';
           } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             // Auto-restart on network errors etc.
             clearTimeout(restartTimeout);
@@ -1037,27 +1038,60 @@
           }
         }
 
-        // Start ambient listening — require a user gesture first so the
-        // browser mic-permission prompt is tappable on mobile.
+        // Request mic permission via getUserMedia first (more reliable prompt),
+        // then start speech recognition once granted.
         var micStarted = false;
-        function firstGestureStart() {
+        function requestMicAndStart() {
           if (micStarted) return;
           micStarted = true;
-          document.removeEventListener('click', firstGestureStart, true);
-          document.removeEventListener('touchend', firstGestureStart, true);
-          // Small delay so the gesture event finishes before we request mic
-          setTimeout(startRecognition, 300);
+          document.removeEventListener('click', requestMicAndStart, true);
+          document.removeEventListener('touchend', requestMicAndStart, true);
+
+          // Check permission state first if available
+          if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'microphone' }).then(function(result) {
+              if (result.state === 'denied') {
+                if (micLabel) micLabel.textContent = 'MIC BLOCKED';
+                if (responseTextEl) responseTextEl.textContent = 'Microphone is blocked. Tap the lock icon in your address bar → Site settings → Microphone → Allow, then reload the page.';
+                return;
+              }
+              requestMicStream();
+            }).catch(function() {
+              requestMicStream();
+            });
+          } else {
+            requestMicStream();
+          }
         }
-        // Try auto-start after a longer delay (works on desktop where no gesture needed)
-        setTimeout(function() {
-          if (!micStarted) {
-            micStarted = true;
+
+        function requestMicStream() {
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+              // Permission granted — stop the stream and start speech recognition
+              stream.getTracks().forEach(function(t) { t.stop(); });
+              startRecognition();
+            }).catch(function(err) {
+              if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                if (micLabel) micLabel.textContent = 'MIC BLOCKED';
+                if (responseTextEl) responseTextEl.textContent = 'Microphone is blocked. Tap the lock icon in your address bar → Site settings → Microphone → Allow, then reload the page.';
+              } else {
+                // Other error (no mic hardware, etc) — try speech recognition anyway
+                startRecognition();
+              }
+            });
+          } else {
+            // No getUserMedia — try speech recognition directly
             startRecognition();
           }
+        }
+
+        // On mobile, wait for user tap (user gesture required for permission prompt)
+        document.addEventListener('click', requestMicAndStart, true);
+        document.addEventListener('touchend', requestMicAndStart, true);
+        // On desktop, auto-start after delay (no gesture required)
+        setTimeout(function() {
+          if (!micStarted) requestMicAndStart();
         }, 6000);
-        // On mobile, wait for first tap anywhere on the page
-        document.addEventListener('click', firstGestureStart, true);
-        document.addEventListener('touchend', firstGestureStart, true);
       } else {
         // No speech recognition — show tap-only mode
         if (micLabel) micLabel.textContent = 'TAP TO TALK';
