@@ -703,7 +703,7 @@
         switch (state) {
           case 'idle':
             targetSpeedMultiplier = 1;
-            micLabel.textContent = 'SAY "JARVIS"';
+            micLabel.textContent = 'SAY "HEY JARVIS"';
             break;
           case 'listening':
             targetSpeedMultiplier = 2.5;
@@ -728,23 +728,61 @@
           if (callback) setTimeout(callback, 2000);
           return;
         }
+        // Stop listening while speaking so it doesn't hear its own voice
+        if (recognition) {
+          clearTimeout(restartTimeout);
+          try { recognition.stop(); } catch(e) {}
+        }
         setVoiceState('speaking');
         if (responseTextEl) responseTextEl.textContent = text;
         var utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 1.0;
-        utter.pitch = 0.9;
+        utter.rate = 0.95;
+        utter.pitch = 0.85;
         utter.volume = 1;
-        // Try to find a British or smooth male voice
+        // Find the best male voice — prefer deep, British, Jarvis-like
         var voices = speechSynthesis.getVoices();
-        var preferred = voices.find(function(v) { return /daniel/i.test(v.name); })
-          || voices.find(function(v) { return /british/i.test(v.name) && /male/i.test(v.name); })
-          || voices.find(function(v) { return /en-GB/i.test(v.lang) && !/female/i.test(v.name); })
-          || voices.find(function(v) { return /en.US/i.test(v.lang) && /male/i.test(v.name); })
-          || voices.find(function(v) { return /en/i.test(v.lang); });
+        var preferred = null;
+        // Priority list: specific known good male voices across platforms
+        var namePriority = [
+          /\bdaniel\b/i,        // iOS/macOS British male (closest to Jarvis)
+          /\bjames\b/i,         // British male
+          /\bgeorge\b/i,        // British male (Android)
+          /\barthur\b/i,        // British male
+          /\bgoogle uk english male/i, // Chrome Android
+          /\ben-gb.*male/i,     // Any British male
+          /\bmale.*en-gb/i,
+          /\bdavid\b/i,         // Windows male
+          /\bmark\b/i,          // Windows male
+          /\balex\b/i,          // macOS male
+          /\btom\b/i,           // male voice
+          /\bgoogle us english/i // Chrome fallback
+        ];
+        for (var p = 0; p < namePriority.length && !preferred; p++) {
+          preferred = voices.find(function(v) { return namePriority[p].test(v.name); });
+        }
+        // Fallback: any English voice that isn't obviously female
+        if (!preferred) {
+          preferred = voices.find(function(v) {
+            return /en/i.test(v.lang) && !/female|woman|girl|samantha|victoria|karen|moira|fiona|tessa|zira/i.test(v.name);
+          });
+        }
+        // Last resort: any English voice
+        if (!preferred) {
+          preferred = voices.find(function(v) { return /en/i.test(v.lang); });
+        }
         if (preferred) utter.voice = preferred;
 
         utter.onend = function() {
           setVoiceState('idle');
+          // Restart ambient listening after speaking finishes
+          if (recognition) {
+            clearTimeout(restartTimeout);
+            restartTimeout = setTimeout(function() {
+              finalTranscript = '';
+              isListeningForCommand = false;
+              try { recognition.start(); } catch(e) {}
+            }, 500);
+          }
           // Clear text after a few seconds
           setTimeout(function() {
             if (voiceState === 'idle') {
@@ -756,6 +794,15 @@
         };
         utter.onerror = function() {
           setVoiceState('idle');
+          // Restart ambient listening on error too
+          if (recognition) {
+            clearTimeout(restartTimeout);
+            restartTimeout = setTimeout(function() {
+              finalTranscript = '';
+              isListeningForCommand = false;
+              try { recognition.start(); } catch(e) {}
+            }, 500);
+          }
           if (callback) callback();
         };
         speechSynthesis.cancel();
@@ -927,12 +974,18 @@
 
         // Help
         if (/help|what can you do|commands/.test(t)) {
-          jarvisSay('I can tell you the time, date, weather, train status, your schedule, tasks, and system status. Just ask naturally, or say Jarvis followed by your question.');
+          jarvisSay('I can tell you the time, date, weather, train status, your schedule, tasks, and system status. Just say hey Jarvis followed by your question.');
           return;
         }
 
-        // Fallback
-        jarvisSay("I'm not sure how to help with that. Try asking about the time, weather, trains, your schedule, or system status.");
+        // Thank you
+        if (/thank|thanks/.test(t)) {
+          jarvisSay('You are welcome, sir. Happy to help.');
+          return;
+        }
+
+        // Fallback — echo back what was heard so user knows it's working
+        jarvisSay("I heard you say: " + text + ". I can help with time, weather, trains, schedule, tasks, or system status. Try rephrasing your question.");
       }
 
       // === SPEECH RECOGNITION ===
@@ -976,9 +1029,9 @@
           } else {
             // Wake word detection
             var full = (finalTranscript + interim).toLowerCase();
-            if (/jarvis/i.test(full)) {
+            if (/hey\s*jarvis/i.test(full)) {
               // Activate!
-              finalTranscript = full.replace(/.*jarvis\s*/i, ''); // Keep anything after "jarvis"
+              finalTranscript = full.replace(/.*hey\s*jarvis\s*/i, ''); // Keep anything after "hey jarvis"
               isListeningForCommand = true;
               setVoiceState('listening');
               if (userTextEl) userTextEl.textContent = finalTranscript;
@@ -1021,7 +1074,8 @@
             if (userTextEl) userTextEl.textContent = '';
           }
           // Auto-restart after a brief pause (continuous ambient listening)
-          if (voiceState !== 'speaking') {
+          // Don't restart while speaking or thinking (jarvisSay handles restart)
+          if (voiceState !== 'speaking' && voiceState !== 'thinking') {
             clearTimeout(restartTimeout);
             restartTimeout = setTimeout(startRecognition, 500);
           }
