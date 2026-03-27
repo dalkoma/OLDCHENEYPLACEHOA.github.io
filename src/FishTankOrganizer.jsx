@@ -1,20 +1,21 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 
-// Standard aquarium dimensions and filled weights (water + tank + substrate estimate)
+// Standard aquarium dimensions and filled weights (water + tank + substrate + equipment estimate)
+// Heights include the tank itself; equipmentClearance is extra space needed above for HOB filter, lid, light
 const TANK_TYPES = [
-  { id: '2.5g',        label: '2.5 Gallon',              w: 12, d: 6,  h: 8,  weight: 30,   color: '#4fc3f7' },
-  { id: '5g',          label: '5 Gallon',                w: 16, d: 8,  h: 10, weight: 62,   color: '#29b6f6' },
-  { id: '10g',         label: '10 Gallon',               w: 20, d: 10, h: 12, weight: 111,  color: '#039be5' },
-  { id: '20g',         label: '20 Gallon High',          w: 24, d: 12, h: 16, weight: 225,  color: '#0277bd' },
-  { id: '20g-breeder', label: '20 Gallon Breeder',       w: 24, d: 12, h: 12, weight: 225,  color: '#00838f' },
-  { id: '29g',         label: '29 Gallon',               w: 30, d: 12, h: 18, weight: 330,  color: '#00695c' },
-  { id: '33g',         label: '33 Gallon Long',          w: 36, d: 12, h: 12, weight: 382,  color: '#558b2f' },
-  { id: '36g-bow',     label: '36g PetSmart Bow Front',  w: 30, d: 13, h: 22, weight: 415,  color: '#9e9d24' },
-  { id: '40g',         label: '40 Gallon Long',          w: 48, d: 13, h: 16, weight: 458,  color: '#f9a825' },
-  { id: '40g-breeder', label: '40 Gallon Breeder',       w: 36, d: 18, h: 16, weight: 458,  color: '#ff8f00' },
-  { id: '55g',         label: '55 Gallon',               w: 48, d: 13, h: 21, weight: 625,  color: '#e65100' },
-  { id: '60g-breeder', label: '60 Gallon Breeder',       w: 48, d: 13, h: 16, weight: 680,  color: '#bf360c' },
-  { id: '125g',        label: '125 Gallon',              w: 72, d: 18, h: 21, weight: 1400, color: '#b71c1c' },
+  { id: '2.5g',        label: '2.5 Gallon',              w: 12, d: 6,  h: 8,  weight: 30,   equipClearance: 4,  color: '#4fc3f7' },
+  { id: '5g',          label: '5 Gallon',                w: 16, d: 8,  h: 10, weight: 62,   equipClearance: 6,  color: '#29b6f6' },
+  { id: '10g',         label: '10 Gallon',               w: 20, d: 10, h: 12, weight: 111,  equipClearance: 8,  color: '#039be5' },
+  { id: '20g',         label: '20 Gallon High',          w: 24, d: 12, h: 16, weight: 225,  equipClearance: 8,  color: '#0277bd' },
+  { id: '20g-breeder', label: '20 Gallon Breeder',       w: 24, d: 12, h: 12, weight: 225,  equipClearance: 8,  color: '#00838f' },
+  { id: '29g',         label: '29 Gallon',               w: 30, d: 12, h: 18, weight: 330,  equipClearance: 8,  color: '#00695c' },
+  { id: '33g',         label: '33 Gallon Long',          w: 36, d: 12, h: 12, weight: 382,  equipClearance: 8,  color: '#558b2f' },
+  { id: '36g-bow',     label: '36g PetSmart Bow Front',  w: 30, d: 13, h: 22, weight: 415,  equipClearance: 8,  color: '#9e9d24' },
+  { id: '40g',         label: '40 Gallon Long',          w: 48, d: 13, h: 16, weight: 458,  equipClearance: 8,  color: '#f9a825' },
+  { id: '40g-breeder', label: '40 Gallon Breeder',       w: 36, d: 18, h: 16, weight: 458,  equipClearance: 8,  color: '#ff8f00' },
+  { id: '55g',         label: '55 Gallon',               w: 48, d: 13, h: 21, weight: 625,  equipClearance: 10, color: '#e65100' },
+  { id: '60g-breeder', label: '60 Gallon Breeder',       w: 48, d: 13, h: 16, weight: 680,  equipClearance: 10, color: '#bf360c' },
+  { id: '125g',        label: '125 Gallon',              w: 72, d: 18, h: 21, weight: 1400, equipClearance: 10, color: '#b71c1c' },
 ]
 
 const SHELF_TYPES = [
@@ -30,6 +31,7 @@ const SHELF_TYPES = [
     bottomClearance: 0,    // bottom shelf sits on floor
     shelfThickness: 1.5,   // steel shelf deck ~1.5″
     boardThickness: 0,     // no added board needed (solid shelves)
+    boardWeight: 0,
   },
   {
     id: '77-industrial',
@@ -43,6 +45,7 @@ const SHELF_TYPES = [
     bottomClearance: 6,    // bottom shelf raised ~6″ off ground on legs
     shelfThickness: 1.5,   // wire shelf frame ~1.5″
     boardThickness: 0.75,  // 3/4″ TigerPly birch plywood on each shelf
+    boardWeight: 35,       // ~35 lbs per 3/4″ birch ply sheet cut to 77×24
   },
 ]
 
@@ -52,9 +55,15 @@ export default function FishTankOrganizer() {
   const [shelfUnits, setShelfUnits] = useState([])
   const [dragItem, setDragItem] = useState(null)
   const [dragOverTarget, setDragOverTarget] = useState(null)
+  const [showEquipClearance, setShowEquipClearance] = useState(true)
   const dragCounter = useRef({})
 
   const addShelfUnit = (shelfType) => {
+    const totalThickness = shelfType.shelfThickness + shelfType.boardThickness
+    // Evenly space shelves within the usable height
+    const usableHeight = shelfType.height - shelfType.bottomClearance
+    const spacing = usableHeight / shelfType.shelves
+
     const unit = {
       ...shelfType,
       uid: nextId++,
@@ -62,6 +71,9 @@ export default function FishTankOrganizer() {
         id: i,
         tanks: [],
         enabled: true,
+        // clearance = space between top of this shelf's board/frame and bottom of shelf above
+        // For the top shelf, clearance is space to the top of the unit
+        clearance: Math.round((spacing - totalThickness) * 10) / 10,
       })),
     }
     setShelfUnits(prev => [...prev, unit])
@@ -78,7 +90,6 @@ export default function FishTankOrganizer() {
         ...u,
         tiers: u.tiers.map(t => {
           if (t.id !== tierId) return t
-          // Clear tanks when disabling
           return { ...t, enabled: !t.enabled, tanks: t.enabled ? [] : t.tanks }
         })
       }
@@ -125,7 +136,6 @@ export default function FishTankOrganizer() {
     setShelfUnits(prev => {
       let units = prev.map(u => ({ ...u, tiers: u.tiers.map(t => ({ ...t, tanks: [...t.tanks] })) }))
 
-      // Remove from source if moving from a shelf
       if (source) {
         const srcUnit = units.find(u => u.uid === source.unitUid)
         if (srcUnit) {
@@ -136,7 +146,6 @@ export default function FishTankOrganizer() {
         }
       }
 
-      // Add to target
       const tgtUnit = units.find(u => u.uid === unitUid)
       if (tgtUnit) {
         const tgtTier = tgtUnit.tiers.find(t => t.id === tierId)
@@ -173,10 +182,17 @@ export default function FishTankOrganizer() {
   const getTierWeight = (tanks) => tanks.reduce((s, t) => s + t.weight, 0)
   const getTierWidth = (tanks) => tanks.reduce((s, t) => s + t.w, 0)
   const getTierMaxDepth = (tanks) => tanks.length ? Math.max(...tanks.map(t => t.d)) : 0
-  const getTierMaxHeight = (tanks) => tanks.length ? Math.max(...tanks.map(t => t.h)) : 0
-  const getUnitWeight = (unit) => unit.tiers.filter(t => t.enabled).reduce((s, t) => s + getTierWeight(t.tanks), 0)
+  const getTierMaxHeight = (tanks, withEquip) => {
+    if (!tanks.length) return 0
+    return Math.max(...tanks.map(t => t.h + (withEquip ? t.equipClearance : 0)))
+  }
+  const getUnitTankWeight = (unit) => unit.tiers.filter(t => t.enabled).reduce((s, t) => s + getTierWeight(t.tanks), 0)
+  const getUnitBoardWeight = (unit) => unit.tiers.filter(t => t.enabled).length * unit.boardWeight
+  const getUnitTotalWeight = (unit) => getUnitTankWeight(unit) + getUnitBoardWeight(unit)
 
-  // Scale factor: pixels per inch
+  // Effective weight capacity per shelf after subtracting board weight
+  const getEffectiveShelfCapacity = (unit) => unit.weightPerShelf - unit.boardWeight
+
   const PPI = 3.2
 
   return (
@@ -184,7 +200,11 @@ export default function FishTankOrganizer() {
       {/* Header */}
       <div style={{ background: '#16213e', padding: '16px 20px', borderBottom: '2px solid #0f3460', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <h1 style={{ fontSize: 22, margin: 0, color: '#4fc3f7' }}>🐟 Fish Tank Shelf Organizer</h1>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <label style={{ fontSize: 12, color: '#888', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+            <input type="checkbox" checked={showEquipClearance} onChange={() => setShowEquipClearance(v => !v)} />
+            Show equipment clearance
+          </label>
           {SHELF_TYPES.map(st => (
             <button
               key={st.id}
@@ -199,7 +219,7 @@ export default function FishTankOrganizer() {
 
       <div style={{ display: 'flex', gap: 0, minHeight: 'calc(100vh - 60px)' }}>
         {/* Tank Palette */}
-        <div style={{ width: 220, minWidth: 220, background: '#16213e', borderRight: '2px solid #0f3460', padding: 12, overflowY: 'auto' }}>
+        <div style={{ width: 230, minWidth: 230, background: '#16213e', borderRight: '2px solid #0f3460', padding: 12, overflowY: 'auto' }}>
           <h3 style={{ fontSize: 14, marginBottom: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>Tank Palette</h3>
           <p style={{ fontSize: 11, color: '#666', marginBottom: 12 }}>Drag tanks onto shelves</p>
           {TANK_TYPES.map(tank => (
@@ -223,6 +243,9 @@ export default function FishTankOrganizer() {
               <div style={{ fontSize: 13, fontWeight: 600, color: tank.color }}>{tank.label}</div>
               <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
                 {tank.w}″×{tank.d}″×{tank.h}″ &nbsp;·&nbsp; {tank.weight} lbs
+              </div>
+              <div style={{ fontSize: 10, color: '#666', marginTop: 1 }}>
+                +{tank.equipClearance}″ above for lid/filter/light
               </div>
             </div>
           ))}
@@ -259,30 +282,41 @@ export default function FishTankOrganizer() {
 
           <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             {shelfUnits.map(unit => {
-              const unitWeight = getUnitWeight(unit)
-              const unitOverweight = unitWeight > unit.totalWeight
-              const shelfSpacing = (unit.height - 2) / unit.shelves // approximate usable height per tier
+              const unitTankWeight = getUnitTankWeight(unit)
+              const unitBoardWeight = getUnitBoardWeight(unit)
+              const unitTotalWeight = getUnitTotalWeight(unit)
+              const unitOverweight = unitTotalWeight > unit.totalWeight
+              const enabledTiers = unit.tiers.filter(t => t.enabled).length
+              const effectiveCap = getEffectiveShelfCapacity(unit)
 
               return (
                 <div key={unit.uid} style={{ marginBottom: 24 }}>
                   {/* Unit header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: '#4fc3f7' }}>{unit.label}</div>
                       <div style={{ fontSize: 12, color: unitOverweight ? '#e53935' : '#888' }}>
-                        Total: {unitWeight} / {unit.totalWeight} lbs
+                        Tank weight: {unitTankWeight} lbs
+                        {unitBoardWeight > 0 && <> &nbsp;·&nbsp; Board weight: {unitBoardWeight} lbs ({enabledTiers} × {unit.boardWeight} lbs)</>}
+                      </div>
+                      <div style={{ fontSize: 12, color: unitOverweight ? '#e53935' : '#888', fontWeight: unitOverweight ? 700 : 400 }}>
+                        Total on unit: {unitTotalWeight} / {unit.totalWeight} lbs
                         {unitOverweight && ' ⚠️ OVER WEIGHT!'}
                       </div>
                       <div style={{ fontSize: 11, color: '#666' }}>
                         Shelf: {unit.shelfThickness}″ frame
-                        {unit.boardThickness > 0 && <> + {unit.boardThickness}″ plywood board = {unit.shelfThickness + unit.boardThickness}″ total</>}
+                        {unit.boardThickness > 0 && <> + {unit.boardThickness}″ plywood = {unit.shelfThickness + unit.boardThickness}″ thick</>}
+                        {unit.boardWeight > 0 && <> &nbsp;·&nbsp; Usable capacity/shelf: {effectiveCap} lbs</>}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#666' }}>
+                        Shelf depth: {unit.depth}″ &nbsp;·&nbsp; Clearance between tiers: ~{unit.tiers[0]?.clearance}″
                       </div>
                     </div>
                     <button
                       onClick={() => removeShelfUnit(unit.uid)}
-                      style={{ background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
+                      style={{ background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12, whiteSpace: 'nowrap' }}
                     >
-                      Remove
+                      Remove Unit
                     </button>
                   </div>
 
@@ -295,20 +329,23 @@ export default function FishTankOrganizer() {
                     borderRadius: 4,
                     padding: '4px 8px',
                   }}>
-                    {/* Vertical posts — extend through legs if raised */}
+                    {/* Vertical posts */}
                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '4px 0 0 4px' }} />
                     <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '0 4px 4px 0' }} />
 
                     {unit.tiers.map((tier, idx) => {
                       const tierWeight = getTierWeight(tier.tanks)
+                      const tierTotalWeight = tierWeight + (tier.enabled ? unit.boardWeight : 0)
                       const tierWidth = getTierWidth(tier.tanks)
-                      const overWeight = tierWeight > unit.weightPerShelf
+                      const overWeight = tierWeight > effectiveCap
                       const overWidth = tierWidth > unit.width
-                      const tierMaxH = getTierMaxHeight(tier.tanks)
+                      const tierMaxH = getTierMaxHeight(tier.tanks, false)
+                      const tierMaxHWithEquip = getTierMaxHeight(tier.tanks, true)
+                      const heightExceedsClearance = tierMaxHWithEquip > tier.clearance && showEquipClearance
+                      const heightExceedsWithoutEquip = tierMaxH > tier.clearance
+                      const depthIssue = tier.tanks.some(t => t.d > unit.depth)
                       const isTarget = tier.enabled && dragOverTarget?.unitUid === unit.uid && dragOverTarget?.tierId === tier.id
                       const minTierPx = 50
-
-                      // Compute height for this tier: max tank height scaled, or minimum
                       const tierDisplayH = tier.enabled ? Math.max(tierMaxH * PPI, minTierPx) : 8
 
                       return (
@@ -333,11 +370,16 @@ export default function FishTankOrganizer() {
                               opacity: tier.enabled ? 1 : 0.5,
                             }}
                           >
-                            {/* Tier label + toggle button */}
+                            {/* Tier label + toggle + clearance */}
                             <div style={{
                               position: 'absolute', top: 2, right: 8, fontSize: 10, color: '#555',
                               display: 'flex', alignItems: 'center', gap: 6, zIndex: 1,
                             }}>
+                              {tier.enabled && (
+                                <span style={{ color: heightExceedsWithoutEquip ? '#e53935' : heightExceedsClearance ? '#ff9800' : '#555' }}>
+                                  {tier.clearance}″ clear
+                                </span>
+                              )}
                               <span>Shelf {idx + 1}</span>
                               <button
                                 onClick={() => toggleTier(unit.uid, tier.id)}
@@ -369,36 +411,54 @@ export default function FishTankOrganizer() {
                               </div>
                             )}
 
-                            {tier.enabled && tier.tanks.map(tank => (
-                              <div
-                                key={tank.placedId}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, tank, { unitUid: unit.uid, tierId: tier.id, placedId: tank.placedId })}
-                                style={{
-                                  width: tank.w * PPI,
-                                  height: tank.h * PPI,
-                                  background: `${tank.color}33`,
-                                  border: `2px solid ${tank.color}`,
-                                  borderRadius: 3,
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'grab',
-                                  userSelect: 'none',
-                                  fontSize: Math.min(11, Math.max(8, tank.w * PPI / 8)),
-                                  lineHeight: 1.2,
-                                  color: tank.color,
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  flexShrink: 0,
-                                }}
-                                title={`${tank.label}\n${tank.w}″×${tank.d}″×${tank.h}″\n${tank.weight} lbs`}
-                              >
-                                <span>{tank.label}</span>
-                                <span style={{ fontSize: Math.min(9, Math.max(7, tank.w * PPI / 10)), opacity: 0.7 }}>{tank.weight}lb</span>
-                              </div>
-                            ))}
+                            {tier.enabled && tier.tanks.map(tank => {
+                              const tankDepthOver = tank.d > unit.depth
+                              return (
+                                <div
+                                  key={tank.placedId}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, tank, { unitUid: unit.uid, tierId: tier.id, placedId: tank.placedId })}
+                                  style={{
+                                    width: tank.w * PPI,
+                                    height: tank.h * PPI,
+                                    background: `${tank.color}33`,
+                                    border: `2px solid ${tankDepthOver ? '#e53935' : tank.color}`,
+                                    borderRadius: 3,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'grab',
+                                    userSelect: 'none',
+                                    fontSize: Math.min(11, Math.max(8, tank.w * PPI / 8)),
+                                    lineHeight: 1.2,
+                                    color: tank.color,
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    flexShrink: 0,
+                                    position: 'relative',
+                                  }}
+                                  title={`${tank.label}\n${tank.w}″W × ${tank.d}″D × ${tank.h}″H\n${tank.weight} lbs filled\n+${tank.equipClearance}″ equipment clearance\nTotal height needed: ${tank.h + tank.equipClearance}″${tankDepthOver ? `\n⚠️ ${tank.d}″ deep — exceeds ${unit.depth}″ shelf depth!` : ''}`}
+                                >
+                                  <span>{tank.label}</span>
+                                  <span style={{ fontSize: Math.min(9, Math.max(7, tank.w * PPI / 10)), opacity: 0.7 }}>{tank.weight}lb</span>
+                                  {tankDepthOver && <span style={{ fontSize: 8, color: '#e53935' }}>depth!</span>}
+                                  {/* Equipment clearance zone */}
+                                  {showEquipClearance && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      bottom: '100%',
+                                      left: 0,
+                                      right: 0,
+                                      height: tank.equipClearance * PPI,
+                                      background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,165,0,0.15) 3px, rgba(255,165,0,0.15) 6px)',
+                                      borderTop: '1px dashed rgba(255,165,0,0.4)',
+                                      pointerEvents: 'none',
+                                    }} />
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
 
                           {/* Plywood board (if present and shelf enabled) */}
@@ -410,7 +470,7 @@ export default function FishTankOrganizer() {
                             }} />
                           )}
 
-                          {/* Shelf frame — only show if tier is enabled */}
+                          {/* Shelf frame */}
                           {tier.enabled && (
                             <div style={{
                               height: Math.max(unit.shelfThickness * PPI, 4),
@@ -424,19 +484,23 @@ export default function FishTankOrganizer() {
                                   bottom: -16,
                                   left: 8,
                                   fontSize: 10,
-                                  color: overWeight || overWidth ? '#e53935' : '#666',
+                                  color: overWeight || overWidth || depthIssue || heightExceedsWithoutEquip ? '#e53935' : heightExceedsClearance ? '#ff9800' : '#666',
                                   whiteSpace: 'nowrap',
                                 }}>
-                                  {tierWeight}lb / {unit.weightPerShelf}lb
+                                  {tierWeight}lb / {effectiveCap}lb
                                   &nbsp;·&nbsp;
-                                  {tierWidth}″ / {unit.width}″ wide
+                                  {tierWidth}″ / {unit.width}″W
+                                  &nbsp;·&nbsp;
+                                  {tierMaxH}″H{showEquipClearance && <> ({tierMaxHWithEquip}″ w/equip)</>}
                                   {overWeight && ' ⚠️ WEIGHT'}
                                   {overWidth && ' ⚠️ TOO WIDE'}
+                                  {heightExceedsWithoutEquip && ` ⚠️ TOO TALL (${tier.clearance}″ avail)`}
+                                  {!heightExceedsWithoutEquip && heightExceedsClearance && ` ⚠️ equip won't fit`}
                                 </div>
                               )}
                             </div>
                           )}
-                          {tier.enabled && tier.tanks.length > 0 && <div style={{ height: 16 }} />}
+                          {tier.enabled && tier.tanks.length > 0 && <div style={{ height: 18 }} />}
                         </div>
                       )
                     })}
@@ -473,12 +537,22 @@ export default function FishTankOrganizer() {
                     )}
                   </div>
 
-                  {/* Depth check */}
-                  {unit.tiers.some(t => getTierMaxDepth(t.tanks) > unit.depth) && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: '#e53935', fontWeight: 600 }}>
-                      ⚠️ Some tanks exceed shelf depth ({unit.depth}″)!
+                  {/* Warnings summary */}
+                  <div style={{ marginTop: 8, maxWidth: unit.width * PPI + 16 }}>
+                    {unit.tiers.some(t => t.enabled && t.tanks.some(tk => tk.d > unit.depth)) && (
+                      <div style={{ fontSize: 12, color: '#e53935', fontWeight: 600 }}>
+                        ⚠️ Some tanks exceed shelf depth ({unit.depth}″) — will overhang!
+                      </div>
+                    )}
+
+                    {/* Floor load */}
+                    <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                      Total floor load: {unitTotalWeight} lbs
+                      {unitTotalWeight > 0 && (
+                        <> &nbsp;·&nbsp; {Math.round(unitTotalWeight / ((unit.width * unit.depth) / 144))} lbs/sq ft</>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}
@@ -486,14 +560,16 @@ export default function FishTankOrganizer() {
 
           {/* Reference table */}
           {shelfUnits.length > 0 && (
-            <div style={{ marginTop: 40, maxWidth: 700 }}>
+            <div style={{ marginTop: 40, maxWidth: 800 }}>
               <h3 style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Tank Reference</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #333' }}>
                     <th style={{ textAlign: 'left', padding: '4px 8px', color: '#888' }}>Tank</th>
-                    <th style={{ textAlign: 'left', padding: '4px 8px', color: '#888' }}>Dimensions (W×D×H)</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', color: '#888' }}>W × D × H</th>
                     <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888' }}>Filled Weight</th>
+                    <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888' }}>Equip Clearance</th>
+                    <th style={{ textAlign: 'right', padding: '4px 8px', color: '#888' }}>Total Height</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -502,6 +578,8 @@ export default function FishTankOrganizer() {
                       <td style={{ padding: '4px 8px', color: t.color, fontWeight: 600 }}>{t.label}</td>
                       <td style={{ padding: '4px 8px' }}>{t.w}″ × {t.d}″ × {t.h}″</td>
                       <td style={{ padding: '4px 8px', textAlign: 'right' }}>{t.weight} lbs</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>+{t.equipClearance}″</td>
+                      <td style={{ padding: '4px 8px', textAlign: 'right' }}>{t.h + t.equipClearance}″</td>
                     </tr>
                   ))}
                 </tbody>
