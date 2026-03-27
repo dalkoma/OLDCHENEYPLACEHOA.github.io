@@ -50,6 +50,41 @@ export default function AmtrakCrossings() {
     0
   );
 
+  const handlePrint = () => {
+    const rows = filteredSegments.flatMap((seg) =>
+      seg.crossings.map((c) => ({ ...c, segment: seg.name, subdivision: seg.subdivision }))
+    );
+    const html = `<!DOCTYPE html><html><head><title>Amtrak Crossings LNK-OTM</title>
+<style>
+  body{font-family:system-ui,sans-serif;font-size:11px;margin:20px;color:#000}
+  h1{font-size:16px;margin:0 0 2px} h2{font-size:12px;font-weight:400;margin:0 0 8px;color:#555}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{border:1px solid #ccc;padding:3px 6px;text-align:left}
+  th{background:#eee;font-weight:600;font-size:10px}
+  td{font-size:10px}
+  .seg{background:#f5f0e0;font-weight:700;font-size:11px}
+  @media print{body{margin:10px}th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<h1>Amtrak California Zephyr Railroad Crossings</h1>
+<h2>LNK → OMA → CRN → OSC → OTM &nbsp;|&nbsp; ${rows.length} crossings &nbsp;|&nbsp; FRA Crossing Inventory</h2>
+<table><thead><tr><th>#</th><th>DOT ID</th><th>MP</th><th>Street</th><th>City</th><th>County</th><th>Warning</th><th>Tracks</th><th>Lat</th><th>Lng</th></tr></thead><tbody>`;
+    let body = '';
+    let n = 0;
+    let lastSeg = '';
+    for (const r of rows) {
+      if (r.segment !== lastSeg) {
+        body += '<tr><td class="seg" colspan="10">' + r.segment + ' — ' + r.subdivision + '</td></tr>';
+        lastSeg = r.segment;
+      }
+      n++;
+      body += '<tr><td>' + n + '</td><td>' + r.id + '</td><td>' + r.mp + '</td><td>' + r.street + '</td><td>' + r.city + '</td><td>' + r.county + '</td><td>' + r.warning + '</td><td>' + r.tracks + '</td><td>' + r.lat + '</td><td>' + r.lng + '</td></tr>';
+    }
+    const w = window.open('', '_blank');
+    w.document.write(html + body + '</tbody></table></body></html>');
+    w.document.close();
+    w.print();
+  };
+
   return (
     <div
       style={{
@@ -140,6 +175,21 @@ export default function AmtrakCrossings() {
             </option>
           ))}
         </select>
+        <button
+          onClick={handlePrint}
+          style={{
+            padding: "8px 16px",
+            background: "rgba(245,192,96,0.12)",
+            border: "1px solid #f5c060",
+            borderRadius: 8,
+            color: "#f5c060",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Print
+        </button>
       </div>
 
       {(filter || warnFilter !== "All") && (
