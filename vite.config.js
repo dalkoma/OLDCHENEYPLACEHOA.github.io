@@ -9,7 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        crossings: resolve(__dirname, 'crossings.html'),
+        crossings: resolve(__dirname, 'crossings/index.html'),
       },
     },
   },
