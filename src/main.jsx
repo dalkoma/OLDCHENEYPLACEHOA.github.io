@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client'
-import { useState } from 'react'
-import TrapCounter from './TrapCounter'
+import { useState, lazy, Suspense } from 'react'
 import FishTankOrganizer from './FishTankOrganizer'
+
+const TrapCounter = lazy(() => import('./TrapCounter'))
 
 function App() {
   const [page, setPage] = useState(() => {
@@ -21,7 +22,7 @@ function App() {
             onClick={() => navigate('traps')}
             style={{ padding: '6px 12px', background: '#333', color: '#aaa', border: '1px solid #555', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
           >
-            ← Trap Counter
+            Trap Counter
           </button>
         </div>
         <FishTankOrganizer />
@@ -36,10 +37,12 @@ function App() {
           onClick={() => navigate('fish-tanks')}
           style={{ padding: '6px 12px', background: '#333', color: '#aaa', border: '1px solid #555', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
         >
-          🐟 Fish Tanks
+          Fish Tanks
         </button>
       </div>
-      <TrapCounter />
+      <Suspense fallback={<div style={{ color: '#888', padding: 40 }}>Loading...</div>}>
+        <TrapCounter />
+      </Suspense>
     </div>
   )
 }
