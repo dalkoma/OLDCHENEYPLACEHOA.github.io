@@ -61,6 +61,7 @@ export default function FishTankOrganizer() {
       tiers: Array.from({ length: shelfType.shelves }, (_, i) => ({
         id: i,
         tanks: [],
+        enabled: true,
       })),
     }
     setShelfUnits(prev => [...prev, unit])
@@ -68,6 +69,20 @@ export default function FishTankOrganizer() {
 
   const removeShelfUnit = (uid) => {
     setShelfUnits(prev => prev.filter(u => u.uid !== uid))
+  }
+
+  const toggleTier = (uid, tierId) => {
+    setShelfUnits(prev => prev.map(u => {
+      if (u.uid !== uid) return u
+      return {
+        ...u,
+        tiers: u.tiers.map(t => {
+          if (t.id !== tierId) return t
+          // Clear tanks when disabling
+          return { ...t, enabled: !t.enabled, tanks: t.enabled ? [] : t.tanks }
+        })
+      }
+    }))
   }
 
   const handleDragStart = (e, tankType, source) => {
@@ -159,7 +174,7 @@ export default function FishTankOrganizer() {
   const getTierWidth = (tanks) => tanks.reduce((s, t) => s + t.w, 0)
   const getTierMaxDepth = (tanks) => tanks.length ? Math.max(...tanks.map(t => t.d)) : 0
   const getTierMaxHeight = (tanks) => tanks.length ? Math.max(...tanks.map(t => t.h)) : 0
-  const getUnitWeight = (unit) => unit.tiers.reduce((s, t) => s + getTierWeight(t.tanks), 0)
+  const getUnitWeight = (unit) => unit.tiers.filter(t => t.enabled).reduce((s, t) => s + getTierWeight(t.tanks), 0)
 
   // Scale factor: pixels per inch
   const PPI = 3.2
@@ -284,54 +299,77 @@ export default function FishTankOrganizer() {
                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '4px 0 0 4px' }} />
                     <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '0 4px 4px 0' }} />
 
-                    {/* Tiers render bottom-up visually (shelf 5 at bottom, shelf 1 at top) */}
                     {unit.tiers.map((tier, idx) => {
                       const tierWeight = getTierWeight(tier.tanks)
                       const tierWidth = getTierWidth(tier.tanks)
                       const overWeight = tierWeight > unit.weightPerShelf
                       const overWidth = tierWidth > unit.width
                       const tierMaxH = getTierMaxHeight(tier.tanks)
-                      const isTarget = dragOverTarget?.unitUid === unit.uid && dragOverTarget?.tierId === tier.id
+                      const isTarget = tier.enabled && dragOverTarget?.unitUid === unit.uid && dragOverTarget?.tierId === tier.id
                       const minTierPx = 50
 
                       // Compute height for this tier: max tank height scaled, or minimum
-                      const tierDisplayH = Math.max(tierMaxH * PPI, minTierPx)
+                      const tierDisplayH = tier.enabled ? Math.max(tierMaxH * PPI, minTierPx) : 8
 
                       return (
                         <div key={tier.id}>
                           {/* Drop zone / tier */}
                           <div
-                            onDragOver={handleDragOver}
-                            onDragEnter={(e) => handleDragEnterTier(e, unit.uid, tier.id)}
-                            onDragLeave={(e) => handleDragLeaveTier(e, unit.uid, tier.id)}
-                            onDrop={(e) => handleDropOnTier(e, unit.uid, tier.id)}
+                            onDragOver={tier.enabled ? handleDragOver : undefined}
+                            onDragEnter={tier.enabled ? (e) => handleDragEnterTier(e, unit.uid, tier.id) : undefined}
+                            onDragLeave={tier.enabled ? (e) => handleDragLeaveTier(e, unit.uid, tier.id) : undefined}
+                            onDrop={tier.enabled ? (e) => handleDropOnTier(e, unit.uid, tier.id) : undefined}
                             style={{
                               minHeight: tierDisplayH,
                               display: 'flex',
-                              alignItems: 'flex-end',
+                              alignItems: tier.enabled ? 'flex-end' : 'center',
                               gap: 2,
                               padding: '4px 2px',
                               paddingLeft: 6,
-                              background: isTarget ? 'rgba(79, 195, 247, 0.1)' : 'transparent',
+                              background: !tier.enabled ? 'rgba(255,255,255,0.02)' : isTarget ? 'rgba(79, 195, 247, 0.1)' : 'transparent',
                               transition: 'background 0.15s',
                               flexWrap: 'wrap',
                               position: 'relative',
+                              opacity: tier.enabled ? 1 : 0.5,
                             }}
                           >
-                            {/* Tier label */}
+                            {/* Tier label + toggle button */}
                             <div style={{
                               position: 'absolute', top: 2, right: 8, fontSize: 10, color: '#555',
+                              display: 'flex', alignItems: 'center', gap: 6, zIndex: 1,
                             }}>
-                              Shelf {idx + 1}
+                              <span>Shelf {idx + 1}</span>
+                              <button
+                                onClick={() => toggleTier(unit.uid, tier.id)}
+                                style={{
+                                  background: tier.enabled ? '#333' : '#0f3460',
+                                  color: tier.enabled ? '#e53935' : '#4fc3f7',
+                                  border: `1px solid ${tier.enabled ? '#e53935' : '#4fc3f7'}`,
+                                  borderRadius: 3,
+                                  padding: '1px 6px',
+                                  cursor: 'pointer',
+                                  fontSize: 9,
+                                  fontWeight: 600,
+                                  lineHeight: '14px',
+                                }}
+                              >
+                                {tier.enabled ? 'Remove' : 'Add'}
+                              </button>
                             </div>
 
-                            {tier.tanks.length === 0 && !isTarget && (
+                            {tier.enabled && tier.tanks.length === 0 && !isTarget && (
                               <div style={{ width: '100%', textAlign: 'center', color: '#444', fontSize: 12, padding: 8 }}>
                                 Drop tanks here
                               </div>
                             )}
 
-                            {tier.tanks.map(tank => (
+                            {!tier.enabled && (
+                              <div style={{ width: '100%', textAlign: 'center', color: '#444', fontSize: 11, fontStyle: 'italic' }}>
+                                shelf removed
+                              </div>
+                            )}
+
+                            {tier.enabled && tier.tanks.map(tank => (
                               <div
                                 key={tank.placedId}
                                 draggable
@@ -363,8 +401,8 @@ export default function FishTankOrganizer() {
                             ))}
                           </div>
 
-                          {/* Plywood board (if present) */}
-                          {unit.boardThickness > 0 && (
+                          {/* Plywood board (if present and shelf enabled) */}
+                          {tier.enabled && unit.boardThickness > 0 && (
                             <div style={{
                               height: Math.max(unit.boardThickness * PPI, 3),
                               background: overWeight || overWidth ? '#c62828' : '#a67c52',
@@ -372,32 +410,33 @@ export default function FishTankOrganizer() {
                             }} />
                           )}
 
-                          {/* Shelf frame (steel/wire) */}
-                          <div style={{
-                            height: Math.max(unit.shelfThickness * PPI, 4),
-                            background: overWeight || overWidth ? '#e53935' : '#888',
-                            borderRadius: 1,
-                            position: 'relative',
-                          }}>
-                            {/* Weight/width info */}
-                            {tier.tanks.length > 0 && (
-                              <div style={{
-                                position: 'absolute',
-                                bottom: -16,
-                                left: 8,
-                                fontSize: 10,
-                                color: overWeight || overWidth ? '#e53935' : '#666',
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {tierWeight}lb / {unit.weightPerShelf}lb
-                                &nbsp;·&nbsp;
-                                {tierWidth}″ / {unit.width}″ wide
-                                {overWeight && ' ⚠️ WEIGHT'}
-                                {overWidth && ' ⚠️ TOO WIDE'}
-                              </div>
-                            )}
-                          </div>
-                          {tier.tanks.length > 0 && <div style={{ height: 16 }} />}
+                          {/* Shelf frame — only show if tier is enabled */}
+                          {tier.enabled && (
+                            <div style={{
+                              height: Math.max(unit.shelfThickness * PPI, 4),
+                              background: overWeight || overWidth ? '#e53935' : '#888',
+                              borderRadius: 1,
+                              position: 'relative',
+                            }}>
+                              {tier.tanks.length > 0 && (
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: -16,
+                                  left: 8,
+                                  fontSize: 10,
+                                  color: overWeight || overWidth ? '#e53935' : '#666',
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {tierWeight}lb / {unit.weightPerShelf}lb
+                                  &nbsp;·&nbsp;
+                                  {tierWidth}″ / {unit.width}″ wide
+                                  {overWeight && ' ⚠️ WEIGHT'}
+                                  {overWidth && ' ⚠️ TOO WIDE'}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {tier.enabled && tier.tanks.length > 0 && <div style={{ height: 16 }} />}
                         </div>
                       )
                     })}
