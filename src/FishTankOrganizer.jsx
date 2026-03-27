@@ -27,6 +27,7 @@ const SHELF_TYPES = [
     shelves: 5,
     weightPerShelf: 500,
     totalWeight: 2500,
+    bottomClearance: 0, // bottom shelf sits on floor
   },
   {
     id: '77-industrial',
@@ -37,6 +38,7 @@ const SHELF_TYPES = [
     shelves: 5,
     weightPerShelf: 500,
     totalWeight: 2500,
+    bottomClearance: 6, // bottom shelf raised ~6″ off ground on legs
   },
 ]
 
@@ -270,10 +272,11 @@ export default function FishTankOrganizer() {
                     borderRadius: 4,
                     padding: '4px 8px',
                   }}>
-                    {/* Vertical posts */}
+                    {/* Vertical posts — extend through legs if raised */}
                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '4px 0 0 4px' }} />
                     <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, background: '#666', borderRadius: '0 4px 4px 0' }} />
 
+                    {/* Tiers render bottom-up visually (shelf 5 at bottom, shelf 1 at top) */}
                     {unit.tiers.map((tier, idx) => {
                       const tierWeight = getTierWeight(tier.tanks)
                       const tierWidth = getTierWidth(tier.tanks)
@@ -381,6 +384,37 @@ export default function FishTankOrganizer() {
                         </div>
                       )
                     })}
+
+                    {/* Legs for raised shelves (industrial style) */}
+                    {unit.bottomClearance > 0 && (
+                      <div style={{ position: 'relative' }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          padding: '0 2px',
+                        }}>
+                          {[0, 1, 2, 3].map(leg => (
+                            <div key={leg} style={{
+                              width: 8,
+                              height: unit.bottomClearance * PPI,
+                              background: '#666',
+                              borderRadius: '0 0 2px 2px',
+                            }} />
+                          ))}
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: 10,
+                          color: '#555',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {unit.bottomClearance}″ off ground
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Depth check */}
