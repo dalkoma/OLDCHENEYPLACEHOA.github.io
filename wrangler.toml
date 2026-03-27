@@ -1,7 +1,6 @@
-name = "trapscore"
-pages_build_output_dir = "dist"
+name = "amtrak-route-map"
+main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
-[[kv_namespaces]]
-binding = "TRAP_DATA"
-id = "e70cc83957c04f9e9cee2d442bc0b604"
+[assets]
+directory = "./public"
