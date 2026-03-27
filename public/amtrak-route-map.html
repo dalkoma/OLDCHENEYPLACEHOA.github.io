@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amtrak Route Map — LNK to OTM</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: #fff;
+    color: #000;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    margin-bottom: 20px;
+    color: #444;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: center;
+    margin-bottom: 24px;
+    font-size: 12px;
+    border: 1px solid #bbb;
+    padding: 10px 16px;
+    background: #fafafa;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-swatch {
+    width: 28px;
+    height: 4px;
+    display: inline-block;
+  }
+  .legend-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .segment-header {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-top: 30px;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .segment-header .railroad {
+    font-size: 11px;
+    font-weight: normal;
+    color: #aaa;
+  }
+
+  svg {
+    display: block;
+    border: 1px solid #ccc;
+    border-top: none;
+    background: #fff;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: none;
+    z-index: 999;
+    max-width: 260px;
+    line-height: 1.4;
+  }
+
+  @media print {
+    body { padding: 0; }
+    .legend { border: 1px solid #000; }
+    .segment-header { background: #000; }
+  }
+
+  @media (max-width: 700px) {
+    body { padding: 8px; }
+    h1 { font-size: 17px; }
+    .legend { font-size: 10px; gap: 10px; padding: 6px 8px; }
+    .segment-header { font-size: 13px; padding: 6px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>AMTRAK ROUTE MAP</h1>
+<div class="subtitle">Lincoln, NE (LNK) — Omaha, NE (OMA) — Creston, IA (CRN) — Osceola, IA (OSC) — Ottumwa, IA (OTM)<br>California Zephyr Corridor</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-swatch" style="background:#222;height:4px;"></span> Single Track</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:#222;height:4px;border-top:2px solid #222;border-bottom:2px solid #222;height:8px;"></span> Double Track</div>
+  <div class="legend-item"><span class="legend-icon" style="color:#d32f2f;">&#9679;</span> Amtrak Station</div>
+  <div class="legend-item"><span class="legend-icon" style="color:#1565c0;">&#9670;</span> Control Point (CP)</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:#1976d2;height:6px;border-radius:3px;"></span> River/Bridge</div>
+  <div class="legend-item"><span style="font-size:13px;color:#e65100;">40</span> Speed Limit (mph)</div>
+  <div class="legend-item"><span class="legend-icon">&#9651;</span> Crossover / Turnout</div>
+</div>
+
+<div id="map-container"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============================================================
+// ROUTE DATA
+// Each segment: LNK-OMA, OMA-CRN, CRN-OSC, OSC-OTM
+// Milepost data based on BNSF/UP timetables for the California Zephyr route
+// ============================================================
+
+const segments = [
+  {
+    id: 'LNK-OMA',
+    title: 'LINCOLN (LNK) to OMAHA (OMA)',
+    railroad: 'BNSF Railway',
+    totalMiles: 58,
+    features: [
+      { type: 'station', name: 'Lincoln', mp: 0, code: 'LNK', amtrak: true, speed: null },
+      { type: 'cp', name: 'CP 4800', mp: 2.0, speed: 40 },
+      { type: 'point', name: 'Havelock', mp: 3.5, speed: 50 },
+      { type: 'cp', name: 'CP 4770', mp: 5.8, speed: 50 },
+      { type: 'point', name: 'Waverly', mp: 12.4, speed: 60 },
+      { type: 'cp', name: 'CP 4700', mp: 14.0, speed: 60 },
+      { type: 'point', name: 'Greenwood', mp: 20.5, speed: 60 },
+      { type: 'cp', name: 'CP 4630', mp: 22.0, speed: 60 },
+      { type: 'point', name: 'Ashland', mp: 28.0, speed: 50 },
+      { type: 'bridge', name: 'Platte River', mp: 32.0, speed: 40 },
+      { type: 'point', name: 'South Bend', mp: 35.0, speed: 50 },
+      { type: 'cp', name: 'CP 4550', mp: 38.0, speed: 50 },
+      { type: 'point', name: 'Louisville', mp: 40.0, speed: 50 },
+      { type: 'point', name: 'Springfield', mp: 44.0, speed: 50 },
+      { type: 'cp', name: 'CP 4490', mp: 46.0, speed: 50 },
+      { type: 'point', name: 'Papillion', mp: 50.0, speed: 40 },
+      { type: 'cp', name: 'CP 4460', mp: 53.0, speed: 40 },
+      { type: 'double_start', mp: 53.0 },
+      { type: 'station', name: 'Omaha', mp: 58.0, code: 'OMA', amtrak: true, speed: null },
+    ]
+  },
+  {
+    id: 'OMA-CRN',
+    title: 'OMAHA (OMA) to CRESTON (CRN)',
+    railroad: 'BNSF Railway / UP (via Pacific Junc)',
+    totalMiles: 131,
+    features: [
+      { type: 'station', name: 'Omaha', mp: 0, code: 'OMA', amtrak: true, speed: null },
+      { type: 'cp', name: 'CP 4460', mp: 2.5, speed: 40 },
+      { type: 'double_end', mp: 5.0 },
+      { type: 'point', name: 'Plattsmouth', mp: 5.0, speed: 40 },
+      { type: 'bridge', name: 'Missouri River (W)', mp: 7.5, speed: 35 },
+      { type: 'bridge', name: 'Missouri River (E)', mp: 8.5, speed: 35 },
+      { type: 'point', name: 'W Pacific Junc', mp: 12.1, speed: 50 },
+      { type: 'cp', name: 'FF 2.0', mp: 12.1, speed: 50, note: 'Junc MP 475.1' },
+      { type: 'point', name: 'Glenwood', mp: 17.8, speed: 50 },
+      { type: 'point', name: 'Balfour', mp: 25.9, speed: 40, note: 'MP 467.9' },
+      { type: 'cp', name: 'CP 4664', mp: 25.0, speed: 40 },
+      { type: 'point', name: 'Malvern', mp: 32.1, speed: 50, note: 'MP 462.1' },
+      { type: 'point', name: 'Hastings', mp: 38.2, speed: 50, note: 'MP 457.2' },
+      { type: 'cp', name: 'CP 4580', mp: 38.2, speed: 50 },
+      { type: 'point', name: 'Emerson', mp: 43.6, speed: 40, note: 'MP 451.6' },
+      { type: 'cp', name: 'CP 4535', mp: 43.6, speed: 40 },
+      { type: 'point', name: 'McPherson', mp: 47.5, speed: 40, note: 'MP 447.5' },
+      { type: 'point', name: 'Red Oak', mp: 56.3, speed: 40, note: 'MP 443.3' },
+      { type: 'point', name: 'Stanton', mp: 64.4, speed: 50, note: 'MP 435.4' },
+      { type: 'cp', name: 'CP 4367', mp: 64.4, speed: 50 },
+      { type: 'point', name: 'Villisca', mp: 72.1, speed: 50, note: 'MP 427.1' },
+      { type: 'cp', name: 'CP 4289', mp: 72.1, speed: 50 },
+      { type: 'crossover', name: 'Nodaway', mp: 77.2, speed: 50, note: 'MP 422.2' },
+      { type: 'cp', name: 'CP 4255', mp: 77.2, speed: 40 },
+      { type: 'point', name: 'Brooks', mp: 82.8, speed: 50, note: 'MP 417.8' },
+      { type: 'point', name: 'Corning', mp: 86.7, speed: 50, note: 'MP 413.7' },
+      { type: 'cp', name: 'CP 4120', mp: 86.7, speed: 50 },
+      { type: 'crossover', name: 'Prescott', mp: 93.7, speed: 40, note: 'MP 406.7' },
+      { type: 'cp', name: 'CP 4089', mp: 93.7, speed: 40 },
+      { type: 'cp', name: 'CP 4057', mp: 98.0, speed: 50 },
+      { type: 'cp', name: 'CP 3952', mp: 110.0, speed: 40 },
+      { type: 'station', name: 'Creston', mp: 131.0, code: 'CRN', amtrak: true, speed: null, note: 'CTC Creston 393.5, CRN 392.9' },
+    ]
+  },
+  {
+    id: 'CRN-OSC',
+    title: 'CRESTON (CRN) to OSCEOLA (OSC)',
+    railroad: 'BNSF Railway',
+    totalMiles: 54,
+    features: [
+      { type: 'station', name: 'Creston', mp: 0, code: 'CRN', amtrak: true, speed: null, note: 'MP 392.9' },
+      { type: 'cp', name: 'CP 3900', mp: 3.0, speed: 50 },
+      { type: 'point', name: 'Cromwell', mp: 7.5, speed: 50, note: 'MP 385' },
+      { type: 'point', name: 'Afton', mp: 14.0, speed: 50, note: 'MP 379' },
+      { type: 'cp', name: 'CP 3750', mp: 18.0, speed: 50 },
+      { type: 'point', name: 'Thayer', mp: 22.0, speed: 50, note: 'MP 371' },
+      { type: 'point', name: 'Murray', mp: 28.0, speed: 50, note: 'MP 365' },
+      { type: 'cp', name: 'CP 3620', mp: 31.0, speed: 50 },
+      { type: 'point', name: 'Osceola Jct', mp: 38.0, speed: 40, note: 'MP 355' },
+      { type: 'crossover', name: 'Osceola West', mp: 42.0, speed: 40 },
+      { type: 'cp', name: 'CP 3480', mp: 45.0, speed: 40 },
+      { type: 'point', name: 'New Sharon', mp: 48.0, speed: 50, note: 'MP 345' },
+      { type: 'station', name: 'Osceola', mp: 54.0, code: 'OSC', amtrak: true, speed: null, note: 'MP 339' },
+    ]
+  },
+  {
+    id: 'OSC-OTM',
+    title: 'OSCEOLA (OSC) to OTTUMWA (OTM)',
+    railroad: 'BNSF Railway',
+    totalMiles: 62,
+    features: [
+      { type: 'station', name: 'Osceola', mp: 0, code: 'OSC', amtrak: true, speed: null, note: 'MP 339' },
+      { type: 'cp', name: 'CP 3360', mp: 3.0, speed: 50 },
+      { type: 'point', name: 'Fremont', mp: 8.0, speed: 50, note: 'MP 331' },
+      { type: 'point', name: 'Eddyville', mp: 14.0, speed: 50, note: 'MP 325' },
+      { type: 'cp', name: 'CP 3220', mp: 17.0, speed: 50 },
+      { type: 'bridge', name: 'Des Moines River', mp: 22.0, speed: 40 },
+      { type: 'point', name: 'Chillicothe', mp: 26.0, speed: 50, note: 'MP 313' },
+      { type: 'cp', name: 'CP 3100', mp: 29.0, speed: 50 },
+      { type: 'point', name: 'Blakesburg', mp: 34.0, speed: 50, note: 'MP 305' },
+      { type: 'point', name: 'Drakesville', mp: 40.0, speed: 50 },
+      { type: 'cp', name: 'CP 2960', mp: 43.0, speed: 50 },
+      { type: 'point', name: 'Albia', mp: 46.0, speed: 40, note: 'MP 293' },
+      { type: 'crossover', name: 'Albia Crossover', mp: 47.0, speed: 40 },
+      { type: 'point', name: 'Kirkville', mp: 52.0, speed: 50 },
+      { type: 'cp', name: 'CP 2850', mp: 55.0, speed: 40 },
+      { type: 'bridge', name: 'Des Moines River', mp: 58.0, speed: 35 },
+      { type: 'station', name: 'Ottumwa', mp: 62.0, code: 'OTM', amtrak: true, speed: null, note: 'MP 277' },
+    ]
+  }
+];
+
+// ============================================================
+// RENDERING
+// ============================================================
+
+const container = document.getElementById('map-container');
+const tooltip = document.getElementById('tooltip');
+
+// Layout constants
+const LEFT_MARGIN = 140;
+const RIGHT_MARGIN = 140;
+const TRACK_X = 300;
+const PX_PER_MILE = 8;
+const TOP_PAD = 40;
+const BOTTOM_PAD = 40;
+const TRACK_WIDTH = 4;
+
+function createSVG(segment) {
+  const height = TOP_PAD + BOTTOM_PAD + segment.totalMiles * PX_PER_MILE;
+  const width = Math.max(620, TRACK_X + RIGHT_MARGIN + 60);
+
+  const header = document.createElement('div');
+  header.className = 'segment-header';
+  header.innerHTML = `<span>${segment.title}</span><span class="railroad">${segment.railroad} — ${segment.totalMiles} miles</span>`;
+  container.appendChild(header);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+  svg.style.maxWidth = width + 'px';
+  container.appendChild(svg);
+
+  const yOf = (mp) => TOP_PAD + mp * PX_PER_MILE;
+
+  // --- Draw mile markers (light ticks) ---
+  for (let m = 0; m <= segment.totalMiles; m += 5) {
+    const y = yOf(m);
+    const tick = line(svg, TRACK_X - 15, y, TRACK_X - 6, y, '#bbb', 1);
+    if (m % 10 === 0) {
+      text(svg, TRACK_X - 18, y + 3, `${m}`, 9, '#999', 'end');
+    }
+  }
+
+  // --- Collect track segments for speed coloring ---
+  let lastY = yOf(0);
+  let lastSpeed = 40;
+  let doubleTrack = false;
+
+  for (const f of segment.features) {
+    const y = yOf(f.mp);
+
+    if (f.type === 'double_start') {
+      doubleTrack = true;
+      continue;
+    }
+    if (f.type === 'double_end') {
+      doubleTrack = false;
+      continue;
+    }
+
+    // Draw track from last position to this feature
+    const currentSpeed = f.speed || lastSpeed;
+    if (f.mp > 0) {
+      const color = speedColor(lastSpeed);
+      if (doubleTrack) {
+        line(svg, TRACK_X - 4, lastY, TRACK_X - 4, y, color, TRACK_WIDTH);
+        line(svg, TRACK_X + 4, lastY, TRACK_X + 4, y, color, TRACK_WIDTH);
+      } else {
+        line(svg, TRACK_X, lastY, TRACK_X, y, color, TRACK_WIDTH);
+      }
+    }
+
+    // Speed label on change
+    if (f.speed && f.speed !== lastSpeed) {
+      const speedLabel = text(svg, TRACK_X - 50, y + 4, `${f.speed} mph`, 11, speedColor(f.speed), 'end');
+      speedLabel.style.fontWeight = 'bold';
+    }
+
+    // Draw feature
+    if (f.type === 'station') {
+      drawStation(svg, TRACK_X, y, f, width);
+    } else if (f.type === 'cp') {
+      drawCP(svg, TRACK_X, y, f);
+    } else if (f.type === 'bridge') {
+      drawBridge(svg, TRACK_X, y, f);
+    } else if (f.type === 'crossover') {
+      drawCrossover(svg, TRACK_X, y, f);
+    } else if (f.type === 'point') {
+      drawPoint(svg, TRACK_X, y, f);
+    }
+
+    if (f.speed) lastSpeed = f.speed;
+    lastY = y;
+  }
+
+  // Draw remaining track to end
+  const endY = yOf(segment.totalMiles);
+  if (lastY < endY) {
+    line(svg, TRACK_X, lastY, TRACK_X, endY, speedColor(lastSpeed), TRACK_WIDTH);
+  }
+}
+
+// --- Drawing helpers ---
+
+function line(svg, x1, y1, x2, y2, stroke, width) {
+  const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+  l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke);
+  l.setAttribute('stroke-width', width);
+  l.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(l);
+  return l;
+}
+
+function text(svg, x, y, content, size, fill, anchor) {
+  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t.setAttribute('x', x); t.setAttribute('y', y);
+  t.setAttribute('font-size', size || 12);
+  t.setAttribute('fill', fill || '#000');
+  t.setAttribute('font-family', "'Courier New', monospace");
+  t.setAttribute('text-anchor', anchor || 'start');
+  t.textContent = content;
+  svg.appendChild(t);
+  return t;
+}
+
+function circle(svg, cx, cy, r, fill, stroke, strokeWidth) {
+  const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+  c.setAttribute('r', r);
+  c.setAttribute('fill', fill || 'none');
+  c.setAttribute('stroke', stroke || 'none');
+  c.setAttribute('stroke-width', strokeWidth || 1);
+  svg.appendChild(c);
+  return c;
+}
+
+function rect(svg, x, y, w, h, fill, stroke, strokeWidth) {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y);
+  r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('fill', fill || 'none');
+  r.setAttribute('stroke', stroke || 'none');
+  r.setAttribute('stroke-width', strokeWidth || 1);
+  svg.appendChild(r);
+  return r;
+}
+
+function diamond(svg, cx, cy, size, fill, stroke) {
+  const d = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  const pts = [
+    `${cx},${cy - size}`,
+    `${cx + size},${cy}`,
+    `${cx},${cy + size}`,
+    `${cx - size},${cy}`
+  ].join(' ');
+  d.setAttribute('points', pts);
+  d.setAttribute('fill', fill || 'none');
+  d.setAttribute('stroke', stroke || '#000');
+  d.setAttribute('stroke-width', 1.5);
+  svg.appendChild(d);
+  return d;
+}
+
+// --- Feature drawing ---
+
+function drawStation(svg, x, y, f, svgWidth) {
+  // Large red circle
+  const c = circle(svg, x, y, 8, '#d32f2f', '#b71c1c', 2);
+  // Inner white circle
+  circle(svg, x, y, 3, '#fff', 'none', 0);
+
+  // Station name + code (right side, bold)
+  const label = text(svg, x + 18, y + 5, `${f.name} (${f.code})`, 14, '#000', 'start');
+  label.style.fontWeight = 'bold';
+
+  // Milepost (left side)
+  text(svg, x - 22, y + 4, `MP ${f.mp.toFixed(1)}`, 10, '#666', 'end');
+
+  // Note
+  if (f.note) {
+    text(svg, x + 18, y + 18, f.note, 9, '#888', 'start');
+  }
+
+  // Hover zone
+  const zone = rect(svg, x - 60, y - 14, svgWidth - x + 40, 32, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, `<b>${f.name} (${f.code})</b><br>Amtrak Station${f.note ? '<br>' + f.note : ''}`);
+}
+
+function drawCP(svg, x, y, f) {
+  // Blue diamond
+  diamond(svg, x, y, 6, '#1565c0', '#0d47a1');
+
+  // Label to the right
+  text(svg, x + 14, y + 4, f.name, 10, '#1565c0', 'start');
+
+  if (f.note) {
+    text(svg, x + 14, y + 14, f.note, 8, '#888', 'start');
+  }
+
+  const zone = rect(svg, x - 10, y - 10, 200, 24, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, `<b>${f.name}</b><br>Control Point${f.speed ? '<br>Speed: ' + f.speed + ' mph' : ''}${f.note ? '<br>' + f.note : ''}`);
+}
+
+function drawBridge(svg, x, y, f) {
+  // Wavy blue lines
+  const waveW = 30;
+  for (let i = -1; i <= 1; i++) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const yy = y + i * 5;
+    path.setAttribute('d', `M${x - waveW},${yy} Q${x - waveW/2},${yy - 4} ${x},${yy} Q${x + waveW/2},${yy + 4} ${x + waveW},${yy}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#1976d2');
+    path.setAttribute('stroke-width', 2);
+    svg.appendChild(path);
+  }
+
+  // Label
+  text(svg, x + waveW + 8, y + 4, f.name, 11, '#1565c0', 'start');
+
+  // Speed
+  if (f.speed) {
+    text(svg, x - waveW - 8, y + 4, `${f.speed} mph`, 10, '#e65100', 'end').style.fontWeight = 'bold';
+  }
+
+  const zone = rect(svg, x - 50, y - 12, 250, 24, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, `<b>${f.name}</b><br>Bridge/River Crossing${f.speed ? '<br>Speed: ' + f.speed + ' mph' : ''}`);
+}
+
+function drawCrossover(svg, x, y, f) {
+  // Diamond crossover shape
+  const sz = 10;
+  line(svg, x - sz, y - sz, x + sz, y + sz, '#555', 2);
+  line(svg, x - sz, y + sz, x + sz, y - sz, '#555', 2);
+  circle(svg, x, y, 3, '#fff', '#555', 2);
+
+  // Label
+  text(svg, x + 18, y + 4, f.name, 11, '#333', 'start');
+  if (f.speed) {
+    text(svg, x - 22, y + 4, `${f.speed} mph`, 10, '#e65100', 'end').style.fontWeight = 'bold';
+  }
+  if (f.note) {
+    text(svg, x + 18, y + 15, f.note, 8, '#888', 'start');
+  }
+
+  const zone = rect(svg, x - 50, y - 14, 250, 30, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, `<b>${f.name}</b><br>Crossover/Turnout${f.speed ? '<br>Speed: ' + f.speed + ' mph' : ''}${f.note ? '<br>' + f.note : ''}`);
+}
+
+function drawPoint(svg, x, y, f) {
+  // Small tick mark
+  line(svg, x - 8, y, x + 8, y, '#555', 1.5);
+
+  // Label to the right
+  text(svg, x + 14, y + 4, `${f.mp.toFixed(1)} ${f.name}`, 10, '#333', 'start');
+
+  if (f.note) {
+    text(svg, x + 14, y + 14, f.note, 8, '#999', 'start');
+  }
+
+  const zone = rect(svg, x - 30, y - 10, 230, 26, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, `<b>${f.name}</b><br>MP ${f.mp.toFixed(1)}${f.speed ? '<br>Speed: ' + f.speed + ' mph' : ''}${f.note ? '<br>' + f.note : ''}`);
+}
+
+// --- Speed to color ---
+function speedColor(speed) {
+  if (!speed) return '#222';
+  if (speed >= 60) return '#2e7d32';
+  if (speed >= 50) return '#222';
+  if (speed >= 40) return '#e65100';
+  return '#c62828';
+}
+
+// --- Tooltip ---
+function addTooltip(el, html) {
+  el.addEventListener('mouseenter', (e) => {
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+  });
+  el.addEventListener('mousemove', (e) => {
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+  });
+}
+
+// ============================================================
+// RENDER ALL SEGMENTS
+// ============================================================
+segments.forEach(seg => createSVG(seg));
+
+</script>
+</body>
+</html>
