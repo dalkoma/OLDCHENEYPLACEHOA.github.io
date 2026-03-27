@@ -27,7 +27,9 @@ const SHELF_TYPES = [
     shelves: 5,
     weightPerShelf: 500,
     totalWeight: 2500,
-    bottomClearance: 0, // bottom shelf sits on floor
+    bottomClearance: 0,    // bottom shelf sits on floor
+    shelfThickness: 1.5,   // steel shelf deck ~1.5″
+    boardThickness: 0,     // no added board needed (solid shelves)
   },
   {
     id: '77-industrial',
@@ -38,7 +40,9 @@ const SHELF_TYPES = [
     shelves: 5,
     weightPerShelf: 500,
     totalWeight: 2500,
-    bottomClearance: 6, // bottom shelf raised ~6″ off ground on legs
+    bottomClearance: 6,    // bottom shelf raised ~6″ off ground on legs
+    shelfThickness: 1.5,   // wire shelf frame ~1.5″
+    boardThickness: 0.75,  // 3/4″ TigerPly birch plywood on each shelf
   },
 ]
 
@@ -254,6 +258,10 @@ export default function FishTankOrganizer() {
                         Total: {unitWeight} / {unit.totalWeight} lbs
                         {unitOverweight && ' ⚠️ OVER WEIGHT!'}
                       </div>
+                      <div style={{ fontSize: 11, color: '#666' }}>
+                        Shelf: {unit.shelfThickness}″ frame
+                        {unit.boardThickness > 0 && <> + {unit.boardThickness}″ plywood board = {unit.shelfThickness + unit.boardThickness}″ total</>}
+                      </div>
                     </div>
                     <button
                       onClick={() => removeShelfUnit(unit.uid)}
@@ -355,9 +363,18 @@ export default function FishTankOrganizer() {
                             ))}
                           </div>
 
-                          {/* Shelf board */}
+                          {/* Plywood board (if present) */}
+                          {unit.boardThickness > 0 && (
+                            <div style={{
+                              height: Math.max(unit.boardThickness * PPI, 3),
+                              background: overWeight || overWidth ? '#c62828' : '#a67c52',
+                              borderRadius: 1,
+                            }} />
+                          )}
+
+                          {/* Shelf frame (steel/wire) */}
                           <div style={{
-                            height: 5,
+                            height: Math.max(unit.shelfThickness * PPI, 4),
                             background: overWeight || overWidth ? '#e53935' : '#888',
                             borderRadius: 1,
                             position: 'relative',
