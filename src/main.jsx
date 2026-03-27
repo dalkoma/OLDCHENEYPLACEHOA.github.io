@@ -5,7 +5,7 @@ import FishTankOrganizer from './FishTankOrganizer'
 
 function App() {
   const [page, setPage] = useState(() => {
-    return window.location.hash === '#fish-tanks' ? 'fish-tanks' : 'traps'
+    return window.location.hash === '#traps' ? 'traps' : 'fish-tanks'
   })
 
   const navigate = (p) => {
