@@ -2,7 +2,7 @@
   "name": "Jarvis - AI Life Manager",
   "short_name": "Jarvis",
   "description": "Your personal AI life manager with calendar, tasks, train tracking, meals, and more.",
-  "start_url": "./",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a1a",
   "theme_color": "#6c5ce7",
