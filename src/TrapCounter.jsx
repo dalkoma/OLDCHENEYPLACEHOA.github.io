@@ -55,6 +55,148 @@ const SUN = {
   saveBg:"#d4edda",saveBorder:"#28a745",saveText:"#155724",
 };
 
+// ── Team color schemes ──
+const TEAMS = {
+  none: { name: "DEFAULT", dark: DARK, sun: SUN },
+  piusx: {
+    name: "PIUS X",
+    dark: {
+      ...DARK,
+      bg:"#0a1a0d",bgGrad:"radial-gradient(ellipse at 50% 0%, #1a3a1e 0%, #0a1a0d 70%)",
+      card:"rgba(10,30,15,0.8)",cardActive:"rgba(20,50,25,0.95)",cardInactive:"rgba(8,20,10,0.7)",
+      border:"#1a3a1e",borderActive:"#d4a017",
+      text:"#d4d8c0",textMuted:"#4a6a30",textDim:"#3a5020",textDimmer:"#2a4018",
+      accent:"#d4a017",accentBold:"#e8b820",
+      hit:"#d4a017",hitBorder:"#e8c830",miss:"#c03030",missBorder:"#a02020",missCircle:"#801818",
+      good:"#50c070",warn:"#d4a017",bad:"#c03030",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(10,20,10,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(212,160,23,0.15)",
+      hitBtn:"linear-gradient(160deg,#1a5c2e,#0d3a18)",hitBtnBorder:"#2a8040",
+      missBtn:"linear-gradient(160deg,#901818,#5a0808)",missBtnBorder:"#c02020",
+      disabledBg:"#0a1208",disabledBorder:"#1a2a10",disabledText:"#2a3a18",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#1a3a1e",smallBtnText:"#6a8a40",
+      highlightBg:"rgba(212,160,23,0.2)",highlightBorder:"#d4a017",highlightText:"#e8c830",
+      dotEmpty:"#0e1a0a",dotEmptyBorder:"#1a3a1e",
+      flashHit:"#d4a017",flashMiss:"#c03030",
+      flashHitShadow:"0 0 30px rgba(212,160,23,0.6)",flashMissShadow:"0 0 30px rgba(192,48,48,0.6)",
+      leaderFirst:"rgba(212,160,23,0.1)",leaderRest:"rgba(10,30,15,0.6)",
+      toggleOn:"rgba(212,160,23,0.4)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#d4a017",toggleDotOff:"#2a4018",
+      streak:"#d4a017",streakHot:"#e8b820",
+      tabActive:"rgba(212,160,23,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#3a5020",
+      saveBg:"rgba(212,160,23,0.2)",saveBorder:"#d4a017",saveText:"#e8c830",
+    },
+    sun: {
+      ...SUN,
+      bg:"#f0f5ee",bgGrad:"none",
+      card:"#e8efe5",cardActive:"#ffffff",cardInactive:"#edf3ea",
+      border:"#9ab08a",borderActive:"#1a5c2e",
+      accent:"#1a5c2e",accentBold:"#0d4a1e",
+      hit:"#1a5c2e",hitBorder:"#2a8040",miss:"#cc0000",missBorder:"#aa0000",missCircle:"#cc0000",
+      good:"#1a5c2e",warn:"#b8860b",bad:"#cc0000",
+      stationBg:"#e8efe5",stationActive:"#d4e8c8",
+      hitBtn:"linear-gradient(160deg,#1a5c2e,#0d4a1e)",hitBtnBorder:"#2a8040",
+      tabActive:"#1a5c2e",tabInactive:"#e8efe5",
+      highlightBg:"#d4e8c8",highlightBorder:"#1a5c2e",highlightText:"#0d4a1e",
+      flashHit:"#1a5c2e",flashHitShadow:"0 0 40px rgba(26,92,46,0.5)",
+      streak:"#b8860b",streakHot:"#d4a017",
+      toggleOn:"#1a5c2e",toggleDot:"#ffffff",
+    },
+  },
+  huskers: {
+    name: "HUSKERS",
+    dark: {
+      ...DARK,
+      bg:"#1a0505",bgGrad:"radial-gradient(ellipse at 50% 0%, #3a0a0a 0%, #1a0505 70%)",
+      card:"rgba(30,8,8,0.8)",cardActive:"rgba(50,12,12,0.95)",cardInactive:"rgba(20,5,5,0.7)",
+      border:"#3a0a0a",borderActive:"#d00000",
+      text:"#f0dcc0",textMuted:"#8a4040",textDim:"#6a2a2a",textDimmer:"#4a1a1a",
+      accent:"#d00000",accentBold:"#ff2020",
+      hit:"#f0dcc0",hitBorder:"#ffe8c0",miss:"#ff4040",missBorder:"#cc2020",missCircle:"#a01010",
+      good:"#f0dcc0",warn:"#d00000",bad:"#ff4040",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(20,5,5,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(208,0,0,0.15)",
+      hitBtn:"linear-gradient(160deg,#d00000,#8a0000)",hitBtnBorder:"#ff2020",
+      missBtn:"linear-gradient(160deg,#444,#222)",missBtnBorder:"#666",
+      disabledBg:"#1a0808",disabledBorder:"#2a0a0a",disabledText:"#3a1a1a",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#3a0a0a",smallBtnText:"#8a5050",
+      highlightBg:"rgba(240,220,192,0.15)",highlightBorder:"#f0dcc0",highlightText:"#f0dcc0",
+      dotEmpty:"#1a0808",dotEmptyBorder:"#3a0a0a",
+      flashHit:"#f0dcc0",flashMiss:"#ff4040",
+      flashHitShadow:"0 0 30px rgba(240,220,192,0.5)",flashMissShadow:"0 0 30px rgba(255,64,64,0.6)",
+      leaderFirst:"rgba(208,0,0,0.1)",leaderRest:"rgba(30,8,8,0.6)",
+      toggleOn:"rgba(208,0,0,0.5)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#d00000",toggleDotOff:"#4a1a1a",
+      streak:"#d00000",streakHot:"#ff2020",
+      tabActive:"rgba(208,0,0,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#6a2a2a",
+      saveBg:"rgba(240,220,192,0.15)",saveBorder:"#f0dcc0",saveText:"#f0dcc0",
+    },
+    sun: {
+      ...SUN,
+      bg:"#fff8f0",bgGrad:"none",
+      card:"#f5eae0",cardActive:"#ffffff",cardInactive:"#f8f0e8",
+      border:"#cca080",borderActive:"#d00000",
+      accent:"#d00000",accentBold:"#b00000",
+      hit:"#d00000",hitBorder:"#ff2020",miss:"#444",missBorder:"#333",missCircle:"#444",
+      good:"#d00000",warn:"#b8860b",bad:"#444",
+      stationBg:"#f5eae0",stationActive:"#fce4e4",
+      hitBtn:"linear-gradient(160deg,#d00000,#8a0000)",hitBtnBorder:"#ff2020",
+      missBtn:"linear-gradient(160deg,#444,#222)",missBtnBorder:"#666",
+      tabActive:"#d00000",tabInactive:"#f5eae0",
+      highlightBg:"#fce4e4",highlightBorder:"#d00000",highlightText:"#8a0000",
+      flashHit:"#d00000",flashHitShadow:"0 0 40px rgba(208,0,0,0.5)",
+      streak:"#d00000",streakHot:"#ff0000",
+      toggleOn:"#d00000",toggleDot:"#ffffff",
+    },
+  },
+  southside: {
+    name: "SOUTH SIDE",
+    dark: {
+      ...DARK,
+      bg:"#0f0800",bgGrad:"radial-gradient(ellipse at 50% 0%, #2a1500 0%, #0f0800 70%)",
+      card:"rgba(20,12,0,0.8)",cardActive:"rgba(30,18,0,0.95)",cardInactive:"rgba(15,8,0,0.7)",
+      border:"#2a1500",borderActive:"#ff6600",
+      text:"#ffe0c0",textMuted:"#8a5500",textDim:"#6a4000",textDimmer:"#4a3000",
+      accent:"#ff6600",accentBold:"#ff8800",
+      hit:"#ff6600",hitBorder:"#ff8800",miss:"#333",missBorder:"#555",missCircle:"#222",
+      good:"#ff8800",warn:"#ff6600",bad:"#333",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(10,5,0,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(255,102,0,0.15)",
+      hitBtn:"linear-gradient(160deg,#ff6600,#cc4400)",hitBtnBorder:"#ff8800",
+      missBtn:"linear-gradient(160deg,#333,#111)",missBtnBorder:"#555",
+      disabledBg:"#0a0500",disabledBorder:"#1a0a00",disabledText:"#2a1500",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#2a1500",smallBtnText:"#8a6030",
+      highlightBg:"rgba(255,102,0,0.2)",highlightBorder:"#ff6600",highlightText:"#ff8800",
+      dotEmpty:"#0e0800",dotEmptyBorder:"#2a1500",
+      flashHit:"#ff6600",flashMiss:"#555",
+      flashHitShadow:"0 0 30px rgba(255,102,0,0.6)",flashMissShadow:"0 0 30px rgba(85,85,85,0.6)",
+      leaderFirst:"rgba(255,102,0,0.1)",leaderRest:"rgba(20,12,0,0.6)",
+      toggleOn:"rgba(255,102,0,0.5)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#ff6600",toggleDotOff:"#4a3000",
+      streak:"#ff6600",streakHot:"#ff8800",
+      tabActive:"rgba(255,102,0,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#6a4000",
+      saveBg:"rgba(255,102,0,0.2)",saveBorder:"#ff6600",saveText:"#ff8800",
+    },
+    sun: {
+      ...SUN,
+      bg:"#fff8f0",bgGrad:"none",
+      card:"#fff0e0",cardActive:"#ffffff",cardInactive:"#fff5ea",
+      border:"#dda060",borderActive:"#ff6600",
+      accent:"#ff6600",accentBold:"#cc4400",
+      hit:"#ff6600",hitBorder:"#ff8800",miss:"#222",missBorder:"#111",missCircle:"#222",
+      good:"#ff6600",warn:"#cc4400",bad:"#222",
+      stationBg:"#fff0e0",stationActive:"#ffe8d0",
+      hitBtn:"linear-gradient(160deg,#ff6600,#cc4400)",hitBtnBorder:"#ff8800",
+      missBtn:"linear-gradient(160deg,#333,#111)",missBtnBorder:"#555",
+      tabActive:"#ff6600",tabInactive:"#fff0e0",
+      highlightBg:"#ffe8d0",highlightBorder:"#ff6600",highlightText:"#cc4400",
+      flashHit:"#ff6600",flashHitShadow:"0 0 40px rgba(255,102,0,0.5)",
+      streak:"#cc4400",streakHot:"#ff6600",
+      toggleOn:"#ff6600",toggleDot:"#ffffff",
+    },
+  },
+};
+
 const trophyLabel = (pct) => {
   if (pct === 100) return "\u{1F3C6} PERFECT";
   if (pct >= 92) return "\u{1F947} Expert";
@@ -759,6 +901,7 @@ export default function TrapCounter() {
   const [screen, setScreen] = useLS("screen", "setup");
   const [sunMode, setSunMode] = useLS("sunMode", true);
   const [sunManual, setSunManual] = useLS("sunManual", false);
+  const [teamTheme, setTeamTheme] = useLS("teamTheme", "none");
   const [vibOn, setVibOn] = useLS("vibOn", true);
   const [sndOn, setSndOn] = useLS("sndOn", true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
@@ -1031,7 +1174,8 @@ export default function TrapCounter() {
     } catch {}
   };
 
-  const t = sunMode ? SUN : DARK;
+  const team = TEAMS[teamTheme] || TEAMS.none;
+  const t = sunMode ? (team.sun || SUN) : (team.dark || DARK);
   const { feedbackHit, feedbackMiss } = useFeedback(vibOn, sndOn);
 
   // Auto-detect system light/dark mode unless user manually toggled
@@ -1468,6 +1612,32 @@ export default function TrapCounter() {
           </div>
         </div>
         {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
+
+        {/* Team Colors */}
+        <div style={{...sectionStyle,padding:"10px 16px"}}>
+          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:8,textAlign:"center"}}>TEAM COLORS</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+            {Object.entries(TEAMS).map(([key, tm]) => {
+              const active = teamTheme === key;
+              const preview = sunMode ? (tm.sun || SUN) : (tm.dark || DARK);
+              return (
+                <button key={key} onClick={()=>setTeamTheme(key)} style={{
+                  padding:"8px 4px",borderRadius:6,cursor:"pointer",fontFamily:"inherit",
+                  background:active?preview.accent:(key==="none"?t.smallBtnBg:"transparent"),
+                  border:`2px solid ${active?preview.accent:t.border}`,
+                  color:active?"#fff":t.textMuted,fontSize:9,fontWeight:"bold",letterSpacing:1,
+                  transition:"all 0.15s",
+                }}>
+                  {key!=="none"&&<div style={{display:"flex",gap:2,justifyContent:"center",marginBottom:3}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.accent,border:"1px solid rgba(255,255,255,0.3)"}}/>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.hit,border:"1px solid rgba(255,255,255,0.3)"}}/>
+                  </div>}
+                  {tm.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Quick Start — one tap, start scoring instantly */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
