@@ -945,15 +945,23 @@ export default function TrapCounter() {
   const appRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Auto-detect location via GPS (accurate), falls back to IP — wait for boot to finish
-  useEffect(() => {
-    if (booting) return;
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const refreshLocation = () => {
+    setGpsLoading(true);
     getLocation().then(loc => {
       if (loc) {
         locationRef.current = { lat: loc.lat, lng: loc.lng };
-        if (!locationName && loc.name) setLocationName(loc.name.toUpperCase());
+        if (loc.name) setLocationName(loc.name.toUpperCase());
       }
-    });
+    }).finally(() => setGpsLoading(false));
+  };
+
+  // Auto-detect location once after boot
+  const gpsRan = useRef(false);
+  useEffect(() => {
+    if (booting || gpsRan.current) return;
+    gpsRan.current = true;
+    refreshLocation();
   }, [booting]);
 
   // Auto-migrate: on first load after update, if there's existing data and no sync, push to cloud
@@ -1603,41 +1611,33 @@ export default function TrapCounter() {
           <div style={{fontSize:isTiny?20:Math.round(26*baseFontMult),fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:isTiny?0:6}}>TRAP COUNTER</div>
         </div>
 
-        {/* Sun mode */}
-        <div style={{...sectionStyle,display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"12px 16px"}}>
-          <span style={{fontSize:11,fontWeight:"900",letterSpacing:3,color:sunMode?t.accent:t.textMuted}}>
-            {sunMode?"\u2600\uFE0F SUN MODE":"\u{1F319} NIGHT MODE"}
-          </span>
-          <div onClick={toggleSunMode} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
-            <div style={{position:"absolute",top:3,left:sunMode?27:3,width:20,height:20,borderRadius:"50%",background:sunMode?"#fff":"#666",transition:"all 0.2s"}}/>
-          </div>
-        </div>
-        {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
-
-        {/* Team Colors */}
+        {/* Sun mode + Team Colors */}
         <div style={{...sectionStyle,padding:"10px 16px"}}>
-          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:8,textAlign:"center"}}>TEAM COLORS</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:8}}>
+            <span style={{fontSize:11,fontWeight:"900",letterSpacing:3,color:sunMode?t.accent:t.textMuted}}>
+              {sunMode?"\u2600\uFE0F SUN":"\u{1F319} NIGHT"}
+            </span>
+            <div onClick={toggleSunMode} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
+              <div style={{position:"absolute",top:3,left:sunMode?27:3,width:20,height:20,borderRadius:"50%",background:sunMode?"#fff":"#666",transition:"all 0.2s"}}/>
+            </div>
+            <div style={{width:1,height:20,background:t.border}}/>
             {Object.entries(TEAMS).map(([key, tm]) => {
               const active = teamTheme === key;
               const preview = sunMode ? (tm.sun || SUN) : (tm.dark || DARK);
               return (
                 <button key={key} onClick={()=>setTeamTheme(key)} style={{
-                  padding:"8px 4px",borderRadius:6,cursor:"pointer",fontFamily:"inherit",
-                  background:active?preview.accent:(key==="none"?t.smallBtnBg:"transparent"),
-                  border:`2px solid ${active?preview.accent:t.border}`,
-                  color:active?"#fff":t.textMuted,fontSize:9,fontWeight:"bold",letterSpacing:1,
-                  transition:"all 0.15s",
+                  padding:"4px 6px",borderRadius:4,cursor:"pointer",fontFamily:"inherit",
+                  background:active?preview.accent:"transparent",
+                  border:`1.5px solid ${active?preview.accent:t.border}`,
+                  color:active?"#fff":t.textDim,fontSize:8,fontWeight:"bold",letterSpacing:0.5,
+                  transition:"all 0.15s",lineHeight:1,
                 }}>
-                  {key!=="none"&&<div style={{display:"flex",gap:2,justifyContent:"center",marginBottom:3}}>
-                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.accent,border:"1px solid rgba(255,255,255,0.3)"}}/>
-                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.hit,border:"1px solid rgba(255,255,255,0.3)"}}/>
-                  </div>}
-                  {tm.name}
+                  {key==="none"?"DEF":tm.name.split(" ")[0]}
                 </button>
               );
             })}
           </div>
+          {!sunManual&&<div style={{fontSize:8,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-4}}>AUTO — follows phone settings</div>}
         </div>
 
         {/* Quick Start — one tap, start scoring instantly */}
@@ -1699,8 +1699,15 @@ export default function TrapCounter() {
         <div style={sectionStyle}>
           <input placeholder="EVENT NAME (OPTIONAL)" value={eventName} onChange={e=>setEventName(e.target.value.toUpperCase())}
             style={{...inputStyle,width:"100%",marginBottom:10,textAlign:"center",fontSize:14}}/>
-          <input placeholder="LOCATION (AUTO-DETECTED)" value={locationName} onChange={e=>setLocationName(e.target.value.toUpperCase())}
-            style={{...inputStyle,width:"100%",marginBottom:10,fontSize:12}}/>
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            <input placeholder="LOCATION (AUTO-DETECTED)" value={locationName} onChange={e=>setLocationName(e.target.value.toUpperCase())}
+              style={{...inputStyle,flex:1,fontSize:12}}/>
+            <button onClick={refreshLocation} disabled={gpsLoading} style={{
+              background:t.smallBtnBg,border:`1px solid ${t.border}`,borderRadius:6,
+              padding:"0 10px",cursor:"pointer",fontSize:14,color:t.textMuted,
+              opacity:gpsLoading?0.5:1,
+            }}>{gpsLoading?"\u23F3":"\u{1F4CD}"}</button>
+          </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <input placeholder="WEATHER" value={weather} onChange={e=>setWeather(e.target.value.toUpperCase())} style={inputStyle}/>
             <input placeholder="NOTES" value={notes} onChange={e=>setNotes(e.target.value.toUpperCase())} style={inputStyle}/>
