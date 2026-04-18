@@ -697,7 +697,7 @@ function RoundLog({ rounds, allHits, allShots, allPct, onChange, shooter, t }) {
   );
 }
 
-function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit, feedbackMiss, setFlashLabel, t, sun }) {
+function ShooterCard({ shooter, onChange, onSave, active, onSelect, onAdvance, feedbackHit, feedbackMiss, setFlashLabel, t, sun }) {
   const { name, hits, misses, history, rounds, roundNum } = shooter;
   const total=hits+misses;
   const remaining=BIRDS_PER_ROUND-total;
@@ -714,6 +714,7 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
     if(type==="hit"){feedbackHit();setFlashLabel("HIT");}
     else{feedbackMiss();setFlashLabel("MISS");}
     onChange({hits:type==="hit"?hits+1:hits,misses:type==="miss"?misses+1:misses,history:[...history,type]});
+    if(onAdvance) setTimeout(()=>onAdvance(),150);
   };
   const undo=()=>{
     if(!history.length)return;
@@ -2099,6 +2100,7 @@ export default function TrapCounter() {
                 onSelect={()=>setDisplayActiveIdx(i)}
                 onChange={changes=>isEvent?updateEventShooter(i,changes):updateQShooter(i,changes)}
                 onSave={()=>isEvent?saveEventRound(i):saveQRound(i)}
+                onAdvance={displayShooters.length>1?()=>setDisplayActiveIdx((i+1)%displayShooters.length):null}
                 feedbackHit={feedbackHit} feedbackMiss={feedbackMiss}
                 setFlashLabel={setFlashLabel} t={t} sun={sunMode}/>
             ))
