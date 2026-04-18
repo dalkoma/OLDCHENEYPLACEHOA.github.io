@@ -334,9 +334,11 @@ async function getLocation() {
       const lat = data.latitude, lng = data.longitude;
       if (!lat || !lng) return null;
       const rangeName = await findNearbyRange(lat, lng, 40);
-      const cityName = [data.city, data.region_code || data.region].filter(Boolean).join(", ");
-      const name = rangeName ? `${rangeName} - ${cityName}` : cityName;
-      return { lat, lng, name, rangeName, gpsDenied: true };
+      if (rangeName) {
+        const cityName = [data.city, data.region_code || data.region].filter(Boolean).join(", ");
+        return { lat, lng, name: `${rangeName} - ${cityName}`, rangeName, gpsDenied: true };
+      }
+      return { lat, lng, name: null, gpsDenied: true };
     } catch (e) { trackError("geo", e.message); return null; }
   }
 }
