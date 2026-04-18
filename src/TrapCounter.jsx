@@ -481,9 +481,25 @@ function RoundLog({ rounds, allHits, allShots, allPct, onChange, shooter, t }) {
     onChange({ rounds: newRounds });
   };
 
+  const undoLastRound = () => {
+    if (!rounds.length) return;
+    const last = rounds[rounds.length - 1];
+    const newRounds = rounds.slice(0, -1);
+    onChange({
+      rounds: newRounds,
+      roundNum: last.round,
+      hits: last.hits,
+      misses: last.misses,
+      history: last.history || [],
+    });
+  };
+
   return (
     <div style={{marginTop:12,borderTop:`2px solid ${t.border}`,paddingTop:10}}>
-      <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textDim,marginBottom:6}}>SESSION LOG</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textDim}}>SESSION LOG</div>
+        <button onClick={undoLastRound} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:10,fontWeight:"bold",letterSpacing:1,fontFamily:"inherit",padding:"2px 6px"}}>{"\u21A9"} UNDO RND</button>
+      </div>
       {rounds.map((r, ri) => (
         <div key={r.round}>
           <div onClick={() => setExpandedRnd(expandedRnd === ri ? null : ri)} style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:"bold",padding:"6px 0",borderBottom:`1px solid ${t.border}`,cursor:"pointer"}}>
@@ -946,7 +962,7 @@ export default function TrapCounter() {
     const entry = {
       id: shootId,
       date: new Date().toISOString(),
-      eventName: eventName || "Quick Shoot",
+      eventName: eventName || (mode === "quick" ? "Training" : "Event"),
       mode, weather, notes, locationName,
       sessionId: sessionId || null,
       qSquad, qTrap, qShooters: mode === "quick" ? qShooters : [],
@@ -1045,12 +1061,30 @@ export default function TrapCounter() {
     setQShooters(Array.from({length:qNumShooters},(_,i)=>freshShooter(qSetup[i].name,qSetup[i].gun,qSetup[i].choke)));
     setQActiveIdx(0); setScreen("range");
   };
-  // Instant quick start — 1 shooter, no setup needed
+  // Quick start — uses current mode, minimum setup
   const instantStart = () => {
-    setMode("quick");
     setCurrentShootId(Date.now());
-    setQShooters([freshShooter(qSetup[0].name, qSetup[0].gun, qSetup[0].choke)]);
-    setQActiveIdx(0); setScreen("range");
+    if (mode === "event") {
+      // Event quick start — use current squad/trap settings
+      const newScores = {};
+      const squadNs = Array.from({length:numSquads},(_,i)=>i+1);
+      const trapNs = Array.from({length:numTraps},(_,i)=>i+1);
+      squadNs.forEach(sqNum => {
+        const ss = getSquadSetup(sqNum);
+        trapNs.forEach(trapNum => {
+          const key = `${sqNum}-${trapNum}`;
+          newScores[key] = Array.from({length:ss.shooterCount},(_,i) =>
+            freshShooter(ss.shooters[i]?.name, ss.shooters[i]?.gun, ss.shooters[i]?.choke)
+          );
+        });
+      });
+      setScores(newScores);
+      setCurTrap(1); setCurSquad(1); setActiveIdx(0);
+    } else {
+      setQShooters([freshShooter(qSetup[0].name, qSetup[0].gun, qSetup[0].choke)]);
+      setQActiveIdx(0);
+    }
+    setScreen("range");
   };
   const updateQShooter = (i,changes) => setQShooters(p=>p.map((s,idx)=>idx===i?{...s,...changes}:s));
   const saveQRound = (i) => setQShooters(p=>p.map((s,idx)=>{
@@ -1450,7 +1484,7 @@ export default function TrapCounter() {
             fontSize:14,fontWeight:"900",letterSpacing:3,cursor:"pointer",fontFamily:"inherit",
           }}>{"\u25B6"} START</button>
         </div>
-        <div style={{fontSize:9,color:t.textDim,textAlign:"center",marginTop:-6,marginBottom:10,letterSpacing:1}}>QUICK START = 1 shooter, instant go &nbsp;|&nbsp; START = use settings below</div>
+        <div style={{fontSize:9,color:t.textDim,textAlign:"center",marginTop:-6,marginBottom:10,letterSpacing:1}}>{mode==="quick"?"QUICK START = 1 shooter, instant go":"QUICK START = current settings, instant go"} &nbsp;|&nbsp; START = customize below</div>
 
         {/* Family Group Sync */}
         <div style={{...sectionStyle,padding:"14px 16px"}}>
@@ -1482,11 +1516,11 @@ export default function TrapCounter() {
         <div style={{...sectionStyle,padding:"12px 16px"}}>
           <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>SESSION TYPE</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <button onClick={()=>setMode("quick")} style={pillBtn(mode==="quick")}>{"\u{1F3AF}"} QUICK</button>
+            <button onClick={()=>setMode("quick")} style={pillBtn(mode==="quick")}>{"\u{1F3AF}"} TRAINING</button>
             <button onClick={()=>setMode("event")} style={pillBtn(mode==="event")}>{"\u{1F3C6}"} EVENT</button>
           </div>
-          <div style={{fontSize:10,color:t.textDim,textAlign:"center",marginTop:8}}>
-            {mode==="quick"?"One trap, one squad — fast scoring":"Full event — multiple traps & squads"}
+          <div style={{fontSize:10,color:t.textDim,textAlign:"center",marginTop:8,lineHeight:1.5}}>
+            {mode==="quick"?"Solo or team at one station":"Full event — multiple traps & squads"}
           </div>
         </div>
 
@@ -1502,7 +1536,7 @@ export default function TrapCounter() {
           </div>
         </div>
 
-        {/* ── QUICK MODE SETUP ── */}
+        {/* ── TRAINING MODE SETUP ── */}
         {mode === "quick" && <>
           <div style={{...sectionStyle,padding:20}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:20}}>
