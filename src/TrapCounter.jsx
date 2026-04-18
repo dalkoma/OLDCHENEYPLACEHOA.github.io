@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
 
 const BIRDS_PER_ROUND = 25;
 
@@ -54,6 +55,148 @@ const SUN = {
   saveBg:"#d4edda",saveBorder:"#28a745",saveText:"#155724",
 };
 
+// ── Team color schemes ──
+const TEAMS = {
+  none: { name: "DEFAULT", dark: DARK, sun: SUN },
+  piusx: {
+    name: "PIUS X",
+    dark: {
+      ...DARK,
+      bg:"#0a1a0d",bgGrad:"radial-gradient(ellipse at 50% 0%, #1a3a1e 0%, #0a1a0d 70%)",
+      card:"rgba(10,30,15,0.8)",cardActive:"rgba(20,50,25,0.95)",cardInactive:"rgba(8,20,10,0.7)",
+      border:"#1a3a1e",borderActive:"#d4a017",
+      text:"#d4d8c0",textMuted:"#4a6a30",textDim:"#3a5020",textDimmer:"#2a4018",
+      accent:"#d4a017",accentBold:"#e8b820",
+      hit:"#d4a017",hitBorder:"#e8c830",miss:"#c03030",missBorder:"#a02020",missCircle:"#801818",
+      good:"#50c070",warn:"#d4a017",bad:"#c03030",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(10,20,10,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(212,160,23,0.15)",
+      hitBtn:"linear-gradient(160deg,#1a5c2e,#0d3a18)",hitBtnBorder:"#2a8040",
+      missBtn:"linear-gradient(160deg,#901818,#5a0808)",missBtnBorder:"#c02020",
+      disabledBg:"#0a1208",disabledBorder:"#1a2a10",disabledText:"#2a3a18",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#1a3a1e",smallBtnText:"#6a8a40",
+      highlightBg:"rgba(212,160,23,0.2)",highlightBorder:"#d4a017",highlightText:"#e8c830",
+      dotEmpty:"#0e1a0a",dotEmptyBorder:"#1a3a1e",
+      flashHit:"#d4a017",flashMiss:"#c03030",
+      flashHitShadow:"0 0 30px rgba(212,160,23,0.6)",flashMissShadow:"0 0 30px rgba(192,48,48,0.6)",
+      leaderFirst:"rgba(212,160,23,0.1)",leaderRest:"rgba(10,30,15,0.6)",
+      toggleOn:"rgba(212,160,23,0.4)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#d4a017",toggleDotOff:"#2a4018",
+      streak:"#d4a017",streakHot:"#e8b820",
+      tabActive:"rgba(212,160,23,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#3a5020",
+      saveBg:"rgba(212,160,23,0.2)",saveBorder:"#d4a017",saveText:"#e8c830",
+    },
+    sun: {
+      ...SUN,
+      bg:"#f0f5ee",bgGrad:"none",
+      card:"#e8efe5",cardActive:"#ffffff",cardInactive:"#edf3ea",
+      border:"#9ab08a",borderActive:"#1a5c2e",
+      accent:"#1a5c2e",accentBold:"#0d4a1e",
+      hit:"#1a5c2e",hitBorder:"#2a8040",miss:"#cc0000",missBorder:"#aa0000",missCircle:"#cc0000",
+      good:"#1a5c2e",warn:"#b8860b",bad:"#cc0000",
+      stationBg:"#e8efe5",stationActive:"#d4e8c8",
+      hitBtn:"linear-gradient(160deg,#1a5c2e,#0d4a1e)",hitBtnBorder:"#2a8040",
+      tabActive:"#1a5c2e",tabInactive:"#e8efe5",
+      highlightBg:"#d4e8c8",highlightBorder:"#1a5c2e",highlightText:"#0d4a1e",
+      flashHit:"#1a5c2e",flashHitShadow:"0 0 40px rgba(26,92,46,0.5)",
+      streak:"#b8860b",streakHot:"#d4a017",
+      toggleOn:"#1a5c2e",toggleDot:"#ffffff",
+    },
+  },
+  huskers: {
+    name: "HUSKERS",
+    dark: {
+      ...DARK,
+      bg:"#1a0505",bgGrad:"radial-gradient(ellipse at 50% 0%, #3a0a0a 0%, #1a0505 70%)",
+      card:"rgba(30,8,8,0.8)",cardActive:"rgba(50,12,12,0.95)",cardInactive:"rgba(20,5,5,0.7)",
+      border:"#3a0a0a",borderActive:"#d00000",
+      text:"#f0dcc0",textMuted:"#8a4040",textDim:"#6a2a2a",textDimmer:"#4a1a1a",
+      accent:"#d00000",accentBold:"#ff2020",
+      hit:"#f0dcc0",hitBorder:"#ffe8c0",miss:"#ff4040",missBorder:"#cc2020",missCircle:"#a01010",
+      good:"#f0dcc0",warn:"#d00000",bad:"#ff4040",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(20,5,5,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(208,0,0,0.15)",
+      hitBtn:"linear-gradient(160deg,#d00000,#8a0000)",hitBtnBorder:"#ff2020",
+      missBtn:"linear-gradient(160deg,#444,#222)",missBtnBorder:"#666",
+      disabledBg:"#1a0808",disabledBorder:"#2a0a0a",disabledText:"#3a1a1a",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#3a0a0a",smallBtnText:"#8a5050",
+      highlightBg:"rgba(240,220,192,0.15)",highlightBorder:"#f0dcc0",highlightText:"#f0dcc0",
+      dotEmpty:"#1a0808",dotEmptyBorder:"#3a0a0a",
+      flashHit:"#f0dcc0",flashMiss:"#ff4040",
+      flashHitShadow:"0 0 30px rgba(240,220,192,0.5)",flashMissShadow:"0 0 30px rgba(255,64,64,0.6)",
+      leaderFirst:"rgba(208,0,0,0.1)",leaderRest:"rgba(30,8,8,0.6)",
+      toggleOn:"rgba(208,0,0,0.5)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#d00000",toggleDotOff:"#4a1a1a",
+      streak:"#d00000",streakHot:"#ff2020",
+      tabActive:"rgba(208,0,0,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#6a2a2a",
+      saveBg:"rgba(240,220,192,0.15)",saveBorder:"#f0dcc0",saveText:"#f0dcc0",
+    },
+    sun: {
+      ...SUN,
+      bg:"#fff8f0",bgGrad:"none",
+      card:"#f5eae0",cardActive:"#ffffff",cardInactive:"#f8f0e8",
+      border:"#cca080",borderActive:"#d00000",
+      accent:"#d00000",accentBold:"#b00000",
+      hit:"#d00000",hitBorder:"#ff2020",miss:"#444",missBorder:"#333",missCircle:"#444",
+      good:"#d00000",warn:"#b8860b",bad:"#444",
+      stationBg:"#f5eae0",stationActive:"#fce4e4",
+      hitBtn:"linear-gradient(160deg,#d00000,#8a0000)",hitBtnBorder:"#ff2020",
+      missBtn:"linear-gradient(160deg,#444,#222)",missBtnBorder:"#666",
+      tabActive:"#d00000",tabInactive:"#f5eae0",
+      highlightBg:"#fce4e4",highlightBorder:"#d00000",highlightText:"#8a0000",
+      flashHit:"#d00000",flashHitShadow:"0 0 40px rgba(208,0,0,0.5)",
+      streak:"#d00000",streakHot:"#ff0000",
+      toggleOn:"#d00000",toggleDot:"#ffffff",
+    },
+  },
+  southside: {
+    name: "SOUTH SIDE",
+    dark: {
+      ...DARK,
+      bg:"#0f0800",bgGrad:"radial-gradient(ellipse at 50% 0%, #2a1500 0%, #0f0800 70%)",
+      card:"rgba(20,12,0,0.8)",cardActive:"rgba(30,18,0,0.95)",cardInactive:"rgba(15,8,0,0.7)",
+      border:"#2a1500",borderActive:"#ff6600",
+      text:"#ffe0c0",textMuted:"#8a5500",textDim:"#6a4000",textDimmer:"#4a3000",
+      accent:"#ff6600",accentBold:"#ff8800",
+      hit:"#ff6600",hitBorder:"#ff8800",miss:"#333",missBorder:"#555",missCircle:"#222",
+      good:"#ff8800",warn:"#ff6600",bad:"#333",
+      inputBg:"rgba(255,255,255,0.05)",scoreBg:"rgba(10,5,0,0.6)",
+      stationBg:"rgba(255,255,255,0.03)",stationActive:"rgba(255,102,0,0.15)",
+      hitBtn:"linear-gradient(160deg,#ff6600,#cc4400)",hitBtnBorder:"#ff8800",
+      missBtn:"linear-gradient(160deg,#333,#111)",missBtnBorder:"#555",
+      disabledBg:"#0a0500",disabledBorder:"#1a0a00",disabledText:"#2a1500",
+      smallBtnBg:"rgba(255,255,255,0.05)",smallBtnBorder:"#2a1500",smallBtnText:"#8a6030",
+      highlightBg:"rgba(255,102,0,0.2)",highlightBorder:"#ff6600",highlightText:"#ff8800",
+      dotEmpty:"#0e0800",dotEmptyBorder:"#2a1500",
+      flashHit:"#ff6600",flashMiss:"#555",
+      flashHitShadow:"0 0 30px rgba(255,102,0,0.6)",flashMissShadow:"0 0 30px rgba(85,85,85,0.6)",
+      leaderFirst:"rgba(255,102,0,0.1)",leaderRest:"rgba(20,12,0,0.6)",
+      toggleOn:"rgba(255,102,0,0.5)",toggleOff:"rgba(255,255,255,0.05)",
+      toggleDot:"#ff6600",toggleDotOff:"#4a3000",
+      streak:"#ff6600",streakHot:"#ff8800",
+      tabActive:"rgba(255,102,0,0.25)",tabInactive:"rgba(255,255,255,0.03)",tabText:"#6a4000",
+      saveBg:"rgba(255,102,0,0.2)",saveBorder:"#ff6600",saveText:"#ff8800",
+    },
+    sun: {
+      ...SUN,
+      bg:"#fff8f0",bgGrad:"none",
+      card:"#fff0e0",cardActive:"#ffffff",cardInactive:"#fff5ea",
+      border:"#dda060",borderActive:"#ff6600",
+      accent:"#ff6600",accentBold:"#cc4400",
+      hit:"#ff6600",hitBorder:"#ff8800",miss:"#222",missBorder:"#111",missCircle:"#222",
+      good:"#ff6600",warn:"#cc4400",bad:"#222",
+      stationBg:"#fff0e0",stationActive:"#ffe8d0",
+      hitBtn:"linear-gradient(160deg,#ff6600,#cc4400)",hitBtnBorder:"#ff8800",
+      missBtn:"linear-gradient(160deg,#333,#111)",missBtnBorder:"#555",
+      tabActive:"#ff6600",tabInactive:"#fff0e0",
+      highlightBg:"#ffe8d0",highlightBorder:"#ff6600",highlightText:"#cc4400",
+      flashHit:"#ff6600",flashHitShadow:"0 0 40px rgba(255,102,0,0.5)",
+      streak:"#cc4400",streakHot:"#ff6600",
+      toggleOn:"#ff6600",toggleDot:"#ffffff",
+    },
+  },
+};
+
 const trophyLabel = (pct) => {
   if (pct === 100) return "\u{1F3C6} PERFECT";
   if (pct >= 92) return "\u{1F947} Expert";
@@ -69,6 +212,183 @@ const getStreak = (history) => {
   }
   return s;
 };
+
+// ── localStorage-backed state ──
+function useLS(key, defaultVal) {
+  const [val, setVal] = useState(() => {
+    try {
+      const stored = localStorage.getItem("trap_" + key);
+      return stored !== null ? JSON.parse(stored) : defaultVal;
+    } catch { return defaultVal; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("trap_" + key, JSON.stringify(val)); } catch {}
+  }, [key, val]);
+  return [val, setVal];
+}
+
+// ── Device & metadata helpers ──
+function getDeviceInfo() {
+  const ua = navigator.userAgent || "";
+  let device = "Unknown";
+  if (/iPhone/.test(ua)) device = "iPhone";
+  else if (/iPad/.test(ua)) device = "iPad";
+  else if (/Android/.test(ua)) device = "Android";
+  else if (/Windows/.test(ua)) device = "Windows";
+  else if (/Mac/.test(ua)) device = "Mac";
+  else if (/Linux/.test(ua)) device = "Linux";
+  return { device, userAgent: ua };
+}
+
+// ── Error tracking ──
+const errorLog = [];
+function trackError(type, message, extra = {}) {
+  const entry = { type, message, ...extra, device: getDeviceInfo().device, ts: new Date().toISOString() };
+  errorLog.push(entry);
+  // Push to cloud (fire-and-forget)
+  try {
+    fetch("/api/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "errors:" + new Date().toISOString().slice(0,10), data: { entry, id: Date.now() }, append: true }),
+    }).catch(() => {});
+  } catch {}
+}
+
+// Global error handler — catches unhandled exceptions and promise rejections
+if (typeof window !== "undefined" && !window.__trapErrorsSetup) {
+  window.__trapErrorsSetup = true;
+  window.addEventListener("error", (e) => {
+    trackError("unhandled", e.message, { file: e.filename, line: e.lineno, col: e.colno });
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    trackError("promise", String(e.reason), {});
+  });
+}
+
+// Find nearby shooting ranges via Overpass API (OpenStreetMap, free, no key)
+async function findNearbyRange(lat, lng) {
+  try {
+    const radius = 2000; // 2km radius
+    const query = `[out:json][timeout:5];(node["sport"="shooting"](around:${radius},${lat},${lng});way["sport"="shooting"](around:${radius},${lat},${lng});node["leisure"="sports_centre"]["sport"="shooting"](around:${radius},${lat},${lng});node["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng});way["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng}););out center 1;`;
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST", body: "data=" + encodeURIComponent(query),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.elements && data.elements.length > 0) {
+      const place = data.elements[0];
+      return place.tags?.name || null;
+    }
+    return null;
+  } catch (e) { return null; }
+}
+
+// Reverse geocode lat/lng to a place name using OpenStreetMap Nominatim
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`, {
+      headers: { "Accept-Language": "en" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const a = data.address || {};
+    const city = a.city || a.town || a.village || a.hamlet || "";
+    const state = a.state || "";
+    return [city, state].filter(Boolean).join(", ");
+  } catch (e) { return null; }
+}
+
+// GPS-based location (accurate) with IP fallback, checks for nearby shooting ranges
+async function getLocation() {
+  // Try GPS first
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("no geolocation"));
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true, timeout: 8000, maximumAge: 300000,
+      });
+    });
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    // Check for nearby shooting range first, fall back to city name
+    const [rangeName, cityName] = await Promise.all([
+      findNearbyRange(lat, lng),
+      reverseGeocode(lat, lng),
+    ]);
+    const name = rangeName ? `${rangeName}, ${cityName || ""}`.replace(/, $/, "") : cityName;
+    return { lat, lng, name, rangeName };
+  } catch (gpsErr) {
+    // GPS failed or denied — fall back to IP
+    try {
+      const res = await fetch("https://ipapi.co/json/");
+      if (!res.ok) { trackError("geo", `IP geolocation failed: ${res.status}`); return null; }
+      const data = await res.json();
+      if (data.city) {
+        return {
+          lat: data.latitude, lng: data.longitude,
+          name: [data.city, data.region].filter(Boolean).join(", "),
+        };
+      }
+      return null;
+    } catch (e) { trackError("geo", e.message); return null; }
+  }
+}
+
+// ── Responsive screen size hook ──
+function useScreenSize() {
+  const calc = () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const landscape = w > h;
+    let sz = "phone"; // default
+    if (w < 320) sz = "tiny";      // Z Flip cover
+    else if (w < 400) sz = "phone"; // iPhone SE, small Android, Z Fold closed
+    else if (w < 600) sz = "phone-lg"; // iPhone, Pixel, Galaxy S
+    else if (w < 820) sz = "tablet-sm"; // Z Fold open, iPad mini
+    else if (w < 1100) sz = "tablet";   // iPad Air/Pro portrait
+    else if (w < 1500) sz = "laptop";   // iPad landscape, laptops
+    else if (w < 2000) sz = "desktop";  // Desktop
+    else sz = "ultra";                   // Ultra-wide, TV
+    return { w, h, landscape, sz };
+  };
+  const [info, setInfo] = useState(calc);
+  useEffect(() => {
+    const onResize = () => setInfo(calc());
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", () => setTimeout(onResize, 100));
+    return () => { window.removeEventListener("resize", onResize); window.removeEventListener("orientationchange", onResize); };
+  }, []);
+  return info;
+}
+
+// ── Cloud sync helpers ──
+const genCode = () => {
+  const arr = new Uint8Array(4);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => b.toString(36).padStart(2, "0")).join("").slice(0, 6).toUpperCase();
+};
+
+async function cloudSave(key, data) {
+  try {
+    const res = await fetch("/api/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, data }),
+    });
+    if (!res.ok) trackError("cloud-save", `Save failed: ${res.status}`, { key });
+  } catch (e) { trackError("cloud-save", e.message, { key }); }
+}
+
+async function cloudLoad(key) {
+  try {
+    const res = await fetch("/api/state?key=" + encodeURIComponent(key));
+    if (!res.ok) { trackError("cloud-load", `Load failed: ${res.status}`, { key }); return null; }
+    const data = await res.json();
+    return data;
+  } catch (e) { trackError("cloud-load", e.message, { key }); return null; }
+}
 
 const freshShooter = (name, gun, choke) => ({
   name: name || "SHOOTER", gun: gun || "", choke: choke || "",
@@ -263,25 +583,110 @@ function StationBar({ history, t }) {
   return (
     <div style={{marginBottom:12}}>
       <div style={{fontSize:10,letterSpacing:3,color:t.textMuted,marginBottom:6,textAlign:"center",fontWeight:"bold"}}>STATIONS</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
         {[1,2,3,4,5].map(st=>{
           const shots=history.slice((st-1)*5,st*5);
           const stHits=shots.filter(s=>s==="hit").length;
           const isActive=Math.floor(history.length/5)+1===st&&history.length<25;
           const isDone=shots.length===5;
           return(
-            <div key={st} style={{background:isActive?t.stationActive:t.stationBg,border:`2px solid ${isActive?t.borderActive:t.border}`,borderRadius:6,padding:"6px 4px",textAlign:"center"}}>
-              <div style={{fontSize:10,color:isActive?t.borderActive:t.textDimmer,letterSpacing:1,marginBottom:4,fontWeight:"bold"}}>{isActive?"\u25B6S":"S"}{st}</div>
-              <div style={{display:"flex",gap:3,justifyContent:"center"}}>
+            <div key={st} style={{background:isActive?t.stationActive:t.stationBg,border:`2px solid ${isActive?t.borderActive:t.border}`,borderRadius:6,padding:"5px 2px",textAlign:"center",overflow:"hidden",minWidth:0}}>
+              <div style={{fontSize:9,color:isActive?t.borderActive:t.textDimmer,letterSpacing:1,marginBottom:3,fontWeight:"bold"}}>{isActive?"\u25B6S":"S"}{st}</div>
+              <div style={{display:"flex",gap:2,justifyContent:"center"}}>
                 {[0,1,2,3,4].map(j=>{
                   const shot=shots[j];
-                  return <div key={j} style={{width:10,height:10,borderRadius:"50%",background:shot==="hit"?t.hit:shot==="miss"?t.missCircle:t.dotEmpty,border:`2px solid ${shot==="hit"?t.hitBorder:shot==="miss"?t.missBorder:t.dotEmptyBorder}`}}/>;
+                  return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:shot==="hit"?t.hit:shot==="miss"?t.missCircle:t.dotEmpty,border:`1.5px solid ${shot==="hit"?t.hitBorder:shot==="miss"?t.missBorder:t.dotEmptyBorder}`}}/>;
                 })}
               </div>
-              {isDone&&<div style={{fontSize:11,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:3}}>{stHits}/5</div>}
+              {isDone&&<div style={{fontSize:10,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:2}}>{stHits}/5</div>}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function RoundLog({ rounds, allHits, allShots, allPct, onChange, shooter, t }) {
+  const [expandedRnd, setExpandedRnd] = useState(null);
+
+  const toggleShot = (rndIdx, shotIdx) => {
+    const newRounds = rounds.map((r, ri) => {
+      if (ri !== rndIdx || !r.history) return r;
+      const h = [...r.history];
+      h[shotIdx] = h[shotIdx] === "hit" ? "miss" : "hit";
+      const hits = h.filter(s => s === "hit").length;
+      const misses = h.filter(s => s === "miss").length;
+      const pct = hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 0;
+      return { ...r, history: h, hits, misses, pct };
+    });
+    onChange({ rounds: newRounds });
+  };
+
+  const undoLastRound = () => {
+    if (!rounds.length) return;
+    const last = rounds[rounds.length - 1];
+    const newRounds = rounds.slice(0, -1);
+    onChange({
+      rounds: newRounds,
+      roundNum: last.round,
+      hits: last.hits,
+      misses: last.misses,
+      history: last.history || [],
+    });
+  };
+
+  return (
+    <div style={{marginTop:12,borderTop:`2px solid ${t.border}`,paddingTop:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textDim}}>SESSION LOG</div>
+        <button onClick={undoLastRound} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:10,fontWeight:"bold",letterSpacing:1,fontFamily:"inherit",padding:"2px 6px"}}>{"\u21A9"} UNDO RND</button>
+      </div>
+      {rounds.map((r, ri) => (
+        <div key={r.round}>
+          <div onClick={() => setExpandedRnd(expandedRnd === ri ? null : ri)} style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:"bold",padding:"6px 0",borderBottom:`1px solid ${t.border}`,cursor:"pointer"}}>
+            <span style={{color:t.textMuted}}>{expandedRnd === ri ? "\u25BC" : "\u25B6"} RND {r.round}</span>
+            <span style={{color:t.accentBold}}>{r.hits}/{r.hits+r.misses}</span>
+            <span style={{color:r.pct>=80?t.good:t.warn}}>{r.pct}%</span>
+          </div>
+          {expandedRnd === ri && r.history && r.history.length > 0 && (
+            <div style={{padding:"8px 4px",background:t.stationBg,borderRadius:6,marginTop:4,marginBottom:4}}>
+              <div style={{fontSize:9,letterSpacing:2,color:t.textDim,marginBottom:6,textAlign:"center",fontWeight:"bold"}}>TAP SHOT TO EDIT</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
+                {[1,2,3,4,5].map(st => {
+                  const shots = r.history.slice((st-1)*5, st*5);
+                  const stHits = shots.filter(s => s === "hit").length;
+                  return (
+                    <div key={st} style={{background:t.stationBg,border:`2px solid ${t.border}`,borderRadius:6,padding:"5px 2px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:t.textDimmer,letterSpacing:1,marginBottom:3,fontWeight:"bold"}}>S{st}</div>
+                      <div style={{display:"flex",gap:2,justifyContent:"center"}}>
+                        {[0,1,2,3,4].map(j => {
+                          const absIdx = (st-1)*5 + j;
+                          const shot = shots[j];
+                          if (!shot) return <div key={j} style={{width:10,height:10,borderRadius:"50%",background:t.dotEmpty,border:`1.5px solid ${t.dotEmptyBorder}`}}/>;
+                          return (
+                            <div key={j} onClick={(e) => { e.stopPropagation(); toggleShot(ri, absIdx); }}
+                              style={{width:10,height:10,borderRadius:"50%",cursor:"pointer",
+                                background:shot==="hit"?t.hit:t.missCircle,
+                                border:`1.5px solid ${shot==="hit"?t.hitBorder:t.missBorder}`,
+                                transition:"all 0.15s",
+                              }}/>
+                          );
+                        })}
+                      </div>
+                      {shots.length===5&&<div style={{fontSize:10,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:2}}>{stHits}/5</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:14,fontWeight:"900",paddingTop:6}}>
+        <span style={{color:t.textMuted,letterSpacing:2}}>TOTAL</span>
+        <span style={{color:t.accent}}>{allHits}/{allShots}</span>
+        <span style={{color:allPct>=80?t.good:t.warn}}>{allPct}%</span>
       </div>
     </div>
   );
@@ -330,8 +735,8 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
     <div onClick={()=>!active&&onSelect()} style={{
       background:active?t.cardActive:t.cardInactive,
       border:`3px solid ${active?t.borderActive:t.border}`,
-      borderRadius:10,padding:active?"16px":"12px 16px",marginBottom:12,
-      cursor:active?"default":"pointer",transition:"all 0.2s",
+      borderRadius:10,padding:active?"14px":"12px 14px",marginBottom:12,
+      cursor:active?"default":"pointer",transition:"all 0.2s",overflow:"hidden",boxSizing:"border-box",
       boxShadow:active?(sun?"0 2px 8px rgba(0,0,0,0.15)":"0 0 20px rgba(200,100,0,0.15)"):"none",
     }}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:active?12:0}}>
@@ -356,9 +761,9 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
           <div style={{fontSize:12,fontWeight:"bold",color:t.textDim,letterSpacing:2,marginBottom:10,textAlign:"center"}}>
             {shooter.gun}{shooter.gun&&shooter.choke?"  \u00B7  ":""}{shooter.choke}
           </div>}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"14px 20px",marginBottom:12,border:`2px solid ${t.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:t.scoreBg,borderRadius:10,padding:"12px 10px",marginBottom:12,border:`2px solid ${t.border}`,boxSizing:"border-box"}}>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:48,fontWeight:"900",color:t.hit,lineHeight:1}}>{hits}</div>
+            <div style={{fontSize:44,fontWeight:"900",color:t.hit,lineHeight:1}}>{hits}</div>
             <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>HITS</div>
           </div>
           <div style={{textAlign:"center"}}>
@@ -368,7 +773,7 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
             <div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{remaining>0?`${remaining} left`:"DONE"}</div>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:48,fontWeight:"900",color:t.miss,lineHeight:1}}>{misses}</div>
+            <div style={{fontSize:44,fontWeight:"900",color:t.miss,lineHeight:1}}>{misses}</div>
             <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>MISS</div>
           </div>
         </div>
@@ -379,24 +784,10 @@ function ShooterCard({ shooter, onChange, onSave, active, onSelect, feedbackHit,
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
           <button onClick={undo} disabled={!history.length} style={smBtn(!history.length)}>{"\u21A9"} UNDO</button>
-          <button onClick={onSave} disabled={!done} style={smBtn(!done,true)}>{"\u2714"} SAVE RND</button>
+          <button onClick={onSave} disabled={!total} style={smBtn(!total,total>0)}>{"\u2714"} SAVE RND</button>
           <button onClick={()=>onChange({hits:0,misses:0,history:[]})} style={smBtn(false)}>{"\u27F3"} RESET</button>
         </div>
-        {rounds.length>0&&<div style={{marginTop:12,borderTop:`2px solid ${t.border}`,paddingTop:10}}>
-          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textDim,marginBottom:6}}>SESSION LOG</div>
-          {rounds.map(r=>(
-            <div key={r.round} style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:"bold",padding:"4px 0",borderBottom:`1px solid ${t.border}`}}>
-              <span style={{color:t.textMuted}}>RND {r.round}</span>
-              <span style={{color:t.accentBold}}>{r.hits}/25</span>
-              <span style={{color:r.pct>=80?t.good:t.warn}}>{r.pct}%</span>
-            </div>
-          ))}
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:14,fontWeight:"900",paddingTop:6}}>
-            <span style={{color:t.textMuted,letterSpacing:2}}>TOTAL</span>
-            <span style={{color:t.accent}}>{allHits}/{allShots}</span>
-            <span style={{color:allPct>=80?t.good:t.warn}}>{allPct}%</span>
-          </div>
-        </div>}
+        {rounds.length>0&&<RoundLog rounds={rounds} allHits={allHits} allShots={allShots} allPct={allPct} onChange={onChange} shooter={shooter} t={t}/>}
       </>}
     </div>
   );
@@ -489,39 +880,317 @@ function NumInput({label,value,onChange,min=1,max=99,t}) {
 
 // ── Main App ──
 export default function TrapCounter() {
+  const scr = useScreenSize();
+  const [booting, setBooting] = useState(() => !sessionStorage.getItem("trap_booted"));
+  const [bootPhase, setBootPhase] = useState(0);
+  // 0=scene, shooter silhouette + clay launches  1=gun fires, shot chases clay  2=clay hit, explosion  3=fade out
+
+  useEffect(() => {
+    if (!booting) return;
+    const timers = [
+      setTimeout(() => setBootPhase(1), 1200),   // clay in flight, gun fires
+      setTimeout(() => setBootPhase(2), 2200),   // shot catches clay — BOOM
+      setTimeout(() => setBootPhase(3), 3600),   // fade out
+      setTimeout(() => { setBooting(false); sessionStorage.setItem("trap_booted","1"); }, 4200),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [booting]);
+
   // Mode: "quick" = single trap/squad, "event" = multi-trap/multi-squad
-  const [mode, setMode] = useState("quick");
-  const [screen, setScreen] = useState("setup");
-  const [sunMode, setSunMode] = useState(false);
-  const [vibOn, setVibOn] = useState(true);
-  const [sndOn, setSndOn] = useState(true);
+  const [mode, setMode] = useLS("mode", "quick");
+  const [screen, setScreen] = useLS("screen", "setup");
+  const [sunMode, setSunMode] = useLS("sunMode", true);
+  const [sunManual, setSunManual] = useLS("sunManual", false);
+  const [teamTheme, setTeamTheme] = useLS("teamTheme", "piusx");
+  const [vibOn, setVibOn] = useLS("vibOn", true);
+  const [sndOn, setSndOn] = useLS("sndOn", true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
   const [importMsg, setImportMsg] = useState(null);
   const flashTimer = useRef(null);
   const fileInput = useRef(null);
 
   // Quick mode state
-  const [qSquad, setQSquad] = useState(1);
-  const [qTrap, setQTrap] = useState(1);
-  const [qNumShooters, setQNumShooters] = useState(1);
-  const [qSetup, setQSetup] = useState(Array.from({length:5},(_,i)=>({name:`SHOOTER ${i+1}`,gun:"",choke:""})));
-  const [qShooters, setQShooters] = useState([]);
-  const [qActiveIdx, setQActiveIdx] = useState(0);
+  const [qSquad, setQSquad] = useLS("qSquad", 1);
+  const [qTrap, setQTrap] = useLS("qTrap", 1);
+  const [qNumShooters, setQNumShooters] = useLS("qNumShooters", 1);
+  const [qSetup, setQSetup] = useLS("qSetup", Array.from({length:5},(_,i)=>({name:`SHOOTER ${i+1}`,gun:"",choke:""})));
+  const [qShooters, setQShooters] = useLS("qShooters", []);
+  const [qActiveIdx, setQActiveIdx] = useLS("qActiveIdx", 0);
 
   // Event mode state
-  const [eventName, setEventName] = useState("");
-  const [weather, setWeather] = useState("");
-  const [notes, setNotes] = useState("");
-  const [numTraps, setNumTraps] = useState(2);
-  const [numSquads, setNumSquads] = useState(2);
-  const [squadSetups, setSquadSetups] = useState({}); // squadNum -> { shooterCount, shooters: [{name,gun,choke}] }
-  const [scores, setScores] = useState({}); // "squadNum-trapNum" -> [shooterState, ...]
-  const [curTrap, setCurTrap] = useState(1);
-  const [curSquad, setCurSquad] = useState(1);
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [eventName, setEventName] = useLS("eventName", "");
+  const [weather, setWeather] = useLS("weather", "");
+  const [notes, setNotes] = useLS("notes", "");
+  const [locationName, setLocationName] = useLS("locationName", "");
+  const [numTraps, setNumTraps] = useLS("numTraps", 2);
+  const [numSquads, setNumSquads] = useLS("numSquads", 2);
+  const [squadSetups, setSquadSetups] = useLS("squadSetups", {}); // squadNum -> { shooterCount, shooters: [{name,gun,choke}] }
+  const [scores, setScores] = useLS("scores", {}); // "squadNum-trapNum" -> [shooterState, ...]
+  const [curTrap, setCurTrap] = useLS("curTrap", 1);
+  const [curSquad, setCurSquad] = useLS("curSquad", 1);
+  const [activeIdx, setActiveIdx] = useLS("activeIdx", 0);
 
-  const t = sunMode ? SUN : DARK;
+  // Past shoots history
+  const [pastShoots, setPastShoots] = useLS("pastShoots", []);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedShoot, setExpandedShoot] = useState(null);
+
+  // Cloud sync
+  const [sessionId, setSessionId] = useLS("sessionId", "");
+  const [syncOn, setSyncOn] = useLS("syncOn", false);
+  const [syncStatus, setSyncStatus] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const syncRef = useRef(null);
+  const skipNextPull = useRef(false);
+  const appRef = useRef(null);
+  const locationRef = useRef(null);
+
+  // Auto-detect location via GPS (accurate), falls back to IP
+  useEffect(() => {
+    getLocation().then(loc => {
+      if (loc) {
+        locationRef.current = { lat: loc.lat, lng: loc.lng };
+        if (!locationName && loc.name) setLocationName(loc.name.toUpperCase());
+      }
+    });
+  }, []);
+
+  // Auto-migrate: on first load after update, if there's existing data and no sync, push to cloud
+  useEffect(() => {
+    const migrated = localStorage.getItem("trap_migrated");
+    if (migrated) return;
+    localStorage.setItem("trap_migrated", "1");
+    // If there's existing shooter data, auto-save to a session
+    const hasData = qShooters.length > 0 || Object.keys(scores).length > 0;
+    if (hasData && !syncOn) {
+      const code = genCode();
+      setSessionId(code);
+      setSyncOn(true);
+      localStorage.setItem("trap_lastSync", "0");
+    }
+  }, []);
+
+  // Build metadata for cloud payload
+  const buildMeta = () => {
+    const { device, userAgent } = getDeviceInfo();
+    return {
+      device, userAgent,
+      location: locationRef.current,
+      date: new Date().toISOString(),
+    };
+  };
+
+  // Push state to cloud on changes (debounced)
+  const pushTimer = useRef(null);
+  useEffect(() => {
+    if (!syncOn || !sessionId) return;
+    if (skipNextPull.current) { skipNextPull.current = false; return; }
+    clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => {
+      const now = Date.now();
+      localStorage.setItem("trap_lastSync", String(now));
+      const payload = {
+        mode, eventName, weather, notes, locationName,
+        qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx,
+        numTraps, numSquads, squadSetups, scores,
+        curTrap, curSquad, activeIdx,
+        updatedAt: now,
+        _meta: buildMeta(),
+      };
+      cloudSave("session:" + sessionId, payload);
+    }, 300);
+  }, [syncOn, sessionId, mode, eventName, weather, notes, locationName, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
+
+  // Poll cloud for updates every 3s
+  useEffect(() => {
+    if (!syncOn || !sessionId) return;
+    let failCount = 0;
+    const poll = async () => {
+      const data = await cloudLoad("session:" + sessionId);
+      if (data === null) { failCount++; if (failCount >= 3) setSyncStatus("offline"); return; }
+      failCount = 0; setSyncStatus("synced");
+      if (!data.updatedAt) return;
+      const localTime = parseInt(localStorage.getItem("trap_lastSync") || "0");
+      if (data.updatedAt <= localTime) return;
+      localStorage.setItem("trap_lastSync", String(data.updatedAt));
+      skipNextPull.current = true;
+      if (data.mode !== undefined) setMode(data.mode);
+      if (data.eventName !== undefined) setEventName(data.eventName);
+      if (data.weather !== undefined) setWeather(data.weather);
+      if (data.notes !== undefined) setNotes(data.notes);
+      if (data.locationName !== undefined) setLocationName(data.locationName);
+      if (data.qSquad !== undefined) setQSquad(data.qSquad);
+      if (data.qTrap !== undefined) setQTrap(data.qTrap);
+      if (data.qNumShooters !== undefined) setQNumShooters(data.qNumShooters);
+      if (data.qSetup !== undefined) setQSetup(data.qSetup);
+      if (data.qShooters !== undefined) setQShooters(data.qShooters);
+      if (data.qActiveIdx !== undefined) setQActiveIdx(data.qActiveIdx);
+      if (data.numTraps !== undefined) setNumTraps(data.numTraps);
+      if (data.numSquads !== undefined) setNumSquads(data.numSquads);
+      if (data.squadSetups !== undefined) setSquadSetups(data.squadSetups);
+      if (data.scores !== undefined) setScores(data.scores);
+      if (data.curTrap !== undefined) setCurTrap(data.curTrap);
+      if (data.curSquad !== undefined) setCurSquad(data.curSquad);
+      if (data.activeIdx !== undefined) setActiveIdx(data.activeIdx);
+      setSyncStatus("synced");
+    };
+    let historyPollCount = 0;
+    const pollBoth = async () => {
+      await poll();
+      historyPollCount++;
+      if (historyPollCount % 5 === 0) mergeHistory(sessionId);
+    };
+    syncRef.current = setInterval(pollBoth, 3000);
+    pollBoth();
+    return () => clearInterval(syncRef.current);
+  }, [syncOn, sessionId]);
+
+  // Merge cloud history with local (union by id, keep newest version, sort by date desc)
+  const mergeHistory = async (code) => {
+    const cloudHistory = await cloudLoad("history:" + code);
+    if (!cloudHistory || !Array.isArray(cloudHistory)) return;
+    setPastShoots(prev => {
+      const map = new Map();
+      [...prev, ...cloudHistory].forEach(s => {
+        const existing = map.get(s.id);
+        if (!existing || new Date(s.date) > new Date(existing.date)) map.set(s.id, s);
+      });
+      return [...map.values()].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 50);
+    });
+  };
+
+  const startSync = () => {
+    const code = genCode();
+    setSessionId(code);
+    setSyncOn(true);
+    setSyncStatus("synced");
+    localStorage.setItem("trap_lastSync", "0");
+    // Push existing local history to cloud
+    if (pastShoots.length > 0) cloudSave("history:" + code, pastShoots);
+  };
+
+  const joinSync = async (code) => {
+    if (!code || code.length < 4) return;
+    const upper = code.toUpperCase();
+    setSessionId(upper);
+    setSyncOn(true);
+    setSyncStatus("synced");
+    localStorage.setItem("trap_lastSync", "0");
+    // Pull cloud history
+    await mergeHistory(upper);
+  };
+
+  const stopSync = () => {
+    setSyncOn(false);
+    setSessionId("");
+    setSyncStatus("");
+    clearInterval(syncRef.current);
+  };
+
+  // On app load, if already synced, pull cloud history
+  useEffect(() => {
+    if (syncOn && sessionId) mergeHistory(sessionId);
+  }, []);
+
+  // Track current shoot session ID for upsert
+  const [currentShootId, setCurrentShootId] = useLS("currentShootId", null);
+
+  // Save current shoot to past history (upserts: updates existing entry for this session)
+  const saveToHistory = () => {
+    const shooters = mode === "quick" ? qShooters : [];
+    const hasData = shooters.length > 0 || Object.keys(scores).length > 0;
+    if (!hasData) return;
+    const shootId = currentShootId || Date.now();
+    if (!currentShootId) setCurrentShootId(shootId);
+    const entry = {
+      id: shootId,
+      date: new Date().toISOString(),
+      eventName: eventName || (mode === "quick" ? "Training" : "Event"),
+      mode, weather, notes, locationName,
+      sessionId: sessionId || null,
+      qSquad, qTrap, qShooters: mode === "quick" ? qShooters : [],
+      scores: mode === "event" ? scores : {},
+      squadSetups: mode === "event" ? squadSetups : {},
+      numTraps, numSquads,
+      device: getDeviceInfo().device,
+      location: locationRef.current,
+    };
+    setPastShoots(prev => {
+      const idx = prev.findIndex(s => s.id === shootId);
+      let updated;
+      if (idx >= 0) { updated = [...prev]; updated[idx] = entry; }
+      else { updated = [entry, ...prev].slice(0, 50); }
+      // Push history to cloud so all devices can see it
+      if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
+      return updated;
+    });
+  };
+
+  // Auto-save to history whenever scores change
+  const autoSaveTimer = useRef(null);
+  useEffect(() => {
+    if (screen !== "range" && screen !== "leaderboard") return;
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => saveToHistory(), 500);
+  }, [screen, qShooters, scores]);
+
+  // Load/resume a past shoot — restores all state and goes to range screen
+  const loadShoot = (shoot) => {
+    saveToHistory();
+    setCurrentShootId(shoot.id);
+    setMode(shoot.mode || "quick");
+    setEventName(shoot.eventName || "");
+    setWeather(shoot.weather || "");
+    setNotes(shoot.notes || "");
+    if (shoot.locationName) setLocationName(shoot.locationName);
+    if (shoot.mode === "quick") {
+      if (shoot.qSquad) setQSquad(shoot.qSquad);
+      if (shoot.qTrap) setQTrap(shoot.qTrap);
+      if (shoot.qShooters && shoot.qShooters.length > 0) {
+        setQShooters(shoot.qShooters);
+        setQNumShooters(shoot.qShooters.length);
+      }
+      setQActiveIdx(0);
+    } else {
+      if (shoot.numTraps) setNumTraps(shoot.numTraps);
+      if (shoot.numSquads) setNumSquads(shoot.numSquads);
+      if (shoot.squadSetups) setSquadSetups(shoot.squadSetups);
+      if (shoot.scores) setScores(shoot.scores);
+      setCurTrap(1); setCurSquad(1); setActiveIdx(0);
+    }
+    setScreen("range");
+    setExpandedShoot(null);
+  };
+
+  // Screenshot
+  const takeScreenshot = async () => {
+    if (!appRef.current) return;
+    try {
+      const canvas = await html2canvas(appRef.current, { backgroundColor: sunMode ? "#ffffff" : "#0f0c08", scale: 2 });
+      const link = document.createElement("a");
+      link.download = `trapscore-${new Date().toISOString().slice(0,10)}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch {}
+  };
+
+  const team = TEAMS[teamTheme] || TEAMS.none;
+  const t = sunMode ? (team.sun || SUN) : (team.dark || DARK);
   const { feedbackHit, feedbackMiss } = useFeedback(vibOn, sndOn);
+
+  // Auto-detect system light/dark mode unless user manually toggled
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-color-scheme: light)");
+    if (!mq) return;
+    const handler = (e) => { if (!sunManual) setSunMode(e.matches); };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [sunManual]);
+
+  const toggleSunMode = () => {
+    setSunManual(true);
+    setSunMode(s => !s);
+  };
 
   const setFlashLabel = (label) => {
     setFlashLabelRaw(label);
@@ -532,14 +1201,40 @@ export default function TrapCounter() {
   // ── Quick mode helpers ──
   const updateQSetup = (i,field,val) => setQSetup(p=>p.map((s,idx)=>idx===i?{...s,[field]:val.toUpperCase()}:s));
   const startQuick = () => {
+    setCurrentShootId(Date.now());
     setQShooters(Array.from({length:qNumShooters},(_,i)=>freshShooter(qSetup[i].name,qSetup[i].gun,qSetup[i].choke)));
     setQActiveIdx(0); setScreen("range");
+  };
+  // Quick start — uses current mode, minimum setup
+  const instantStart = () => {
+    setCurrentShootId(Date.now());
+    if (mode === "event") {
+      // Event quick start — use current squad/trap settings
+      const newScores = {};
+      const squadNs = Array.from({length:numSquads},(_,i)=>i+1);
+      const trapNs = Array.from({length:numTraps},(_,i)=>i+1);
+      squadNs.forEach(sqNum => {
+        const ss = getSquadSetup(sqNum);
+        trapNs.forEach(trapNum => {
+          const key = `${sqNum}-${trapNum}`;
+          newScores[key] = Array.from({length:ss.shooterCount},(_,i) =>
+            freshShooter(ss.shooters[i]?.name, ss.shooters[i]?.gun, ss.shooters[i]?.choke)
+          );
+        });
+      });
+      setScores(newScores);
+      setCurTrap(1); setCurSquad(1); setActiveIdx(0);
+    } else {
+      setQShooters([freshShooter(qSetup[0].name, qSetup[0].gun, qSetup[0].choke)]);
+      setQActiveIdx(0);
+    }
+    setScreen("range");
   };
   const updateQShooter = (i,changes) => setQShooters(p=>p.map((s,idx)=>idx===i?{...s,...changes}:s));
   const saveQRound = (i) => setQShooters(p=>p.map((s,idx)=>{
     if(idx!==i)return s;
     const pct=s.hits+s.misses>0?Math.round((s.hits/(s.hits+s.misses))*100):0;
-    return{...s,rounds:[...s.rounds,{round:s.roundNum,hits:s.hits,misses:s.misses,pct}],roundNum:s.roundNum+1,hits:0,misses:0,history:[]};
+    return{...s,rounds:[...s.rounds,{round:s.roundNum,hits:s.hits,misses:s.misses,pct,history:[...s.history]}],roundNum:s.roundNum+1,hits:0,misses:0,history:[]};
   }));
   const handleQuickExcel = () => {
     const data = { eventName, weather, notes, traps:[qTrap], squads:[{num:qSquad,shooters:qShooters.map(s=>({name:s.name,gun:s.gun,choke:s.choke}))}], scores:{[`${qSquad}-${qTrap}`]:qShooters} };
@@ -564,6 +1259,7 @@ export default function TrapCounter() {
   const squadNums = Array.from({length:numSquads},(_,i)=>i+1);
 
   const startEvent = () => {
+    setCurrentShootId(Date.now());
     // Initialize scores for all squad/trap combos
     const newScores = {};
     squadNums.forEach(sqNum => {
@@ -599,7 +1295,7 @@ export default function TrapCounter() {
       const arr = [...(p[curKey]||[])];
       const s = arr[i];
       const pct = s.hits+s.misses>0 ? Math.round((s.hits/(s.hits+s.misses))*100) : 0;
-      arr[i] = { ...s, rounds:[...s.rounds,{round:s.roundNum,hits:s.hits,misses:s.misses,pct}], roundNum:s.roundNum+1, hits:0, misses:0, history:[] };
+      arr[i] = { ...s, rounds:[...s.rounds,{round:s.roundNum,hits:s.hits,misses:s.misses,pct,history:[...s.history]}], roundNum:s.roundNum+1, hits:0, misses:0, history:[] };
       return { ...p, [curKey]: arr };
     });
   };
@@ -620,9 +1316,11 @@ export default function TrapCounter() {
       setImportMsg(`Loaded ${data.squads.length} squad(s), ${data.traps.length} trap(s)`);
       setTimeout(() => setImportMsg(null), 3000);
 
+      setCurrentShootId(Date.now()); // fresh shoot for import
       if (data.traps.length <= 1 && data.squads.length <= 1) {
         // Single trap/squad - use quick mode
         setMode("quick");
+        setScores({}); // clear event data
         const sq = data.squads[0] || { num:1, shooters:[] };
         setQSquad(sq.num);
         setQTrap(data.traps[0] || 1);
@@ -645,6 +1343,7 @@ export default function TrapCounter() {
       } else {
         // Multi trap/squad - use event mode
         setMode("event");
+        setQShooters([]); // clear quick mode data
         setEventName(data.eventName);
         setWeather(data.weather);
         setNotes(data.notes);
@@ -672,16 +1371,223 @@ export default function TrapCounter() {
     if (fileInput.current) fileInput.current.value = "";
   };
 
+  // ── Responsive helpers ──
+  const isWide = scr.sz === "tablet" || scr.sz === "laptop" || scr.sz === "desktop" || scr.sz === "ultra";
+  const isTiny = scr.sz === "tiny";
+  const isTablet = scr.sz === "tablet-sm" || scr.sz === "tablet";
+  const containerMax = isWide ? 720 : (isTablet ? 600 : 480);
+  const basePad = isTiny ? 8 : (isWide ? 28 : 14);
+  const baseFontMult = isTiny ? 0.85 : (isWide ? 1.15 : 1);
+
   // ── Styles ──
-  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:"20px 16px"};
-  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:16,marginBottom:14};
-  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:13,fontWeight:"bold",padding:"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1};
+  const pageStyle = {minHeight:"100vh",background:t.bg,backgroundImage:t.bgGrad,fontFamily:"'Courier New',Courier,monospace",color:t.text,padding:`20px ${isTiny?6:isWide?24:12}px`,maxWidth:"100vw",overflowX:"hidden",boxSizing:"border-box"};
+  const sectionStyle = {background:t.card,border:`2px solid ${t.border}`,borderRadius:10,padding:basePad,marginBottom:14,overflow:"hidden"};
+  const inputStyle = {background:t.inputBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.text,fontSize:Math.round(13*baseFontMult),fontWeight:"bold",padding:isWide?"12px 14px":"9px 10px",fontFamily:"inherit",outline:"none",letterSpacing:1,boxSizing:"border-box",width:"100%",minWidth:0};
   const pillBtn = (active) => ({
-    padding:"10px 16px",background:active?t.tabActive:t.tabInactive,
+    padding:isWide?"12px 20px":"10px 16px",background:active?t.tabActive:t.tabInactive,
     border:`2px solid ${active?t.borderActive:t.border}`,borderRadius:20,
-    color:active?(sunMode?"#fff":t.accent):t.tabText,fontSize:11,fontWeight:"900",
+    color:active?(sunMode?"#fff":t.accent):t.tabText,fontSize:Math.round(11*baseFontMult),fontWeight:"900",
     letterSpacing:2,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s",
   });
+
+  // ════════════════════════════
+  // ── BOOT SCREEN ──
+  // ════════════════════════════
+  if (booting) return (
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(180deg,#1a2840 0%,#0f1a28 25%,#182030 50%,#1a1a10 75%,#0a0804 100%)",zIndex:9999,overflow:"hidden",opacity:bootPhase===3?0:1,transition:"opacity 0.6s ease-out",fontFamily:"'Courier New',Courier,monospace"}}>
+      <style>{`
+        @keyframes recoilKick{0%{transform:translate(0,0)}12%{transform:translate(-8px,3px)}40%{transform:translate(-3px,1px)}100%{transform:translate(0,0)}}
+        @keyframes muzzleFlare{0%{opacity:0;transform:scale(0.2)}8%{opacity:1;transform:scale(1.3)}25%{opacity:0.7;transform:scale(1)}100%{opacity:0;transform:scale(0.4)}}
+        @keyframes smokeUp{0%{opacity:0.4;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--sc))}}
+        @keyframes clayFly{0%{left:5%;top:58%;transform:rotate(0deg) scale(0.7)}40%{top:32%;transform:rotate(-8deg) scale(1)}100%{left:72%;top:28%;transform:rotate(-15deg) scale(1)}}
+        @keyframes screenFlash{0%{opacity:0}4%{opacity:0.9}12%{opacity:0.4}100%{opacity:0}}
+        @keyframes boomBall{0%{transform:scale(0.1);opacity:1}20%{transform:scale(1);opacity:1}100%{transform:scale(5);opacity:0}}
+        @keyframes shardFly{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--ex),var(--ey)) rotate(var(--er)) scale(0.15)}}
+        @keyframes sparkOut{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--sx),var(--sy))}}
+        @keyframes dustGrow{0%{transform:scale(0.3);opacity:0.6}100%{transform:scale(5);opacity:0}}
+        @keyframes textPop{0%{opacity:0;transform:translateY(15px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes bootGlow{0%,100%{opacity:0.5}50%{opacity:1}}
+        @keyframes shellTumble{0%{opacity:1;transform:translate(0,0) rotate(0deg)}100%{opacity:0;transform:translate(15px,40px) rotate(220deg)}}
+        @keyframes hatBrim{0%{transform:translateX(0)}15%{transform:translateX(-2px)}100%{transform:translateX(0)}}
+      `}</style>
+
+      {/* ── SKY — dusk with a few stars ── */}
+      {[...Array(15)].map((_,i)=>(
+        <div key={i} style={{position:"absolute",top:`${3+Math.random()*35}%`,left:`${Math.random()*100}%`,width:1.5+Math.random(),height:1.5+Math.random(),borderRadius:"50%",background:`rgba(200,210,240,${0.15+Math.random()*0.25})`}}/>
+      ))}
+      {/* Horizon glow — sunset remnant */}
+      <div style={{position:"absolute",top:"40%",left:0,right:0,height:"20%",background:"linear-gradient(180deg,transparent,rgba(80,40,15,0.15),transparent)"}}/>
+
+      {/* ── GROUND — grass/dirt ── */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"32%",background:"linear-gradient(180deg,#1a2010,#151a0c,#0f1408)"}}/>
+      {/* Ground texture lines */}
+      {[0,1,2,3].map(i=>(
+        <div key={`g${i}`} style={{position:"absolute",bottom:`${4+i*7}%`,left:0,right:0,height:1,background:`rgba(30,40,15,${0.3-i*0.06})`}}/>
+      ))}
+
+      {/* ── TRAP HOUSE — low structure center-left ── */}
+      <div style={{position:"absolute",bottom:"30%",left:"12%",width:60,height:20,background:"linear-gradient(180deg,#3a3a2a,#2a2a1a)",borderRadius:"2px 2px 0 0",border:"1px solid #4a4a3a",borderBottom:"none"}}>
+        <div style={{position:"absolute",top:-4,left:-3,right:-3,height:5,background:"linear-gradient(180deg,#4a4a3a,#3a3a2a)",borderRadius:"2px 2px 0 0"}}/>
+        {/* Opening slot where clay comes out */}
+        <div style={{position:"absolute",top:4,right:-2,width:8,height:6,background:"#1a1a10",borderRadius:1}}/>
+      </div>
+
+      {/* ── SHOOTER SILHOUETTE — left side, facing right ── */}
+      <div style={{position:"absolute",bottom:"30%",left:"5%",animation:bootPhase===1?"recoilKick 0.25s ease-out forwards":"none"}}>
+        {/* Body — dark silhouette */}
+        <div style={{position:"relative",width:50,height:90}}>
+          {/* Hat */}
+          <div style={{position:"absolute",top:0,left:8,width:30,height:8,background:"#1a1510",borderRadius:"4px 12px 2px 2px",animation:bootPhase===1?"hatBrim 0.25s ease-out forwards":"none"}}>
+            <div style={{position:"absolute",bottom:0,left:-4,right:-2,height:3,background:"#1a1510",borderRadius:2}}/>
+          </div>
+          {/* Head */}
+          <div style={{position:"absolute",top:6,left:12,width:20,height:22,background:"#1a1510",borderRadius:"50% 50% 45% 45%"}}/>
+          {/* Ear pro / muffs */}
+          <div style={{position:"absolute",top:12,left:8,width:8,height:10,background:"#252015",borderRadius:3}}/>
+          <div style={{position:"absolute",top:12,left:28,width:8,height:10,background:"#252015",borderRadius:3}}/>
+          {/* Neck */}
+          <div style={{position:"absolute",top:26,left:16,width:12,height:8,background:"#1a1510"}}/>
+          {/* Shoulders + torso */}
+          <div style={{position:"absolute",top:32,left:2,width:44,height:30,background:"#1a1510",borderRadius:"8px 8px 4px 4px"}}/>
+          {/* Vest detail */}
+          <div style={{position:"absolute",top:36,left:8,width:32,height:20,background:"#1f1a12",borderRadius:4}}/>
+          {/* Front arm (holding forend) — reaching forward */}
+          <div style={{position:"absolute",top:36,left:38,width:30,height:10,background:"#1a1510",borderRadius:4,transform:"rotate(-15deg)"}}/>
+          {/* Rear arm (on grip) */}
+          <div style={{position:"absolute",top:38,left:-2,width:14,height:9,background:"#1a1510",borderRadius:4,transform:"rotate(10deg)"}}/>
+          {/* Legs (just top visible above ground line) */}
+          <div style={{position:"absolute",top:60,left:6,width:14,height:30,background:"#1a1510",borderRadius:3}}/>
+          <div style={{position:"absolute",top:60,left:24,width:14,height:30,background:"#151210",borderRadius:3}}/>
+        </div>
+
+        {/* ── GUN — shouldered, pointing right and slightly up ── */}
+        <div style={{position:"absolute",top:28,left:32,transform:"rotate(-12deg)",transformOrigin:"left center"}}>
+          {/* Stock (behind shoulder) */}
+          <div style={{position:"absolute",top:2,left:-30,width:32,height:11,background:"linear-gradient(180deg,#3a2510,#2a1a0a,#3a2510)",borderRadius:"6px 3px 3px 8px",border:"1px solid #4a3018"}}>
+            {[3,6,9].map(y=><div key={y} style={{position:"absolute",top:y,left:4,right:6,height:0.5,background:"rgba(80,50,15,0.25)"}}/>)}
+          </div>
+          {/* Receiver */}
+          <div style={{position:"absolute",top:1,left:0,width:22,height:12,background:"linear-gradient(180deg,#444,#2a2a2a,#383838)",borderRadius:2,border:"1px solid #555"}}/>
+          {/* Barrel */}
+          <div style={{position:"absolute",top:2,left:20,width:isTiny?80:120,height:7,background:"linear-gradient(180deg,#4a4a4a,#303030,#3a3a3a)",borderRadius:"1px 2px 2px 1px",border:"1px solid #555"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:"rgba(255,255,255,0.04)",borderRadius:1}}/>
+            {/* Front bead */}
+            <div style={{position:"absolute",top:-2,right:1,width:3,height:3,borderRadius:"50%",background:"#ff8800",boxShadow:"0 0 3px rgba(255,136,0,0.5)"}}/>
+          </div>
+          {/* Forend */}
+          <div style={{position:"absolute",top:5,left:18,width:30,height:9,background:"linear-gradient(180deg,#3a2510,#2a1a0a)",borderRadius:2,border:"1px solid #4a3018"}}/>
+        </div>
+
+        {/* Shell ejecting on fire */}
+        {bootPhase>=1&&bootPhase<2&&(
+          <div style={{position:"absolute",top:22,left:38,width:5,height:12,background:"linear-gradient(180deg,#d4a030,#b88820)",borderRadius:"2px 2px 1px 1px",border:"1px solid #ddb040",animation:"shellTumble 0.7s ease-out forwards"}}>
+            <div style={{position:"absolute",bottom:0,left:0.5,right:0.5,height:2,background:"#c83030",borderRadius:"0 0 1px 1px"}}/>
+          </div>
+        )}
+      </div>
+
+      {/* ── MUZZLE FLASH — positioned at barrel tip ── */}
+      {bootPhase>=1&&bootPhase<2&&(()=>{
+        // Barrel tip position: shooter(bottom:30%,left:5%) + gun offset(top:28,left:32) + barrel end
+        // Barrel is 120px (80 tiny) starting at left:20 inside gun, gun rotated -12deg
+        const bLen = isTiny ? 80 : 120;
+        const tipX = 32 + 20 + bLen; // px from shooter left edge
+        const tipY = 28 + 2 + 3; // px from shooter top (barrel vertical center)
+        // Rotation -12deg shifts tip: dx = cos(-12)*tipX - sin(-12)*tipY, dy = sin(-12)*tipX + cos(-12)*tipY
+        const rad = -12 * Math.PI / 180;
+        // But rotation origin is gun's "left center" at (32, 28+6), just approximate the screen pos
+        // Shooter is at bottom:30%, left:5%. Shooter body is ~90px tall.
+        // Barrel tip in screen coords roughly:
+        const muzzleLeft = `calc(5% + ${tipX - 15}px)`;
+        const muzzleBottom = `calc(30% + ${90 - tipY + 18}px)`;
+        return (
+        <div style={{position:"absolute",bottom:muzzleBottom,left:muzzleLeft,pointerEvents:"none",zIndex:5}}>
+          <div style={{position:"absolute",top:-30,left:-25,width:60,height:60,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,220,0.95) 0%, rgba(255,200,50,0.7) 25%, rgba(255,120,0,0.3) 50%, transparent 70%)",animation:"muzzleFlare 0.3s ease-out forwards"}}/>
+          <div style={{position:"absolute",top:-45,left:-40,width:90,height:90,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,180,50,0.4) 0%, rgba(255,100,0,0.15) 40%, transparent 65%)",animation:"muzzleFlare 0.45s ease-out 0.02s forwards"}}/>
+          {[0,1,2,3,4].map(i=>(
+            <div key={i} style={{position:"absolute",top:-10-i*4,left:10+i*8,width:18+i*12,height:18+i*12,borderRadius:"50%",background:`rgba(160,150,130,${0.2-i*0.03})`,opacity:0,"--dx":`${20+i*15}px`,"--dy":`${-30-i*12}px`,"--sc":2+i*0.5,animation:`smokeUp ${1.5+i*0.4}s ease-out ${0.05+i*0.06}s forwards`}}/>
+          ))}
+        </div>);
+      })()}
+
+      {/* ── CLAY PIGEON — launches from trap house, arcs up-right ── */}
+      {bootPhase>=0&&bootPhase<2&&(
+        <div style={{position:"absolute",animation:bootPhase>=0?"clayFly 2.2s ease-out forwards":"none",pointerEvents:"none"}}>
+          <div style={{width:isTiny?28:38,height:isTiny?9:12,background:"linear-gradient(180deg,#ff6530,#dd4020,#bb2a10)",borderRadius:"50%",border:"1.5px solid #ff7540",boxShadow:"0 0 8px rgba(255,80,30,0.3)",position:"relative"}}>
+            <div style={{position:"absolute",top:1,left:"20%",right:"20%",height:3,background:"rgba(255,255,255,0.12)",borderRadius:"50%"}}/>
+            <div style={{position:"absolute",top:"45%",left:"12%",right:"12%",height:1,background:"rgba(0,0,0,0.15)"}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── EXPLOSION — right side of screen where clay was ── */}
+      {bootPhase>=2&&(
+        <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+          {/* Full screen flash */}
+          <div style={{position:"absolute",inset:0,background:"rgba(255,240,200,0.85)",animation:"screenFlash 0.5s ease-out forwards"}}/>
+
+          {/* Fireball — centered on impact point (right side, upper area) */}
+          <div style={{position:"absolute",top:"25%",left:"70%",transform:"translate(-50%,-50%)"}}>
+            <div style={{position:"absolute",top:"-20vmin",left:"-20vmin",width:"40vmin",height:"40vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,210,1) 0%, rgba(255,190,40,0.9) 15%, rgba(255,110,0,0.7) 35%, rgba(200,50,0,0.4) 55%, transparent 75%)",animation:"boomBall 0.9s ease-out forwards"}}/>
+            <div style={{position:"absolute",top:"-15vmin",left:"-15vmin",width:"30vmin",height:"30vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(255,220,120,0.7) 0%, rgba(255,140,20,0.3) 45%, transparent 75%)",animation:"boomBall 0.7s ease-out 0.04s forwards"}}/>
+            {/* Smoke/dust expanding */}
+            <div style={{position:"absolute",top:"-25vmin",left:"-25vmin",width:"50vmin",height:"50vmin",borderRadius:"50%",background:"radial-gradient(circle, rgba(160,100,40,0.35) 0%, rgba(100,70,30,0.15) 40%, transparent 70%)",animation:"dustGrow 1.4s ease-out 0.08s forwards"}}/>
+          </div>
+
+          {/* Clay shards — orange pieces flying from impact point across entire screen */}
+          {[
+            {ex:"-50vw",ey:"-30vh",er:"700deg",w:20,h:8},{ex:"30vw",ey:"-40vh",er:"-500deg",w:16,h:7},
+            {ex:"-40vw",ey:"35vh",er:"480deg",w:22,h:9},{ex:"28vw",ey:"30vh",er:"-600deg",w:14,h:6},
+            {ex:"-30vw",ey:"-45vh",er:"400deg",w:18,h:7},{ex:"25vw",ey:"-20vh",er:"-450deg",w:12,h:5},
+            {ex:"-45vw",ey:"10vh",er:"550deg",w:15,h:6},{ex:"20vw",ey:"40vh",er:"-380deg",w:24,h:9},
+            {ex:"-20vw",ey:"-35vh",er:"620deg",w:13,h:5},{ex:"15vw",ey:"45vh",er:"-520deg",w:17,h:7},
+            {ex:"-55vw",ey:"25vh",er:"440deg",w:11,h:5},{ex:"10vw",ey:"-48vh",er:"-660deg",w:19,h:8},
+            {ex:"-35vw",ey:"-15vh",er:"360deg",w:16,h:6},{ex:"35vw",ey:"15vh",er:"-420deg",w:21,h:8},
+            {ex:"-25vw",ey:"48vh",er:"580deg",w:10,h:4},{ex:"40vw",ey:"-35vh",er:"-540deg",w:18,h:7},
+            {ex:"-48vw",ey:"-40vh",er:"500deg",w:14,h:6},{ex:"45vw",ey:"20vh",er:"-470deg",w:20,h:8},
+          ].map((s,i)=>{
+            const colors = ["#e05020","#ff6030","#c03010","#ff7040","#d04020","#bb2a10"];
+            const c = colors[i%colors.length];
+            return <div key={i} style={{position:"absolute",top:"25%",left:"70%",width:s.w,height:s.h,background:`linear-gradient(135deg,${c},${c}cc)`,borderRadius:2,boxShadow:`0 0 5px ${c}66`,"--ex":s.ex,"--ey":s.ey,"--er":s.er,animation:`shardFly ${0.5+i*0.03}s ease-out ${i*0.015}s forwards`}}/>;
+          })}
+
+          {/* Hot sparks — white/yellow/orange dots from impact */}
+          {[...Array(24)].map((_,i)=>{
+            const a = (i/24)*Math.PI*2+Math.random()*0.4;
+            const d = 25+Math.random()*45;
+            const colors = ["#fff","#ffe880","#ffcc30","#ff9900","#fff"];
+            return <div key={`k${i}`} style={{position:"absolute",top:"25%",left:"70%",width:2+Math.random()*3,height:2+Math.random()*3,borderRadius:"50%",background:colors[i%colors.length],boxShadow:`0 0 ${3+Math.random()*4}px ${colors[i%colors.length]}`,"--sx":`${Math.cos(a)*d}vw`,"--sy":`${Math.sin(a)*d}vh`,animation:`sparkOut ${0.3+Math.random()*0.5}s ease-out ${Math.random()*0.08}s forwards`}}/>;
+          })}
+
+          {/* Lingering smoke clouds after explosion */}
+          {[0,1,2,3].map(i=>(
+            <div key={`c${i}`} style={{position:"absolute",top:`${18+i*5}%`,left:`${60+i*6}%`,width:50+i*25,height:50+i*25,borderRadius:"50%",background:`rgba(${130+i*12},${110+i*10},${80+i*8},${0.12-i*0.02})`,animation:`dustGrow ${1.8+i*0.4}s ease-out ${0.15+i*0.1}s forwards`}}/>
+          ))}
+        </div>
+      )}
+
+      {/* ── TEXT OVERLAY ── */}
+      <div style={{position:"absolute",bottom:"5%",left:0,right:0,textAlign:"center",zIndex:10}}>
+        {bootPhase<1&&(
+          <div style={{animation:"bootGlow 1.2s ease-in-out infinite"}}>
+            <div style={{fontSize:9,fontWeight:"bold",letterSpacing:7,color:"#3a5060",marginBottom:5}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
+            <div style={{fontSize:isTiny?20:28,fontWeight:"900",letterSpacing:5,color:"#f5c060"}}>TRAP COUNTER</div>
+          </div>
+        )}
+        {bootPhase===1&&(
+          <div style={{animation:"textPop 0.25s ease-out forwards"}}>
+            <div style={{fontSize:isTiny?26:40,fontWeight:"900",letterSpacing:8,color:"#f5c060",textShadow:"0 0 20px rgba(245,192,96,0.5)"}}>PULL!</div>
+          </div>
+        )}
+        {bootPhase>=2&&bootPhase<3&&(
+          <div style={{animation:"textPop 0.2s ease-out forwards"}}>
+            <div style={{fontSize:isTiny?22:34,fontWeight:"900",letterSpacing:5,color:"#ff4020",textShadow:"0 0 30px rgba(255,64,32,0.6)"}}>DEAD BIRD!</div>
+            <div style={{fontSize:10,fontWeight:"bold",letterSpacing:5,color:"#f5c060",marginTop:8}}>TRAP COUNTER</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   // ════════════════════════════
   // ── SETUP SCREEN ──
@@ -690,10 +1596,10 @@ export default function TrapCounter() {
     <div style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.9)}}`}</style>
       <input type="file" ref={fileInput} accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleImport}/>
-      <div style={{maxWidth:480,margin:"0 auto"}}>
+      <div style={{maxWidth:containerMax,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:t.textMuted}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>
-          <div style={{fontSize:26,fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:6}}>TRAP COUNTER</div>
+          {!isTiny&&<div style={{fontSize:10,fontWeight:"bold",letterSpacing:8,color:t.textMuted}}>{"\u2B21"} RANGE SCORE TRACKER {"\u2B21"}</div>}
+          <div style={{fontSize:isTiny?20:Math.round(26*baseFontMult),fontWeight:"900",letterSpacing:4,color:t.accent,marginTop:isTiny?0:6}}>TRAP COUNTER</div>
         </div>
 
         {/* Sun mode */}
@@ -701,34 +1607,106 @@ export default function TrapCounter() {
           <span style={{fontSize:11,fontWeight:"900",letterSpacing:3,color:sunMode?t.accent:t.textMuted}}>
             {sunMode?"\u2600\uFE0F SUN MODE":"\u{1F319} NIGHT MODE"}
           </span>
-          <div onClick={()=>setSunMode(!sunMode)} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
+          <div onClick={toggleSunMode} style={{width:52,height:28,borderRadius:14,background:sunMode?"#ff8800":"#222",border:`2px solid ${sunMode?"#cc6600":"#555"}`,cursor:"pointer",position:"relative",transition:"all 0.2s"}}>
             <div style={{position:"absolute",top:3,left:sunMode?27:3,width:20,height:20,borderRadius:"50%",background:sunMode?"#fff":"#666",transition:"all 0.2s"}}/>
           </div>
+        </div>
+        {!sunManual&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-10,marginBottom:10}}>AUTO — follows your phone settings</div>}
+
+        {/* Team Colors */}
+        <div style={{...sectionStyle,padding:"10px 16px"}}>
+          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:8,textAlign:"center"}}>TEAM COLORS</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+            {Object.entries(TEAMS).map(([key, tm]) => {
+              const active = teamTheme === key;
+              const preview = sunMode ? (tm.sun || SUN) : (tm.dark || DARK);
+              return (
+                <button key={key} onClick={()=>setTeamTheme(key)} style={{
+                  padding:"8px 4px",borderRadius:6,cursor:"pointer",fontFamily:"inherit",
+                  background:active?preview.accent:(key==="none"?t.smallBtnBg:"transparent"),
+                  border:`2px solid ${active?preview.accent:t.border}`,
+                  color:active?"#fff":t.textMuted,fontSize:9,fontWeight:"bold",letterSpacing:1,
+                  transition:"all 0.15s",
+                }}>
+                  {key!=="none"&&<div style={{display:"flex",gap:2,justifyContent:"center",marginBottom:3}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.accent,border:"1px solid rgba(255,255,255,0.3)"}}/>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:preview.hit,border:"1px solid rgba(255,255,255,0.3)"}}/>
+                  </div>}
+                  {tm.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Start — one tap, start scoring instantly */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          <button onClick={instantStart} style={{
+            padding:"16px 0",
+            background:sunMode?"linear-gradient(160deg,#cc4400,#993300)":"linear-gradient(160deg,#ff5500,#cc4400)",
+            border:`2px solid ${t.accent}`,borderRadius:10,color:"#fff",
+            fontSize:14,fontWeight:"900",letterSpacing:3,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u26A1"} QUICK START</button>
+          <button onClick={mode==="quick"?startQuick:startEvent} style={{
+            padding:"16px 0",
+            background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",
+            border:`2px solid ${t.good}`,borderRadius:10,color:"#fff",
+            fontSize:14,fontWeight:"900",letterSpacing:3,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u25B6"} START</button>
+        </div>
+        <div style={{fontSize:9,color:t.textDim,textAlign:"center",marginTop:-6,marginBottom:10,letterSpacing:1}}>{mode==="quick"?"QUICK START = 1 shooter, instant go":"QUICK START = current settings, instant go"} &nbsp;|&nbsp; START = customize below</div>
+
+        {/* Family Group Sync */}
+        <div style={{...sectionStyle,padding:"14px 16px"}}>
+          <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>FAMILY GROUP</div>
+          {syncOn ? (
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:10,color:t.textDim,marginBottom:6}}>YOUR GROUP CODE — SHARE WITH FAMILY</div>
+              <div style={{fontSize:32,fontWeight:"900",letterSpacing:8,color:t.accent,marginBottom:8,userSelect:"all"}}>{sessionId}</div>
+              <div style={{fontSize:10,color:syncStatus==="offline"?t.bad:t.good,fontWeight:"bold",letterSpacing:2,marginBottom:4}}>{syncStatus==="offline"?"OFFLINE — RETRYING":"CONNECTED"}</div>
+              <div style={{fontSize:9,color:t.textDim,marginBottom:10,lineHeight:1.5}}>All scores & history sync across devices.<br/>Anyone with this code can see scores — even remotely.</div>
+              <button onClick={stopSync} style={{padding:"8px 20px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:11,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>LEAVE GROUP</button>
+            </div>
+          ) : (
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <button onClick={startSync} style={{padding:"12px 0",background:sunMode?"linear-gradient(160deg,#007700,#005500)":"linear-gradient(160deg,#228B22,#006400)",border:`2px solid ${t.good}`,borderRadius:6,color:"#fff",fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>CREATE GROUP</button>
+                <button onClick={()=>joinCode?joinSync(joinCode):null} style={{padding:"12px 0",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.accent,fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>JOIN GROUP</button>
+              </div>
+              <input placeholder="ENTER GROUP CODE" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
+                style={{...inputStyle,textAlign:"center",letterSpacing:6,fontSize:16,fontWeight:"900"}}/>
+              <div style={{fontSize:10,color:t.textDim,marginTop:8,textAlign:"center",lineHeight:1.5}}>
+                Create a group to get a code, or enter a code to join your family's group. All scores & shoot history sync across all devices — see scores even when you're out of town.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Mode picker */}
         <div style={{...sectionStyle,padding:"12px 16px"}}>
           <div style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted,marginBottom:10,textAlign:"center"}}>SESSION TYPE</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <button onClick={()=>setMode("quick")} style={pillBtn(mode==="quick")}>{"\u{1F3AF}"} QUICK</button>
+            <button onClick={()=>setMode("quick")} style={pillBtn(mode==="quick")}>{"\u{1F3AF}"} TRAINING</button>
             <button onClick={()=>setMode("event")} style={pillBtn(mode==="event")}>{"\u{1F3C6}"} EVENT</button>
           </div>
-          <div style={{fontSize:10,color:t.textDim,textAlign:"center",marginTop:8}}>
-            {mode==="quick"?"One trap, one squad — fast scoring":"Full event — multiple traps & squads"}
+          <div style={{fontSize:10,color:t.textDim,textAlign:"center",marginTop:8,lineHeight:1.5}}>
+            {mode==="quick"?"Solo or team at one station":"Full event — multiple traps & squads"}
           </div>
         </div>
 
-        {/* Event name / weather / notes */}
+        {/* Event name / location / weather / notes */}
         <div style={sectionStyle}>
           <input placeholder="EVENT NAME (OPTIONAL)" value={eventName} onChange={e=>setEventName(e.target.value.toUpperCase())}
             style={{...inputStyle,width:"100%",marginBottom:10,textAlign:"center",fontSize:14}}/>
+          <input placeholder="LOCATION (AUTO-DETECTED)" value={locationName} onChange={e=>setLocationName(e.target.value.toUpperCase())}
+            style={{...inputStyle,width:"100%",marginBottom:10,fontSize:12}}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <input placeholder="WEATHER" value={weather} onChange={e=>setWeather(e.target.value.toUpperCase())} style={inputStyle}/>
             <input placeholder="NOTES" value={notes} onChange={e=>setNotes(e.target.value.toUpperCase())} style={inputStyle}/>
           </div>
         </div>
 
-        {/* ── QUICK MODE SETUP ── */}
+        {/* ── TRAINING MODE SETUP ── */}
         {mode === "quick" && <>
           <div style={{...sectionStyle,padding:20}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:20}}>
@@ -749,11 +1727,13 @@ export default function TrapCounter() {
             {Array.from({length:qNumShooters},(_,i)=>(
               <div key={i} style={{marginBottom:i<qNumShooters-1?14:0}}>
                 <div style={{fontSize:11,fontWeight:"bold",color:t.textDim,letterSpacing:2,marginBottom:5}}>SHOOTER {i+1}</div>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 1.2fr",gap:6}}>
-                  {["name","gun","choke"].map(field=>(
-                    <input key={field} placeholder={field.toUpperCase()} value={qSetup[i][field]}
-                      onChange={e=>updateQSetup(i,field,e.target.value)} style={inputStyle}/>
-                  ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  <input placeholder="NAME" value={qSetup[i].name}
+                    onChange={e=>updateQSetup(i,"name",e.target.value)} style={{...inputStyle,gridColumn:"1/-1"}}/>
+                  <input placeholder="GUN" value={qSetup[i].gun}
+                    onChange={e=>updateQSetup(i,"gun",e.target.value)} style={inputStyle}/>
+                  <input placeholder="CHOKE" value={qSetup[i].choke}
+                    onChange={e=>updateQSetup(i,"choke",e.target.value)} style={inputStyle}/>
                 </div>
               </div>
             ))}
@@ -784,11 +1764,13 @@ export default function TrapCounter() {
                   </div>
                 </div>
                 {Array.from({length:ss.shooterCount},(_,si)=>(
-                  <div key={si} style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 1.2fr",gap:6,marginBottom:si<ss.shooterCount-1?6:0}}>
-                    {["name","gun","choke"].map(field=>(
-                      <input key={field} placeholder={`${field.toUpperCase()}`} value={ss.shooters[si]?.[field]||""}
-                        onChange={e=>updateSquadShooter(sqNum,si,field,e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
-                    ))}
+                  <div key={si} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:si<ss.shooterCount-1?6:0}}>
+                      <input placeholder="NAME" value={ss.shooters[si]?.name||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"name",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px",gridColumn:"1/-1"}}/>
+                      <input placeholder="GUN" value={ss.shooters[si]?.gun||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"gun",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
+                      <input placeholder="CHOKE" value={ss.shooters[si]?.choke||""}
+                        onChange={e=>updateSquadShooter(sqNum,si,"choke",e.target.value)} style={{...inputStyle,fontSize:11,padding:"7px 8px"}}/>
                   </div>
                 ))}
               </div>
@@ -820,13 +1802,162 @@ export default function TrapCounter() {
 
         {importMsg && <div style={{textAlign:"center",padding:"10px",marginBottom:12,borderRadius:6,background:importMsg.startsWith("Error")?t.bad:t.good,color:"#fff",fontSize:12,fontWeight:"bold"}}>{importMsg}</div>}
 
-        <button onClick={mode==="quick"?startQuick:startEvent} style={{
-          width:"100%",padding:"18px",
-          background:sunMode?"linear-gradient(160deg,#cc6600,#994400)":"linear-gradient(160deg,#b86000,#7a3800)",
-          border:`3px solid ${sunMode?"#ee7700":"#e08820"}`,borderRadius:10,
-          color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:4,
-          cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 20px rgba(200,100,0,0.3)",
-        }}>{"\u25B6"} {mode==="quick"?"START SESSION":"START EVENT"}</button>
+        {/* Past Shoots History */}
+        {pastShoots.length > 0 && (
+          <div style={sectionStyle}>
+            <button onClick={()=>setShowHistory(h=>!h)} style={{width:"100%",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:11,fontWeight:"bold",letterSpacing:3,color:t.textMuted}}>PAST SHOOTS ({pastShoots.length})</span>
+              <span style={{fontSize:14,color:t.textMuted}}>{showHistory?"\u25B2":"\u25BC"}</span>
+            </button>
+            {showHistory && (
+              <div style={{marginTop:10,maxHeight:600,overflowY:"auto"}}>
+                {pastShoots.map((shoot,idx) => {
+                  const d = new Date(shoot.date);
+                  const dateStr = d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+                  const timeStr = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+                  const shooterSummary = shoot.mode === "quick"
+                    ? (shoot.qShooters||[]).map(s => {
+                        const h = (s.rounds||[]).reduce((a,r)=>a+r.hits,0)+s.hits;
+                        const t2 = (s.rounds||[]).reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
+                        return `${s.name}: ${h}/${t2}`;
+                      }).join(", ")
+                    : `${shoot.numSquads} squads, ${shoot.numTraps} traps`;
+                  const isExpanded = expandedShoot === idx;
+                  const canEdit = !shoot.sessionId || !syncOn || shoot.sessionId === sessionId;
+                  const editShot = (si, ri, absIdx, isCurrentRound) => {
+                    if (!canEdit) return;
+                    setPastShoots(prev => {
+                      const updated = [...prev];
+                      const shootCopy = {...updated[idx], qShooters: updated[idx].qShooters.map((qs,qsi) => {
+                        if (qsi !== si) return qs;
+                        if (isCurrentRound) {
+                          const h = [...qs.history];
+                          h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
+                          const hits = h.filter(x => x === "hit").length;
+                          const misses = h.filter(x => x === "miss").length;
+                          return {...qs, history:h, hits, misses};
+                        }
+                        const newRounds = qs.rounds.map((rr,rri) => {
+                          if (rri !== ri || !rr.history) return rr;
+                          const h = [...rr.history];
+                          h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
+                          const hits = h.filter(x => x === "hit").length;
+                          const misses = h.filter(x => x === "miss").length;
+                          const pct = hits+misses>0?Math.round((hits/(hits+misses))*100):0;
+                          return {...rr, history:h, hits, misses, pct};
+                        });
+                        return {...qs, rounds:newRounds};
+                      })};
+                      updated[idx] = shootCopy;
+                      if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
+                      return updated;
+                    });
+                  };
+                  const renderShotGrid = (history, si, ri, isCurrentRound) => {
+                    if (!history || history.length === 0) return <div style={{fontSize:9,color:t.textDimmer,fontStyle:"italic",textAlign:"center"}}>No shot detail</div>;
+                    return (
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
+                        {[1,2,3,4,5].map(st => {
+                          const shots = history.slice((st-1)*5, st*5);
+                          const stHits = shots.filter(x => x === "hit").length;
+                          return (
+                            <div key={st} style={{background:t.stationBg,border:`1px solid ${t.border}`,borderRadius:4,padding:"3px 1px",textAlign:"center"}}>
+                              <div style={{fontSize:8,color:t.textDimmer,letterSpacing:1,fontWeight:"bold"}}>S{st}</div>
+                              <div style={{display:"flex",gap:1,justifyContent:"center",marginTop:2}}>
+                                {[0,1,2,3,4].map(j => {
+                                  const absIdx = (st-1)*5 + j;
+                                  const shot = shots[j];
+                                  if (!shot) return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:t.dotEmpty,border:`1px solid ${t.dotEmptyBorder}`}}/>;
+                                  return (
+                                    <div key={j} onClick={canEdit ? () => editShot(si, ri, absIdx, isCurrentRound) : undefined}
+                                      style={{width:8,height:8,borderRadius:"50%",cursor:canEdit?"pointer":"default",
+                                        background:shot==="hit"?t.hit:t.missCircle,
+                                        border:`1px solid ${shot==="hit"?t.hitBorder:t.missBorder}`,
+                                        transition:"all 0.15s",
+                                      }}/>
+                                  );
+                                })}
+                              </div>
+                              {shots.length===5&&<div style={{fontSize:8,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:1}}>{stHits}/5</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  };
+                  return (
+                    <div key={shoot.id} style={{padding:"10px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div onClick={()=>canEdit?loadShoot(shoot):setExpandedShoot(isExpanded?null:idx)} style={{cursor:"pointer",flex:1}}>
+                          <div style={{fontWeight:"900",color:t.accent,letterSpacing:1}}>{shoot.eventName}</div>
+                          <div style={{color:t.textDim,marginTop:2}}>{dateStr} {timeStr}</div>
+                          {shoot.locationName && <div style={{color:t.textDim}}>{shoot.locationName}</div>}
+                          {shoot.weather && <div style={{color:t.textDim}}>{shoot.weather}</div>}
+                          <div style={{color:t.textMuted,marginTop:2}}>{shooterSummary}</div>
+                          {!canEdit && <div style={{color:t.warn,marginTop:1,fontSize:9,fontWeight:"bold",letterSpacing:1}}>VIEW ONLY</div>}
+                        </div>
+                        <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                          <button onClick={(e)=>{e.stopPropagation();setExpandedShoot(isExpanded?null:idx);}} style={{background:"none",border:"none",color:t.textMuted,cursor:"pointer",fontSize:14,padding:4}} title="View details">{isExpanded?"\u25B2":"\u{1F441}"}</button>
+                          <button onClick={()=>setPastShoots(p=>p.filter((_,i2)=>i2!==idx))} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:14,padding:4}}>{"\u2715"}</button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div style={{marginTop:10}}>
+                          {shoot.mode === "quick" && shoot.qShooters && shoot.qShooters.map((s, si) => (
+                            <div key={si} style={{marginBottom:12,padding:8,background:t.stationBg,borderRadius:6,border:`1px solid ${t.border}`}}>
+                              <div style={{fontSize:12,fontWeight:"900",color:t.accent,letterSpacing:2,marginBottom:6}}>{s.name}</div>
+                              {(s.rounds||[]).map((r, ri) => (
+                                <div key={ri} style={{marginBottom:6}}>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:t.textMuted,letterSpacing:1}}>RND {r.round}</span>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:t.accentBold}}>{r.hits}/{r.hits+r.misses}</span>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:r.pct>=80?t.good:r.pct>=60?t.warn:t.bad}}>{r.pct}%</span>
+                                  </div>
+                                  {renderShotGrid(r.history, si, ri, false)}
+                                </div>
+                              ))}
+                              {s.history && s.history.length > 0 && (
+                                <div style={{marginTop:4}}>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:t.textMuted,letterSpacing:1}}>CURRENT</span>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:t.accentBold}}>{s.hits}/{s.hits+s.misses}</span>
+                                    <span style={{fontSize:10,fontWeight:"bold",color:(s.hits+s.misses>0?Math.round((s.hits/(s.hits+s.misses))*100):0)>=80?t.good:t.warn}}>{s.hits+s.misses>0?Math.round((s.hits/(s.hits+s.misses))*100):0}%</span>
+                                  </div>
+                                  {renderShotGrid(s.history, si, null, true)}
+                                </div>
+                              )}
+                              {canEdit && <div style={{fontSize:9,color:t.textDim,marginTop:6,textAlign:"center",letterSpacing:1}}>TAP ANY DOT TO EDIT</div>}
+                            </div>
+                          ))}
+                          {shoot.mode === "event" && shoot.scores && (
+                            <div>
+                              {Object.entries(shoot.scores).map(([key, shooters]) => (
+                                <div key={key} style={{marginBottom:8,padding:8,background:t.stationBg,borderRadius:6,border:`1px solid ${t.border}`}}>
+                                  <div style={{fontSize:10,fontWeight:"bold",color:t.textMuted,letterSpacing:2,marginBottom:4}}>SQ {key.split("-")[0]} TRAP {key.split("-")[1]}</div>
+                                  {shooters.map((s,si) => {
+                                    const totalH = (s.rounds||[]).reduce((a,r)=>a+r.hits,0)+s.hits;
+                                    const totalS = (s.rounds||[]).reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
+                                    return totalS > 0 ? (
+                                      <div key={si} style={{fontSize:10,color:t.textMuted,padding:"2px 0"}}>
+                                        {s.name}: {totalH}/{totalS} ({totalS>0?Math.round((totalH/totalS)*100):0}%)
+                                      </div>
+                                    ) : null;
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button onClick={()=>{if(confirm("Clear all past shoots?"))setPastShoots([]);}} style={{marginTop:10,width:"100%",padding:"8px",background:t.smallBtnBg,border:`2px solid ${t.border}`,borderRadius:6,color:t.bad,fontSize:10,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>CLEAR ALL HISTORY</button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{textAlign:"center",marginTop:20,fontSize:10,fontWeight:"bold",letterSpacing:4,color:t.textDimmer}}>PULL!</div>
       </div>
     </div>
@@ -841,22 +1972,24 @@ export default function TrapCounter() {
   const setDisplayActiveIdx = isEvent ? setActiveIdx : setQActiveIdx;
 
   return (
-    <div style={pageStyle}>
+    <div ref={appRef} style={pageStyle}>
       <style>{`@keyframes fadeFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-60%) scale(0.85)}}`}</style>
       <FlashLabel label={flashLabel} t={t}/>
-      <div style={{maxWidth:480,margin:"0 auto"}}>
-        {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,borderBottom:`2px solid ${t.border}`,paddingBottom:10}}>
-          <button onClick={()=>setScreen("setup")} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
+      <div style={{maxWidth:containerMax,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        {/* Header — compact in landscape on phones */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:scr.landscape&&!isWide?6:12,borderBottom:`2px solid ${t.border}`,paddingBottom:scr.landscape&&!isWide?4:10}}>
+          <button onClick={()=>{saveToHistory();setScreen("setup");}} style={{background:"none",border:"none",color:t.textDim,fontSize:12,fontWeight:"bold",letterSpacing:2,cursor:"pointer",fontFamily:"inherit"}}>{"\u2190"} SETUP</button>
           <div style={{textAlign:"center"}}>
             {eventName&&<div style={{fontSize:11,fontWeight:"900",color:t.accent,letterSpacing:2}}>{eventName}</div>}
             <div style={{fontSize:12,fontWeight:"bold",color:t.textMuted,letterSpacing:3}}>
               {isEvent?`SQ ${curSquad} \u00B7 TRAP ${curTrap}`:`SQ ${qSquad} \u00B7 TRAP ${qTrap}`}
             </div>
-            {weather&&<div style={{fontSize:11,fontWeight:"bold",color:t.textDim,marginTop:2}}>{weather}</div>}
+            {!(scr.landscape&&!isWide)&&locationName&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim,marginTop:2}}>{locationName}</div>}
+            {!(scr.landscape&&!isWide)&&weather&&<div style={{fontSize:10,fontWeight:"bold",color:t.textDim}}>{weather}</div>}
+            {syncOn&&<div style={{fontSize:9,fontWeight:"bold",letterSpacing:2,color:syncStatus==="offline"?t.bad:t.good,marginTop:2}}>{syncStatus==="offline"?"OFFLINE":"GROUP"} {sessionId}</div>}
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <button onClick={()=>setSunMode(s=>!s)} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
+            <button onClick={toggleSunMode} title="Sun mode" style={{background:"none",border:"none",cursor:"pointer",fontSize:17}}>{sunMode?"\u2600\uFE0F":"\u{1F319}"}</button>
             <button onClick={()=>setVibOn(v=>!v)} title="Vibrate" style={{background:"none",border:"none",cursor:"pointer",fontSize:17,opacity:vibOn?1:0.3}}>{"\u{1F4F3}"}</button>
             <button onClick={()=>setSndOn(s=>!s)} title="Sound" style={{background:"none",border:"none",cursor:"pointer",fontSize:17,opacity:sndOn?1:0.3}}>{"\u{1F514}"}</button>
           </div>
@@ -914,7 +2047,7 @@ export default function TrapCounter() {
         )}
 
         {/* Tabs */}
-        <div style={{display:"grid",gridTemplateColumns:isEvent?"1fr 1fr 1fr":"1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr 1fr",gap:4,marginBottom:14}}>
           {["range","leaderboard","export"].map(tab=>(
             <button key={tab} onClick={()=>{
               if(tab==="export"){isEvent?handleEventExcel():handleQuickExcel();return;}
@@ -923,12 +2056,23 @@ export default function TrapCounter() {
               padding:"10px 0",background:screen===tab?t.tabActive:t.tabInactive,
               border:`2px solid ${screen===tab?t.borderActive:t.border}`,borderRadius:6,
               color:screen===tab?(sunMode?"#fff":t.accent):t.tabText,
-              fontSize:11,fontWeight:"900",letterSpacing:2,cursor:"pointer",fontFamily:"inherit",
+              fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
             }}>
               {tab==="range"?"\u{1F3AF} RANGE":tab==="leaderboard"?"\u{1F3C6} BOARD":"\u{1F4CA} EXCEL"}
             </button>
           ))}
+          <button onClick={takeScreenshot} style={{
+            padding:"10px 0",background:t.tabInactive,
+            border:`2px solid ${t.border}`,borderRadius:6,
+            color:t.tabText,fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u{1F4F7}"} SNAP</button>
+          <button onClick={()=>{saveToHistory();setSyncStatus("saved!");setTimeout(()=>setSyncStatus(""),2000);}} style={{
+            padding:"10px 0",background:t.saveBg,
+            border:`2px solid ${t.saveBorder}`,borderRadius:6,
+            color:t.saveText,fontSize:10,fontWeight:"900",letterSpacing:1,cursor:"pointer",fontFamily:"inherit",
+          }}>{"\u{1F4BE}"} SAVE</button>
         </div>
+        {syncStatus==="saved!"&&<div style={{textAlign:"center",padding:"6px",marginBottom:8,borderRadius:6,background:t.saveBg,border:`1px solid ${t.saveBorder}`,color:t.saveText,fontSize:11,fontWeight:"bold",letterSpacing:2}}>SHOOT SAVED TO HISTORY</div>}
 
         {/* Content */}
         {screen==="leaderboard"
