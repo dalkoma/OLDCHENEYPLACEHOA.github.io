@@ -945,15 +945,16 @@ export default function TrapCounter() {
   const appRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Auto-detect location via GPS (accurate), falls back to IP
+  // Auto-detect location via GPS (accurate), falls back to IP — wait for boot to finish
   useEffect(() => {
+    if (booting) return;
     getLocation().then(loc => {
       if (loc) {
         locationRef.current = { lat: loc.lat, lng: loc.lng };
         if (!locationName && loc.name) setLocationName(loc.name.toUpperCase());
       }
     });
-  }, []);
+  }, [booting]);
 
   // Auto-migrate: on first load after update, if there's existing data and no sync, push to cloud
   useEffect(() => {
