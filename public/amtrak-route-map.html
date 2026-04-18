@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amtrak Route Map — LNK to OTM</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; background: #fff; color: #000; padding: 20px; }
+  h1 { text-align: center; font-size: 22px; margin-bottom: 4px; letter-spacing: 1px; }
+  .subtitle { text-align: center; font-size: 13px; margin-bottom: 20px; color: #444; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 18px; justify-content: center;
+    margin-bottom: 24px; font-size: 12px; border: 1px solid #bbb;
+    padding: 10px 16px; background: #fafafa;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { display: inline-block; }
+  .legend-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  .toolbar {
+    position: sticky; top: 0; z-index: 100; background: #f5f5f5;
+    border: 1px solid #ccc; border-radius: 6px; padding: 6px 12px;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .toolbar button {
+    font-family: 'Courier New', monospace; font-size: 14px; padding: 4px 12px;
+    border: 1px solid #999; border-radius: 4px; background: #fff;
+    cursor: pointer; min-width: 36px; line-height: 1.4;
+  }
+  .toolbar button:hover { background: #e8e8e8; }
+  .toolbar .zoom-label { font-size: 12px; color: #555; min-width: 48px; text-align: center; }
+  .toolbar .sep { width: 1px; height: 22px; background: #ccc; margin: 0 4px; }
+  .toolbar .hint { font-size: 10px; color: #888; margin-left: auto; }
+
+  .segment-header {
+    background: #1a1a2e; color: #fff; padding: 8px 16px; font-size: 15px;
+    font-weight: bold; letter-spacing: 1px; margin-top: 30px; margin-bottom: 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .segment-header .railroad { font-size: 11px; font-weight: normal; color: #aaa; }
+
+  #map-container { transform-origin: top left; transition: transform 0.15s ease; }
+  svg { display: block; border: 1px solid #ccc; border-top: none; background: #fff; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; background: rgba(0,0,0,0.88); color: #fff;
+    padding: 6px 10px; border-radius: 4px; font-size: 12px; display: none;
+    z-index: 999; max-width: 300px; line-height: 1.4;
+  }
+
+  @media print {
+    body { padding: 10px; }
+    .toolbar, .tooltip { display: none !important; }
+    #map-container { transform: none !important; }
+    .legend { border: 1px solid #000; break-inside: avoid; }
+    .segment-header { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; break-after: avoid; }
+    svg { break-inside: avoid; page-break-inside: avoid; max-width: 100% !important; }
+    .segment-wrapper { break-inside: avoid; page-break-inside: avoid; }
+    h1, .subtitle { break-after: avoid; }
+  }
+  @page { size: letter portrait; margin: 0.5in; }
+  @media (max-width: 700px) {
+    body { padding: 8px; } h1 { font-size: 17px; }
+    .legend { font-size: 10px; gap: 10px; padding: 6px 8px; }
+    .segment-header { font-size: 13px; padding: 6px 10px; }
+    .toolbar .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>AMTRAK ROUTE MAP</h1>
+<div class="subtitle">Lincoln, NE (LNK) — Omaha, NE (OMA) — Creston, IA (CRN) — Osceola, IA (OSC) — Ottumwa, IA (OTM)<br>California Zephyr Corridor — Based on BNSF Timetables &amp; Track Charts</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-swatch" style="width:6px;height:20px;background:#222;display:inline-block;"></span> Single Main</div>
+  <div class="legend-item"><span style="display:inline-flex;gap:3px;"><span class="legend-swatch" style="width:3px;height:20px;background:#222;"></span><span class="legend-swatch" style="width:3px;height:20px;background:#222;"></span></span> Double Main (2MT)</div>
+  <div class="legend-item"><span style="display:inline-flex;gap:3px;"><span class="legend-swatch" style="width:2px;height:20px;background:#222;"></span><span class="legend-swatch" style="width:2px;height:20px;background:#222;"></span><span class="legend-swatch" style="width:2px;height:20px;background:#222;"></span></span> Triple Main (3MT)</div>
+  <div class="legend-item"><span class="legend-swatch" style="width:28px;height:14px;border:2px solid #777;border-radius:50%;background:none;display:inline-block;"></span> Siding</div>
+  <div class="legend-item"><span class="legend-icon" style="color:#d32f2f;">&#9679;</span> Amtrak Station</div>
+  <div class="legend-item"><span class="legend-icon" style="color:#1565c0;">&#9670;</span> Control Point</div>
+  <div class="legend-item"><span style="font-size:16px;color:#c62828;">&#10005;</span> Crossover</div>
+  <div class="legend-item"><span class="legend-swatch" style="background:#1976d2;height:6px;width:28px;border-radius:3px;display:inline-block;"></span> Bridge</div>
+  <div class="legend-item"><span style="font-size:13px;color:#e65100;font-weight:bold;">40</span> Speed (mph)</div>
+  <div class="legend-item"><span style="font-size:11px;color:#9c27b0;font-weight:bold;">CTC</span> Method</div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <button id="zoom-in" title="Zoom in">+</button>
+  <span class="zoom-label" id="zoom-label">100%</span>
+  <button id="zoom-out" title="Zoom out">-</button>
+  <button id="zoom-reset">Reset</button>
+  <div class="sep"></div>
+  <button id="zoom-fit">Fit Width</button>
+  <div class="sep"></div>
+  <button id="btn-print">Print</button>
+  <span class="hint">Scroll-wheel to zoom | Ctrl+P to print</span>
+</div>
+
+<div id="map-container"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============================================================
+// ROUTE DATA - from BNSF timetables, track charts, and cheat sheet
+// Route: LNK -> OMA -> CRN -> OSC -> OTM (California Zephyr)
+//
+// Routing:
+//   LNK->Ashland: Creston Sub MP 0.9X -> 34.8
+//   Ashland->OMA: Omaha Sub MP 46.7 -> 16.8
+//   OMA->Oreapolis: Omaha Sub MP 16.8 -> 0.0
+//   Oreapolis->W Pac Jct: Creston Sub MP 8.8 -> 0.0/475.1
+//   W Pac Jct->CRN: Creston Sub MP 475.1 -> 393.5
+//   CRN->OTM: Ottumwa Sub MP 392.9 -> 279.6
+// ============================================================
+
+const segments = [
+  // == SEGMENT 1: LINCOLN to OMAHA ==
+  {
+    id: 'LNK-OMA',
+    title: 'LINCOLN (LNK) to OMAHA (OMA)',
+    subtitle: 'Creston Sub then Omaha Sub',
+    railroad: 'BNSF Railway',
+    totalMiles: 55,
+    features: [
+      { rm: 0, type: 'station', name: 'Lincoln', code: 'LNK', mp: 'MP 0.9X', amtrak: true },
+      { rm: 0, type: 'tracks', count: 4, method: 'CTC 4MT' },
+      { rm: 0, type: 'speed', speed: 25 },
+      { rm: 0.1, type: 'point', name: 'Haymarket', mp: 'MP 0.9X' },
+      { rm: 0.2, type: 'point', name: 'Ballpark', mp: 'MP 0.7X' },
+      { rm: 0.6, type: 'subdiv', name: 'MP Change: 0.0X / 58.8' },
+      { rm: 0.6, type: 'point', name: 'Baird', mp: 'MP 0.3X / 58.8' },
+      { rm: 0.6, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 2.6, type: 'cp', name: 'CP 568', mp: 'MP 56.8' },
+      { rm: 4.6, type: 'point', name: 'Havelock', mp: 'MP 54.8', note: 'Havelock Yard' },
+      { rm: 5.9, type: 'cp', name: 'CP 535', mp: 'MP 53.5', crossover: true },
+      { rm: 5.9, type: 'speed', speed: 50 },
+      { rm: 10.3, type: 'siding_start', name: 'Waverly Siding', capacity: '6,635 ft' },
+      { rm: 10.3, type: 'turnout', mp: 'MP 49.1', name: 'West Waverly' },
+      { rm: 11.4, type: 'point', name: 'Waverly', mp: 'MP 48.0' },
+      { rm: 11.8, type: 'turnout', mp: 'MP 47.6', name: 'East Waverly' },
+      { rm: 11.8, type: 'siding_end' },
+      { rm: 14.1, type: 'point', name: 'Mid America', mp: 'MP 43.9' },
+      { rm: 17.3, type: 'point', name: 'Greenwood', mp: 'MP 42.1' },
+      { rm: 18.3, type: 'cp', name: 'CP 411', mp: 'MP 41.1', crossover: true },
+      { rm: 23.0, type: 'cp', name: 'CP 364', mp: 'MP 36.4' },
+      { rm: 23.0, type: 'tracks', count: 3, method: 'CTC 3MT' },
+      { rm: 23.0, type: 'speed', speed: 50 },
+      { rm: 23.3, type: 'point', name: 'DED', mp: 'MP 35.2' },
+      { rm: 24.3, type: 'point', name: 'Ashland', mp: 'MP 35.1', note: 'Sioux City Sub jct' },
+      { rm: 24.4, type: 'crossover', name: 'XAN Crossover', mp: 'MP 35.0' },
+      { rm: 24.6, type: 'subdiv', name: 'CRESTON SUB >> OMAHA SUB' },
+      { rm: 24.6, type: 'point', name: 'E Wye Ashland', mp: 'MP 34.8 / 46.7', note: 'MPF turnout to Omaha Sub' },
+      { rm: 24.6, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 24.6, type: 'speed', speed: 50 },
+      { rm: 29.9, type: 'siding_start', name: 'Melia Siding', capacity: '5,355 ft' },
+      { rm: 29.9, type: 'turnout', mp: 'MP 41.4', name: 'West Melia' },
+      { rm: 30.0, type: 'point', name: 'Melia', mp: 'MP 41.3' },
+      { rm: 31.1, type: 'turnout', mp: 'MP 40.2', name: 'East Melia' },
+      { rm: 31.1, type: 'siding_end' },
+      { rm: 33.8, type: 'point', name: 'Gretna', mp: 'MP 37.5' },
+      { rm: 35.5, type: 'speed', speed: 55 },
+      { rm: 38.8, type: 'siding_start', name: 'Chalco Siding', capacity: '5,162 ft' },
+      { rm: 38.8, type: 'turnout', mp: 'MP 32.5', name: 'West Chalco' },
+      { rm: 39.3, type: 'point', name: 'Chalco', mp: 'MP 32.0' },
+      { rm: 39.9, type: 'turnout', mp: 'MP 31.4', name: 'East Chalco' },
+      { rm: 39.9, type: 'siding_end' },
+      { rm: 43.0, type: 'point', name: 'Centech Bus. Park', mp: 'MP 30.5' },
+      { rm: 46.8, type: 'point', name: 'Ralston', mp: 'MP 24.5' },
+      { rm: 49.3, type: 'speed', speed: 50 },
+      { rm: 50.0, type: 'siding_start', name: 'S. Omaha Siding', capacity: '7,117 ft' },
+      { rm: 50.0, type: 'turnout', mp: 'MP 21.3', name: 'West S. Omaha' },
+      { rm: 51.3, type: 'point', name: 'South Omaha', mp: 'MP 20.0' },
+      { rm: 51.5, type: 'turnout', mp: 'MP 19.8', name: 'East S. Omaha' },
+      { rm: 51.5, type: 'siding_end' },
+      { rm: 51.8, type: 'speed', speed: 30, note: 'fast act' },
+      { rm: 52.3, type: 'siding_start', name: 'Long Siding', capacity: '5,589 ft' },
+      { rm: 52.3, type: 'turnout', mp: 'MP 19.0', name: 'West Long Sdg' },
+      { rm: 53.3, type: 'point', name: 'Long Siding', mp: 'MP 18.0' },
+      { rm: 53.4, type: 'turnout', mp: 'MP 17.9', name: 'East Long Sdg' },
+      { rm: 53.4, type: 'siding_end' },
+      { rm: 53.5, type: 'speed', speed: 20, note: 'fast act' },
+      { rm: 54.1, type: 'point', name: 'West Omaha', mp: 'MP 17.2' },
+      { rm: 54.1, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 54.5, type: 'station', name: 'Omaha', code: 'OMA', mp: 'MP 16.8', amtrak: true },
+    ]
+  },
+
+  // == SEGMENT 2: OMAHA to CRESTON ==
+  {
+    id: 'OMA-CRN',
+    title: 'OMAHA (OMA) to CRESTON (CRN)',
+    subtitle: 'Omaha Sub then Creston Sub',
+    railroad: 'BNSF Railway',
+    totalMiles: 108,
+    features: [
+      { rm: 0, type: 'station', name: 'Omaha', code: 'OMA', mp: 'MP 16.8', amtrak: true },
+      { rm: 0, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 0, type: 'speed', speed: 20 },
+      { rm: 0.2, type: 'cp', name: 'East Omaha', mp: 'MP 16.6', note: 'UP junction', crossover: true },
+      { rm: 0.8, type: 'speed', speed: 30 },
+      { rm: 1.9, type: 'point', name: 'Gibson', mp: 'MP 14.9', note: 'Gibson Yard' },
+      { rm: 1.9, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 2.1, type: 'speed', speed: 60 },
+      { rm: 3.4, type: 'point', name: 'Missouri Ave', mp: 'MP 13.4' },
+      { rm: 8.7, type: 'siding_start', name: 'Bellevue Siding', capacity: '7,140 ft' },
+      { rm: 8.7, type: 'turnout', mp: 'MP 8.1', name: 'West Bellevue' },
+      { rm: 8.7, type: 'speed', speed: 65 },
+      { rm: 9.8, type: 'point', name: 'Bellevue', mp: 'MP 7.0' },
+      { rm: 10.2, type: 'turnout', mp: 'MP 6.6', name: 'East Bellevue' },
+      { rm: 10.2, type: 'siding_end' },
+      { rm: 14.6, type: 'point', name: 'LaPlatte', mp: 'MP 2.2' },
+      { rm: 15.3, type: 'speed', speed: 40 },
+      { rm: 16.4, type: 'point', name: 'E Wye Oreapolis', mp: 'MP 0.4', note: 'Auto interlocking' },
+      { rm: 16.8, type: 'subdiv', name: 'OMAHA SUB >> CRESTON SUB' },
+      { rm: 16.8, type: 'point', name: 'Oreapolis', mp: 'MP 0.0 / 8.8', note: 'Sub boundary' },
+      { rm: 16.8, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 16.8, type: 'speed', speed: 40 },
+      { rm: 17.3, type: 'point', name: 'W Wye Oreapolis', mp: 'MP 9.3' },
+      { rm: 20.6, type: 'point', name: 'Plattsmouth', mp: 'MP 5.0', note: 'Main Street at 5.0' },
+      { rm: 20.6, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 20.6, type: 'speed', speed: 40 },
+      { rm: 21.0, type: 'speed', speed: 35 },
+      { rm: 22.5, type: 'siding_start', name: 'River Siding', capacity: '9,112 ft', note: 'MPF at each end' },
+      { rm: 22.5, type: 'turnout', mp: 'MP 4.3', name: 'West River' },
+      { rm: 23.6, type: 'point', name: 'River', mp: 'MP 3.0' },
+      { rm: 23.6, type: 'bridge', name: 'Missouri River', mp: 'MP 3.8' },
+      { rm: 24.1, type: 'turnout', mp: 'MP 2.5', name: 'East River' },
+      { rm: 24.1, type: 'siding_end' },
+      { rm: 24.1, type: 'speed', speed: 50 },
+      { rm: 25.6, type: 'subdiv', name: 'MP Change: 0.0 / 475.1' },
+      { rm: 25.6, type: 'cp', name: 'W Pacific Jct', mp: 'MP 0.2 / 475.1', note: 'MPF - CB & Napier Subs jct' },
+      { rm: 25.6, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 25.6, type: 'speed', speed: 50 },
+      { rm: 26.9, type: 'point', name: 'E Pacific Jct', mp: 'MP 473.8', note: 'Napier Sub jct' },
+      { rm: 28.9, type: 'point', name: 'Glenwood', mp: 'MP 471.8', note: 'DED 471.7' },
+      { rm: 32.8, type: 'point', name: 'Balfour', mp: 'MP 467.9', note: 'DED 466.4' },
+      { rm: 32.8, type: 'speed', speed: 40 },
+      { rm: 34.3, type: 'cp', name: 'CP 4664', mp: 'MP 466.4', note: 'Radio chan change' },
+      { rm: 34.3, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 38.6, type: 'point', name: 'Malvern', mp: 'MP 462.1' },
+      { rm: 42.7, type: 'cp', name: 'CP 4580', mp: 'MP 458.0', note: 'MPF' },
+      { rm: 42.7, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 42.7, type: 'speed', speed: 50 },
+      { rm: 43.5, type: 'point', name: 'Hastings', mp: 'MP 457.2', note: 'DED 457.0' },
+      { rm: 47.2, type: 'cp', name: 'CP 4535', mp: 'MP 453.5', crossover: true },
+      { rm: 47.2, type: 'speed', speed: 40 },
+      { rm: 49.1, type: 'point', name: 'Emerson', mp: 'MP 451.6', note: 'DED 450.3' },
+      { rm: 53.2, type: 'point', name: 'McPherson', mp: 'MP 447.5' },
+      { rm: 53.2, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 53.2, type: 'speed', speed: 40 },
+      { rm: 57.4, type: 'point', name: 'Red Oak', mp: 'MP 443.3', note: 'DED 441.4' },
+      { rm: 57.4, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 57.4, type: 'speed', speed: 40 },
+      { rm: 64.0, type: 'cp', name: 'CP 4367', mp: 'MP 436.7', note: 'DED 436.7' },
+      { rm: 64.0, type: 'speed', speed: 50 },
+      { rm: 65.3, type: 'point', name: 'Stanton', mp: 'MP 435.4', note: 'DED 431.5' },
+      { rm: 65.3, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 71.8, type: 'cp', name: 'CP 4289', mp: 'MP 428.9' },
+      { rm: 71.8, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 71.8, type: 'speed', speed: 50 },
+      { rm: 73.6, type: 'point', name: 'Villisca', mp: 'MP 427.1' },
+      { rm: 75.2, type: 'cp', name: 'CP 4255', mp: 'MP 425.5', crossover: true, note: 'DED 426.5' },
+      { rm: 75.2, type: 'speed', speed: 40 },
+      { rm: 78.5, type: 'point', name: 'Nodaway', mp: 'MP 422.2' },
+      { rm: 78.5, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 78.5, type: 'speed', speed: 50 },
+      { rm: 82.9, type: 'point', name: 'Brooks', mp: 'MP 417.8' },
+      { rm: 85.3, type: 'point', name: 'Corning Bus. Pk', mp: 'MP 415.3', note: 'DED 415.6' },
+      { rm: 87.0, type: 'point', name: 'Corning', mp: 'MP 413.7' },
+      { rm: 88.7, type: 'cp', name: 'CP 4120', mp: 'MP 412.0', note: 'MPF' },
+      { rm: 88.7, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 88.7, type: 'speed', speed: 50 },
+      { rm: 91.8, type: 'cp', name: 'CP 4089', mp: 'MP 408.9', crossover: true, note: 'DED 410.0' },
+      { rm: 91.8, type: 'speed', speed: 40 },
+      { rm: 94.0, type: 'point', name: 'Prescott', mp: 'MP 406.7' },
+      { rm: 95.0, type: 'cp', name: 'CP 4057', mp: 'MP 405.7', note: 'DED 405.0' },
+      { rm: 95.0, type: 'tracks', count: 1, method: 'CTC Single' },
+      { rm: 95.0, type: 'speed', speed: 50 },
+      { rm: 103.7, type: 'point', name: 'Cromwell', mp: 'MP 397.0' },
+      { rm: 105.5, type: 'cp', name: 'CP 3952', mp: 'MP 395.2', note: 'DED 394.0' },
+      { rm: 105.5, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 105.5, type: 'speed', speed: 40 },
+      { rm: 106.5, type: 'speed', speed: 30, note: '30 fast act EB' },
+      { rm: 107.2, type: 'station', name: 'Creston', code: 'CRN', mp: 'MP 393.5 / 392.9', amtrak: true, note: 'CTC 393.5 / CRN 392.9' },
+    ]
+  },
+
+  // == SEGMENT 3: CRESTON to OSCEOLA ==
+  {
+    id: 'CRN-OSC',
+    title: 'CRESTON (CRN) to OSCEOLA (OSC)',
+    subtitle: 'Ottumwa Subdivision',
+    railroad: 'BNSF - Chicago Division',
+    totalMiles: 33,
+    features: [
+      { rm: 0, type: 'station', name: 'Creston', code: 'CRN', mp: 'MP 392.9', amtrak: true },
+      { rm: 0, type: 'tracks', count: 2, method: 'TWC 2MT' },
+      { rm: 0, type: 'speed', speed: 79, note: 'Psgr 79 / Frt 60' },
+      { rm: 1.9, type: 'point', name: 'Heartland Jur End', mp: 'MP 391.0' },
+      { rm: 9.2, type: 'point', name: 'Afton', mp: 'MP 383.7' },
+      { rm: 11.1, type: 'cp', name: 'CP 3818', mp: 'MP 381.8', crossover: true },
+      { rm: 11.1, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 11.1, type: 'speed', speed: 40, note: 'crossover speed' },
+      { rm: 12.0, type: 'tracks', count: 2, method: 'TWC 2MT' },
+      { rm: 12.0, type: 'speed', speed: 79 },
+      { rm: 16.8, type: 'point', name: 'Thayer', mp: 'MP 376.1' },
+      { rm: 22.6, type: 'point', name: 'Murray', mp: 'MP 370.3' },
+      { rm: 33.0, type: 'station', name: 'Osceola', code: 'OSC', mp: 'MP 359.9', amtrak: true, note: 'Do not arrive WB before 2019' },
+    ]
+  },
+
+  // == SEGMENT 4: OSCEOLA to OTTUMWA ==
+  {
+    id: 'OSC-OTM',
+    title: 'OSCEOLA (OSC) to OTTUMWA (OTM)',
+    subtitle: 'Ottumwa Subdivision',
+    railroad: 'BNSF - Chicago Division',
+    totalMiles: 81,
+    features: [
+      { rm: 0, type: 'station', name: 'Osceola', code: 'OSC', mp: 'MP 359.9', amtrak: true },
+      { rm: 0, type: 'tracks', count: 2, method: 'TWC 2MT' },
+      { rm: 0, type: 'speed', speed: 79, note: 'Psgr 79 / Frt 60' },
+      { rm: 3.0, type: 'cp', name: 'CP 3569', mp: 'MP 356.9', crossover: true },
+      { rm: 3.0, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 6.0, type: 'speed', speed: 70, note: 'M1' },
+      { rm: 9.3, type: 'point', name: 'Woodburn', mp: 'MP 350.6' },
+      { rm: 9.3, type: 'tracks', count: 2, method: 'TWC 2MT' },
+      { rm: 14.4, type: 'speed', speed: 70 },
+      { rm: 16.9, type: 'point', name: 'Lucas', mp: 'MP 343.0' },
+      { rm: 17.8, type: 'point', name: 'Shannon', mp: 'MP 342.1' },
+      { rm: 19.9, type: 'speed', speed: 50, note: 'M1 50 fast act EB' },
+      { rm: 25.3, type: 'point', name: 'Chariton', mp: 'MP 334.6' },
+      { rm: 25.3, type: 'crossover', name: 'Hand Throw XO', mp: 'MP 334.6' },
+      { rm: 25.3, type: 'speed', speed: 40, note: '40 fast act EB' },
+      { rm: 25.8, type: 'speed', speed: 70 },
+      { rm: 32.5, type: 'point', name: 'Russell', mp: 'MP 327.4' },
+      { rm: 36.7, type: 'speed', speed: 55, note: '55 fast act EB' },
+      { rm: 41.1, type: 'point', name: 'Melrose', mp: 'MP 318.8' },
+      { rm: 41.1, type: 'crossover', name: 'Hand Throw XO', mp: 'MP 318.9' },
+      { rm: 41.1, type: 'speed', speed: 65 },
+      { rm: 50.1, type: 'cp', name: 'Halpin', mp: 'MP 309.8', note: 'Radio chan change' },
+      { rm: 50.1, type: 'tracks', count: 2, method: 'CTC 2MT' },
+      { rm: 50.1, type: 'speed', speed: 60, note: 'M2 60 / M1 70' },
+      { rm: 56.1, type: 'point', name: 'Albia', mp: 'MP 303.8', note: 'Des Moines Sub jct' },
+      { rm: 56.1, type: 'speed', speed: 40, note: '40 fast act M1' },
+      { rm: 59.1, type: 'cp', name: 'Maxon', mp: 'MP 300.8', crossover: true },
+      { rm: 59.1, type: 'speed', speed: 79, note: 'M1' },
+      { rm: 66.3, type: 'point', name: 'Cargill Spur', mp: 'MP 293.6' },
+      { rm: 71.0, type: 'cp', name: 'CP 2888', mp: 'MP 288.9', note: 'E end 4mi bridge at 284' },
+      { rm: 71.0, type: 'speed', speed: 50 },
+      { rm: 76.5, type: 'cp', name: 'CP 2833', mp: 'MP 283.4' },
+      { rm: 76.5, type: 'speed', speed: 45 },
+      { rm: 78.5, type: 'bridge', name: 'Des Moines River', mp: 'MP ~281' },
+      { rm: 79.5, type: 'speed', speed: 40 },
+      { rm: 80.3, type: 'station', name: 'Ottumwa', code: 'OTM', mp: 'MP 279.6', amtrak: true, note: 'Do not use M2 platform' },
+    ]
+  }
+];
+
+// ============================================================
+// RENDERING ENGINE
+// ============================================================
+
+const container = document.getElementById('map-container');
+const tooltip = document.getElementById('tooltip');
+
+const TRACK_X = 320;
+const PX_PER_MILE = 12;
+const TOP_PAD = 50;
+const BOTTOM_PAD = 50;
+const TRACK_GAP = 8;
+const SIDING_OFFSET = 22;
+const SVG_WIDTH = 720;
+
+function yOf(rm) { return TOP_PAD + rm * PX_PER_MILE; }
+
+function createSVG(segment) {
+  const height = TOP_PAD + BOTTOM_PAD + segment.totalMiles * PX_PER_MILE;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'segment-wrapper';
+  container.appendChild(wrapper);
+
+  const header = document.createElement('div');
+  header.className = 'segment-header';
+  header.innerHTML = '<span>' + segment.title + '</span><span class="railroad">' + segment.railroad + ' -- ' + segment.subtitle + ' -- ' + segment.totalMiles + ' mi</span>';
+  wrapper.appendChild(header);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('viewBox', '0 0 ' + SVG_WIDTH + ' ' + height);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+  svg.style.maxWidth = SVG_WIDTH + 'px';
+  wrapper.appendChild(svg);
+
+  // Mile markers
+  for (var m = 0; m <= segment.totalMiles; m++) {
+    var y = yOf(m);
+    if (m % 5 === 0) {
+      svgLine(svg, TRACK_X - 50, y, TRACK_X - 40, y, '#ccc', 1);
+      svgText(svg, TRACK_X - 52, y + 3, '' + m, 9, '#aaa', 'end');
+    } else {
+      svgLine(svg, TRACK_X - 45, y, TRACK_X - 40, y, '#ddd', 0.5);
+    }
+  }
+
+  // Collect track segments
+  var trackSegs = [];
+  var tc = 1, ty = yOf(0);
+  for (var i = 0; i < segment.features.length; i++) {
+    var f = segment.features[i];
+    if (f.type === 'tracks') {
+      trackSegs.push({ y1: ty, y2: yOf(f.rm), count: tc });
+      tc = f.count;
+      ty = yOf(f.rm);
+    }
+  }
+  trackSegs.push({ y1: ty, y2: yOf(segment.totalMiles), count: tc });
+
+  // Draw track segments
+  for (var j = 0; j < trackSegs.length; j++) {
+    drawTrackSegment(svg, TRACK_X, trackSegs[j].y1, trackSegs[j].y2, trackSegs[j].count);
+  }
+
+  // Draw features
+  var trackCount = 1;
+  var inSiding = false, sidingStartY = 0, sidingName = '', sidingCap = '';
+
+  for (var k = 0; k < segment.features.length; k++) {
+    var feat = segment.features[k];
+    var fy = yOf(feat.rm);
+
+    if (feat.type === 'tracks') {
+      trackCount = feat.count;
+      if (feat.method) {
+        var ml = svgText(svg, TRACK_X - 60, fy + 4, feat.method, 9, '#9c27b0', 'end');
+        ml.style.fontWeight = 'bold';
+      }
+    }
+    if (feat.type === 'speed') {
+      var col = speedColor(feat.speed);
+      svgText(svg, TRACK_X - 60, fy + 4, feat.speed + ' mph', 10, col, 'end').style.fontWeight = 'bold';
+      if (feat.note) svgText(svg, TRACK_X - 60, fy + 14, feat.note, 8, '#888', 'end');
+      svgLine(svg, TRACK_X - 38, fy, TRACK_X - 33, fy, col, 2);
+    }
+    if (feat.type === 'station') drawStation(svg, TRACK_X, fy, feat, trackCount);
+    if (feat.type === 'cp') {
+      drawCP(svg, TRACK_X, fy, feat, trackCount);
+      if (feat.crossover && trackCount >= 2) drawCrossover(svg, TRACK_X, fy, trackCount);
+    }
+    if (feat.type === 'crossover') {
+      drawCrossover(svg, TRACK_X, fy, trackCount);
+      var lx = TRACK_X + (trackCount > 1 ? trackCount * TRACK_GAP / 2 + 14 : 14);
+      svgText(svg, lx, fy + 4, feat.name, 9, '#c62828', 'start');
+    }
+    if (feat.type === 'point') drawPoint(svg, TRACK_X, fy, feat, trackCount);
+    if (feat.type === 'bridge') drawBridge(svg, TRACK_X, fy, feat, trackCount);
+    if (feat.type === 'subdiv') drawSubdivBoundary(svg, TRACK_X, fy, feat.name, trackCount);
+    if (feat.type === 'siding_start') {
+      inSiding = true; sidingStartY = fy; sidingName = feat.name || ''; sidingCap = feat.capacity || '';
+    }
+    if (feat.type === 'siding_end' && inSiding) {
+      inSiding = false;
+      drawSiding(svg, TRACK_X, sidingStartY, fy, trackCount, sidingName, sidingCap);
+    }
+  }
+}
+
+// -- Drawing Primitives --
+
+function svgLine(svg, x1, y1, x2, y2, stroke, width, dash) {
+  var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+  l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+  l.setAttribute('stroke', stroke || '#000');
+  l.setAttribute('stroke-width', width || 1);
+  l.setAttribute('stroke-linecap', 'round');
+  if (dash) l.setAttribute('stroke-dasharray', dash);
+  svg.appendChild(l);
+  return l;
+}
+
+function svgText(svg, x, y, content, size, fill, anchor) {
+  var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t.setAttribute('x', x); t.setAttribute('y', y);
+  t.setAttribute('font-size', size || 12);
+  t.setAttribute('fill', fill || '#000');
+  t.setAttribute('font-family', "'Courier New', monospace");
+  t.setAttribute('text-anchor', anchor || 'start');
+  t.textContent = content;
+  svg.appendChild(t);
+  return t;
+}
+
+function svgCircle(svg, cx, cy, r, fill, stroke, sw) {
+  var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+  c.setAttribute('fill', fill || 'none');
+  c.setAttribute('stroke', stroke || 'none');
+  c.setAttribute('stroke-width', sw || 1);
+  svg.appendChild(c);
+  return c;
+}
+
+function svgRect(svg, x, y, w, h, fill) {
+  var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  r.setAttribute('x', x); r.setAttribute('y', y);
+  r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('fill', fill || 'none');
+  svg.appendChild(r);
+  return r;
+}
+
+function svgDiamond(svg, cx, cy, size, fill, stroke) {
+  var d = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  d.setAttribute('points', cx+','+(cy-size)+' '+(cx+size)+','+cy+' '+cx+','+(cy+size)+' '+(cx-size)+','+cy);
+  d.setAttribute('fill', fill || 'none');
+  d.setAttribute('stroke', stroke || '#000');
+  d.setAttribute('stroke-width', 1.5);
+  svg.appendChild(d);
+  return d;
+}
+
+// -- Track Drawing --
+
+function drawTrackSegment(svg, x, y1, y2, count) {
+  if (y2 <= y1) return;
+  var color = '#222', w = 3;
+  if (count === 1) {
+    svgLine(svg, x, y1, x, y2, color, w + 1);
+  } else if (count === 2) {
+    svgLine(svg, x - TRACK_GAP/2, y1, x - TRACK_GAP/2, y2, color, w);
+    svgLine(svg, x + TRACK_GAP/2, y1, x + TRACK_GAP/2, y2, color, w);
+  } else if (count === 3) {
+    svgLine(svg, x - TRACK_GAP, y1, x - TRACK_GAP, y2, color, w);
+    svgLine(svg, x, y1, x, y2, color, w);
+    svgLine(svg, x + TRACK_GAP, y1, x + TRACK_GAP, y2, color, w);
+  } else if (count >= 4) {
+    svgLine(svg, x - 1.5*TRACK_GAP, y1, x - 1.5*TRACK_GAP, y2, color, w - 1);
+    svgLine(svg, x - 0.5*TRACK_GAP, y1, x - 0.5*TRACK_GAP, y2, color, w - 1);
+    svgLine(svg, x + 0.5*TRACK_GAP, y1, x + 0.5*TRACK_GAP, y2, color, w - 1);
+    svgLine(svg, x + 1.5*TRACK_GAP, y1, x + 1.5*TRACK_GAP, y2, color, w - 1);
+  }
+}
+
+// -- Siding Drawing --
+
+function drawSiding(svg, x, y1, y2, trackCount, name, capacity) {
+  var offset = trackCount > 1 ? trackCount * TRACK_GAP / 2 + SIDING_OFFSET : SIDING_OFFSET;
+  var sx = x + offset;
+  var tLen = Math.min(14, (y2 - y1) * 0.2);
+  var mainEdge = x + (trackCount > 1 ? TRACK_GAP/2 : 0);
+
+  // Turnout lines (diverge from main)
+  svgLine(svg, mainEdge, y1, sx, y1 + tLen, '#666', 2);
+  svgLine(svg, mainEdge, y2, sx, y2 - tLen, '#666', 2);
+
+  // Siding track
+  svgLine(svg, sx, y1 + tLen, sx, y2 - tLen, '#888', 2.5);
+
+  // Turnout dots
+  svgCircle(svg, mainEdge, y1, 3, '#fff', '#666', 1.5);
+  svgCircle(svg, mainEdge, y2, 3, '#fff', '#666', 1.5);
+
+  // Label
+  var labelX = sx + 8;
+  var midY = (y1 + y2) / 2;
+  svgText(svg, labelX, midY - 2, name, 9, '#555', 'start');
+  if (capacity) svgText(svg, labelX, midY + 9, capacity, 8, '#999', 'start');
+}
+
+// -- Crossover Drawing --
+
+function drawCrossover(svg, x, y, trackCount) {
+  if (trackCount < 2) return;
+  var left = x - TRACK_GAP/2;
+  var right = x + TRACK_GAP/2;
+  var sz = 6;
+  svgLine(svg, left, y - sz, right, y + sz, '#c62828', 2);
+  svgLine(svg, left, y + sz, right, y - sz, '#c62828', 2);
+  svgCircle(svg, x, y, 2.5, '#fff', '#c62828', 1.5);
+}
+
+// -- Feature Drawing --
+
+function drawStation(svg, x, y, f, trackCount) {
+  svgCircle(svg, x, y, 10, '#d32f2f', '#b71c1c', 2);
+  svgCircle(svg, x, y, 4, '#fff', 'none', 0);
+  var labelX = x + (trackCount > 1 ? trackCount * TRACK_GAP / 2 + 16 : 18);
+  var label = svgText(svg, labelX, y + 5, f.name + ' (' + f.code + ')', 14, '#000', 'start');
+  label.style.fontWeight = 'bold';
+  svgText(svg, labelX, y + 17, f.mp, 10, '#666', 'start');
+  if (f.note) svgText(svg, labelX, y + 28, f.note, 8, '#888', 'start');
+  var zone = svgRect(svg, x - 80, y - 16, SVG_WIDTH - x + 60, 40, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, '<b>' + f.name + ' (' + f.code + ')</b><br>Amtrak Station<br>' + f.mp + (f.note ? '<br>' + f.note : ''));
+}
+
+function drawCP(svg, x, y, f, trackCount) {
+  svgDiamond(svg, x, y, 6, '#1565c0', '#0d47a1');
+  var labelX = x + (trackCount > 1 ? trackCount * TRACK_GAP / 2 + 14 : 14);
+  svgText(svg, labelX, y + 4, f.name, 10, '#1565c0', 'start');
+  if (f.mp) svgText(svg, labelX, y + 15, f.mp, 8, '#888', 'start');
+  if (f.note) svgText(svg, labelX, y + (f.mp ? 25 : 15), f.note, 8, '#888', 'start');
+  var zone = svgRect(svg, x - 80, y - 12, SVG_WIDTH - x + 60, 30, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, '<b>' + f.name + '</b><br>Control Point<br>' + (f.mp || '') + (f.crossover ? '<br>Crossover' : '') + (f.note ? '<br>' + f.note : ''));
+}
+
+function drawPoint(svg, x, y, f, trackCount) {
+  var tw = trackCount > 1 ? trackCount * TRACK_GAP / 2 + 4 : 6;
+  svgLine(svg, x - tw, y, x + tw, y, '#888', 1);
+  var labelX = x + (trackCount > 1 ? trackCount * TRACK_GAP / 2 + 14 : 14);
+  svgText(svg, labelX, y + 4, f.name, 10, '#333', 'start');
+  if (f.mp) svgText(svg, labelX, y + 14, f.mp, 8, '#999', 'start');
+  if (f.note) svgText(svg, labelX, y + (f.mp ? 24 : 14), f.note, 8, '#aaa', 'start');
+  var zone = svgRect(svg, x - 50, y - 10, SVG_WIDTH - x + 30, 28, 'transparent');
+  zone.style.cursor = 'pointer';
+  addTooltip(zone, '<b>' + f.name + '</b><br>' + (f.mp || '') + (f.note ? '<br>' + f.note : ''));
+}
+
+function drawBridge(svg, x, y, f, trackCount) {
+  for (var i = -1; i <= 1; i++) {
+    var yy = y + i * 5;
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M' + (x-30) + ',' + yy + ' Q' + (x-15) + ',' + (yy-4) + ' ' + x + ',' + yy + ' Q' + (x+15) + ',' + (yy+4) + ' ' + (x+30) + ',' + yy);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#1976d2');
+    path.setAttribute('stroke-width', 2);
+    svg.appendChild(path);
+  }
+  svgText(svg, x + 38, y + 4, f.name, 11, '#1565c0', 'start');
+  if (f.mp) svgText(svg, x + 38, y + 15, f.mp, 8, '#888', 'start');
+}
+
+function drawSubdivBoundary(svg, x, y, name, trackCount) {
+  var w = trackCount > 1 ? trackCount * TRACK_GAP / 2 + 30 : 30;
+  svgLine(svg, x - w, y, x + w, y, '#e65100', 1.5, '4,3');
+  svgText(svg, x - w - 2, y - 4, name, 8, '#e65100', 'end').style.fontWeight = 'bold';
+}
+
+function speedColor(speed) {
+  if (!speed) return '#222';
+  if (speed >= 70) return '#1b5e20';
+  if (speed >= 55) return '#2e7d32';
+  if (speed >= 40) return '#e65100';
+  if (speed >= 25) return '#d84315';
+  return '#c62828';
+}
+
+function addTooltip(el, html) {
+  el.addEventListener('mouseenter', function() { tooltip.innerHTML = html; tooltip.style.display = 'block'; });
+  el.addEventListener('mousemove', function(e) { tooltip.style.left = (e.clientX + 12) + 'px'; tooltip.style.top = (e.clientY - 10) + 'px'; });
+  el.addEventListener('mouseleave', function() { tooltip.style.display = 'none'; });
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+segments.forEach(function(seg) { createSVG(seg); });
+
+// ============================================================
+// ZOOM & PRINT
+// ============================================================
+(function() {
+  var zoom = 1, MIN = 0.25, MAX = 4, STEP = 0.25;
+  var mapEl = document.getElementById('map-container');
+  var label = document.getElementById('zoom-label');
+
+  function apply() {
+    zoom = Math.max(MIN, Math.min(MAX, zoom));
+    mapEl.style.transform = 'scale(' + zoom + ')';
+    mapEl.style.width = (100 / zoom) + '%';
+    label.textContent = Math.round(zoom * 100) + '%';
+  }
+
+  document.getElementById('zoom-in').addEventListener('click', function() { zoom += STEP; apply(); });
+  document.getElementById('zoom-out').addEventListener('click', function() { zoom -= STEP; apply(); });
+  document.getElementById('zoom-reset').addEventListener('click', function() { zoom = 1; apply(); });
+  document.getElementById('zoom-fit').addEventListener('click', function() {
+    var w = mapEl.parentElement.clientWidth - 40;
+    var svgs = mapEl.querySelectorAll('svg');
+    if (!svgs.length) return;
+    var maxW = 0;
+    svgs.forEach(function(s) { var vw = parseFloat(s.getAttribute('viewBox').split(' ')[2]); if (vw > maxW) maxW = vw; });
+    zoom = w / maxW;
+    apply();
+  });
+  document.getElementById('btn-print').addEventListener('click', function() {
+    var prev = zoom; zoom = 1; apply();
+    setTimeout(function() { window.print(); zoom = prev; apply(); }, 100);
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey||e.metaKey) && (e.key==='='||e.key==='+')) { e.preventDefault(); zoom += STEP; apply(); }
+    else if ((e.ctrlKey||e.metaKey) && e.key==='-') { e.preventDefault(); zoom -= STEP; apply(); }
+    else if ((e.ctrlKey||e.metaKey) && e.key==='0') { e.preventDefault(); zoom = 1; apply(); }
+  });
+
+  mapEl.addEventListener('wheel', function(e) {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoom += (e.deltaY < 0 ? STEP : -STEP); apply(); }
+  }, { passive: false });
+})();
+</script>
+</body>
+</html>
