@@ -267,10 +267,10 @@ if (typeof window !== "undefined" && !window.__trapErrorsSetup) {
 }
 
 // Find nearby shooting ranges via Overpass API (OpenStreetMap, free, no key)
-async function findNearbyRange(lat, lng) {
+async function findNearbyRange(lat, lng, radiusKm = 15) {
   try {
-    const radius = 2000; // 2km radius
-    const query = `[out:json][timeout:5];(node["sport"="shooting"](around:${radius},${lat},${lng});way["sport"="shooting"](around:${radius},${lat},${lng});node["leisure"="sports_centre"]["sport"="shooting"](around:${radius},${lat},${lng});node["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng});way["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng}););out center 1;`;
+    const radius = radiusKm * 1000;
+    const query = `[out:json][timeout:8];(node["sport"="shooting"](around:${radius},${lat},${lng});way["sport"="shooting"](around:${radius},${lat},${lng});node["leisure"="sports_centre"]["sport"="shooting"](around:${radius},${lat},${lng});node["club"="sport"]["sport"="shooting"](around:${radius},${lat},${lng});node["name"~"gun.club|shooting.club|shooting.range|trap.club|skeet.club|sportsman.club|gun.range|shooting.park|shooting.sports",i](around:${radius},${lat},${lng});way["name"~"gun.club|shooting.club|shooting.range|trap.club|skeet.club|sportsman.club|gun.range|shooting.park|shooting.sports",i](around:${radius},${lat},${lng}););out center;`;
     const res = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST", body: "data=" + encodeURIComponent(query),
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -278,8 +278,14 @@ async function findNearbyRange(lat, lng) {
     if (!res.ok) return null;
     const data = await res.json();
     if (data.elements && data.elements.length > 0) {
-      const place = data.elements[0];
-      return place.tags?.name || null;
+      const closest = data.elements.reduce((best, el) => {
+        const eLat = el.lat || el.center?.lat;
+        const eLng = el.lon || el.center?.lon;
+        if (!eLat || !eLng) return best;
+        const dist = Math.hypot(eLat - lat, eLng - lng);
+        return (!best || dist < best.dist) ? { el, dist } : best;
+      }, null);
+      return closest?.el?.tags?.name || data.elements[0].tags?.name || null;
     }
     return null;
   } catch (e) { return null; }
@@ -320,18 +326,17 @@ async function getLocation() {
     const name = rangeName ? `${rangeName}, ${cityName || ""}`.replace(/, $/, "") : cityName;
     return { lat, lng, name, rangeName };
   } catch (gpsErr) {
-    // GPS failed or denied — fall back to IP
+    // GPS failed or denied — fall back to IP, still try to find nearby ranges
     try {
       const res = await fetch("https://ipapi.co/json/");
       if (!res.ok) { trackError("geo", `IP geolocation failed: ${res.status}`); return null; }
       const data = await res.json();
-      if (data.city) {
-        return {
-          lat: data.latitude, lng: data.longitude,
-          name: [data.city, data.region].filter(Boolean).join(", "),
-        };
-      }
-      return null;
+      const lat = data.latitude, lng = data.longitude;
+      if (!lat || !lng) return null;
+      const rangeName = await findNearbyRange(lat, lng, 40);
+      const cityName = [data.city, data.region_code || data.region].filter(Boolean).join(", ");
+      const name = rangeName ? `${rangeName} - ${cityName}` : cityName;
+      return { lat, lng, name, rangeName, gpsDenied: true };
     } catch (e) { trackError("geo", e.message); return null; }
   }
 }
@@ -952,6 +957,7 @@ export default function TrapCounter() {
       if (loc) {
         locationRef.current = { lat: loc.lat, lng: loc.lng };
         if (loc.name) setLocationName(loc.name.toUpperCase());
+        if (loc.gpsDenied) setFlashLabel("GPS BLOCKED — CHECK BROWSER SETTINGS FOR PRECISE LOCATION");
       }
     }).finally(() => setGpsLoading(false));
   };
