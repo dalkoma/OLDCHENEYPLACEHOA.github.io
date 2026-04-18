@@ -901,7 +901,7 @@ export default function TrapCounter() {
   const [screen, setScreen] = useLS("screen", "setup");
   const [sunMode, setSunMode] = useLS("sunMode", true);
   const [sunManual, setSunManual] = useLS("sunManual", false);
-  const [teamTheme, setTeamTheme] = useLS("teamTheme", "none");
+  const [teamTheme, setTeamTheme] = useLS("teamTheme", "piusx");
   const [vibOn, setVibOn] = useLS("vibOn", true);
   const [sndOn, setSndOn] = useLS("sndOn", true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
