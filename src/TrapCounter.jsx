@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import html2canvas from "html2canvas";
 
-const BIRDS_PER_ROUND = 25;
+const DEFAULT_BIRDS = 25;
 
 // ── Theme system ──
 const DARK = {
@@ -697,12 +697,13 @@ function RoundLog({ rounds, allHits, allShots, allPct, onChange, shooter, t }) {
   );
 }
 
-function ShooterCard({ shooter, onChange, onSave, active, onSelect, onAdvance, feedbackHit, feedbackMiss, setFlashLabel, t, sun }) {
+function ShooterCard({ shooter, onChange, onSave, active, onSelect, onAdvance, birdsPerRound, feedbackHit, feedbackMiss, setFlashLabel, t, sun }) {
   const { name, hits, misses, history, rounds, roundNum } = shooter;
+  const bpr = birdsPerRound || DEFAULT_BIRDS;
   const total=hits+misses;
-  const remaining=BIRDS_PER_ROUND-total;
+  const remaining=bpr-total;
   const pct=total>0?Math.round((hits/total)*100):0;
-  const done=total>=BIRDS_PER_ROUND;
+  const done=total>=bpr;
   const streak=getStreak(history);
   const allHits=rounds.reduce((a,r)=>a+r.hits,0)+hits;
   const allShots=rounds.reduce((a,r)=>a+r.hits+r.misses,0)+total;
@@ -908,6 +909,7 @@ export default function TrapCounter() {
   const [sunMode, setSunMode] = useLS("sunMode", true);
   const [sunManual, setSunManual] = useLS("sunManual", false);
   const [teamTheme, setTeamTheme] = useLS("teamTheme", "piusx");
+  const [birdsPerRound, setBirdsPerRound] = useLS("birdsPerRound", DEFAULT_BIRDS);
   const [vibOn, setVibOn] = useLS("vibOn", true);
   const [sndOn, setSndOn] = useLS("sndOn", true);
   const [flashLabel, setFlashLabelRaw] = useState(null);
@@ -1006,7 +1008,7 @@ export default function TrapCounter() {
       const now = Date.now();
       localStorage.setItem("trap_lastSync", String(now));
       const payload = {
-        mode, eventName, weather, notes, locationName,
+        mode, eventName, weather, notes, locationName, birdsPerRound,
         qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx,
         numTraps, numSquads, squadSetups, scores,
         curTrap, curSquad, activeIdx,
@@ -1015,7 +1017,7 @@ export default function TrapCounter() {
       };
       cloudSave("session:" + sessionId, payload);
     }, 300);
-  }, [syncOn, sessionId, mode, eventName, weather, notes, locationName, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
+  }, [syncOn, sessionId, mode, eventName, weather, notes, locationName, birdsPerRound, qSquad, qTrap, qNumShooters, qSetup, qShooters, qActiveIdx, numTraps, numSquads, squadSetups, scores, curTrap, curSquad, activeIdx]);
 
   // Poll cloud for updates every 3s
   useEffect(() => {
@@ -1035,6 +1037,7 @@ export default function TrapCounter() {
       if (data.weather !== undefined) setWeather(data.weather);
       if (data.notes !== undefined) setNotes(data.notes);
       if (data.locationName !== undefined) setLocationName(data.locationName);
+      if (data.birdsPerRound !== undefined) setBirdsPerRound(data.birdsPerRound);
       if (data.qSquad !== undefined) setQSquad(data.qSquad);
       if (data.qTrap !== undefined) setQTrap(data.qTrap);
       if (data.qNumShooters !== undefined) setQNumShooters(data.qNumShooters);
@@ -1122,7 +1125,7 @@ export default function TrapCounter() {
       id: shootId,
       date: new Date().toISOString(),
       eventName: eventName || (mode === "quick" ? "Training" : "Event"),
-      mode, weather, notes, locationName,
+      mode, weather, notes, locationName, birdsPerRound,
       sessionId: sessionId || null,
       qSquad, qTrap, qShooters: mode === "quick" ? qShooters : [],
       scores: mode === "event" ? scores : {},
@@ -1159,6 +1162,7 @@ export default function TrapCounter() {
     setWeather(shoot.weather || "");
     setNotes(shoot.notes || "");
     if (shoot.locationName) setLocationName(shoot.locationName);
+    if (shoot.birdsPerRound) setBirdsPerRound(shoot.birdsPerRound);
     if (shoot.mode === "quick") {
       if (shoot.qSquad) setQSquad(shoot.qSquad);
       if (shoot.qTrap) setQTrap(shoot.qTrap);
@@ -1647,6 +1651,23 @@ export default function TrapCounter() {
           {!sunManual&&<div style={{fontSize:8,fontWeight:"bold",letterSpacing:2,color:t.textDim,textAlign:"center",marginTop:-4}}>AUTO — follows phone settings</div>}
         </div>
 
+        {/* Shots per round */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:10}}>
+          <span style={{fontSize:10,fontWeight:"bold",letterSpacing:2,color:t.textMuted}}>SHOTS</span>
+          {[2,5,10,15,25].map(n=>(
+            <button key={n} onClick={()=>setBirdsPerRound(n)} style={{
+              padding:"4px 8px",borderRadius:4,cursor:"pointer",fontFamily:"inherit",
+              background:birdsPerRound===n?t.accent:"transparent",
+              border:`1.5px solid ${birdsPerRound===n?t.accent:t.border}`,
+              color:birdsPerRound===n?"#fff":t.textDim,fontSize:11,fontWeight:"bold",
+              transition:"all 0.15s",minWidth:28,
+            }}>{n}</button>
+          ))}
+          <input type="number" value={birdsPerRound} onChange={e=>{const v=parseInt(e.target.value);if(v>0&&v<=99)setBirdsPerRound(v);}}
+            style={{width:36,padding:"4px 2px",borderRadius:4,border:`1.5px solid ${t.border}`,
+              background:t.inputBg,color:t.text,fontSize:11,fontWeight:"bold",textAlign:"center",fontFamily:"inherit"}}/>
+        </div>
+
         {/* Quick Start — one tap, start scoring instantly */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
           <button onClick={instantStart} style={{
@@ -2101,6 +2122,7 @@ export default function TrapCounter() {
                 onChange={changes=>isEvent?updateEventShooter(i,changes):updateQShooter(i,changes)}
                 onSave={()=>isEvent?saveEventRound(i):saveQRound(i)}
                 onAdvance={displayShooters.length>1?()=>setDisplayActiveIdx((i+1)%displayShooters.length):null}
+                birdsPerRound={birdsPerRound}
                 feedbackHit={feedbackHit} feedbackMiss={feedbackMiss}
                 setFlashLabel={setFlashLabel} t={t} sun={sunMode}/>
             ))
