@@ -124,20 +124,74 @@ if (typeof window !== "undefined" && !window.__trapErrorsSetup) {
   });
 }
 
-// Silent IP-based geolocation (no permission prompt)
-async function getLocationSilent() {
+// Find nearby shooting ranges via Overpass API (OpenStreetMap, free, no key)
+async function findNearbyRange(lat, lng) {
   try {
-    const res = await fetch("https://ipapi.co/json/");
-    if (!res.ok) { trackError("geo", `IP geolocation failed: ${res.status}`); return null; }
+    const radius = 2000; // 2km radius
+    const query = `[out:json][timeout:5];(node["sport"="shooting"](around:${radius},${lat},${lng});way["sport"="shooting"](around:${radius},${lat},${lng});node["leisure"="sports_centre"]["sport"="shooting"](around:${radius},${lat},${lng});node["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng});way["name"~"gun|shooting|range|trap|skeet|sportsman",i](around:${radius},${lat},${lng}););out center 1;`;
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST", body: "data=" + encodeURIComponent(query),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    if (!res.ok) return null;
     const data = await res.json();
-    if (data.city) {
-      return {
-        lat: data.latitude, lng: data.longitude,
-        name: [data.city, data.region].filter(Boolean).join(", "),
-      };
+    if (data.elements && data.elements.length > 0) {
+      const place = data.elements[0];
+      return place.tags?.name || null;
     }
     return null;
-  } catch (e) { trackError("geo", e.message); return null; }
+  } catch (e) { return null; }
+}
+
+// Reverse geocode lat/lng to a place name using OpenStreetMap Nominatim
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`, {
+      headers: { "Accept-Language": "en" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const a = data.address || {};
+    const city = a.city || a.town || a.village || a.hamlet || "";
+    const state = a.state || "";
+    return [city, state].filter(Boolean).join(", ");
+  } catch (e) { return null; }
+}
+
+// GPS-based location (accurate) with IP fallback, checks for nearby shooting ranges
+async function getLocation() {
+  // Try GPS first
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("no geolocation"));
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true, timeout: 8000, maximumAge: 300000,
+      });
+    });
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    // Check for nearby shooting range first, fall back to city name
+    const [rangeName, cityName] = await Promise.all([
+      findNearbyRange(lat, lng),
+      reverseGeocode(lat, lng),
+    ]);
+    const name = rangeName ? `${rangeName}, ${cityName || ""}`.replace(/, $/, "") : cityName;
+    return { lat, lng, name, rangeName };
+  } catch (gpsErr) {
+    // GPS failed or denied — fall back to IP
+    try {
+      const res = await fetch("https://ipapi.co/json/");
+      if (!res.ok) { trackError("geo", `IP geolocation failed: ${res.status}`); return null; }
+      const data = await res.json();
+      if (data.city) {
+        return {
+          lat: data.latitude, lng: data.longitude,
+          name: [data.city, data.region].filter(Boolean).join(", "),
+        };
+      }
+      return null;
+    } catch (e) { trackError("geo", e.message); return null; }
+  }
 }
 
 // ── Responsive screen size hook ──
@@ -732,9 +786,9 @@ export default function TrapCounter() {
   const appRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Auto-detect location silently via IP (no permission prompt)
+  // Auto-detect location via GPS (accurate), falls back to IP
   useEffect(() => {
-    getLocationSilent().then(loc => {
+    getLocation().then(loc => {
       if (loc) {
         locationRef.current = { lat: loc.lat, lng: loc.lng };
         if (!locationName && loc.name) setLocationName(loc.name.toUpperCase());
@@ -821,8 +875,14 @@ export default function TrapCounter() {
       if (data.activeIdx !== undefined) setActiveIdx(data.activeIdx);
       setSyncStatus("synced");
     };
-    syncRef.current = setInterval(poll, 3000);
-    poll();
+    let historyPollCount = 0;
+    const pollBoth = async () => {
+      await poll();
+      historyPollCount++;
+      if (historyPollCount % 5 === 0) mergeHistory(sessionId);
+    };
+    syncRef.current = setInterval(pollBoth, 3000);
+    pollBoth();
     return () => clearInterval(syncRef.current);
   }, [syncOn, sessionId]);
 
@@ -914,6 +974,34 @@ export default function TrapCounter() {
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => saveToHistory(), 500);
   }, [screen, qShooters, scores]);
+
+  // Load/resume a past shoot — restores all state and goes to range screen
+  const loadShoot = (shoot) => {
+    saveToHistory();
+    setCurrentShootId(shoot.id);
+    setMode(shoot.mode || "quick");
+    setEventName(shoot.eventName || "");
+    setWeather(shoot.weather || "");
+    setNotes(shoot.notes || "");
+    if (shoot.locationName) setLocationName(shoot.locationName);
+    if (shoot.mode === "quick") {
+      if (shoot.qSquad) setQSquad(shoot.qSquad);
+      if (shoot.qTrap) setQTrap(shoot.qTrap);
+      if (shoot.qShooters && shoot.qShooters.length > 0) {
+        setQShooters(shoot.qShooters);
+        setQNumShooters(shoot.qShooters.length);
+      }
+      setQActiveIdx(0);
+    } else {
+      if (shoot.numTraps) setNumTraps(shoot.numTraps);
+      if (shoot.numSquads) setNumSquads(shoot.numSquads);
+      if (shoot.squadSetups) setSquadSetups(shoot.squadSetups);
+      if (shoot.scores) setScores(shoot.scores);
+      setCurTrap(1); setCurSquad(1); setActiveIdx(0);
+    }
+    setScreen("range");
+    setExpandedShoot(null);
+  };
 
   // Screenshot
   const takeScreenshot = async () => {
@@ -1518,96 +1606,110 @@ export default function TrapCounter() {
               <span style={{fontSize:14,color:t.textMuted}}>{showHistory?"\u25B2":"\u25BC"}</span>
             </button>
             {showHistory && (
-              <div style={{marginTop:10,maxHeight:500,overflowY:"auto"}}>
+              <div style={{marginTop:10,maxHeight:600,overflowY:"auto"}}>
                 {pastShoots.map((shoot,idx) => {
                   const d = new Date(shoot.date);
                   const dateStr = d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
                   const timeStr = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
                   const shooterSummary = shoot.mode === "quick"
-                    ? shoot.qShooters.map(s => {
-                        const h = s.rounds.reduce((a,r)=>a+r.hits,0)+s.hits;
-                        const t2 = s.rounds.reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
+                    ? (shoot.qShooters||[]).map(s => {
+                        const h = (s.rounds||[]).reduce((a,r)=>a+r.hits,0)+s.hits;
+                        const t2 = (s.rounds||[]).reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
                         return `${s.name}: ${h}/${t2}`;
                       }).join(", ")
                     : `${shoot.numSquads} squads, ${shoot.numTraps} traps`;
                   const isExpanded = expandedShoot === idx;
+                  const canEdit = !shoot.sessionId || !syncOn || shoot.sessionId === sessionId;
+                  const editShot = (si, ri, absIdx, isCurrentRound) => {
+                    if (!canEdit) return;
+                    setPastShoots(prev => {
+                      const updated = [...prev];
+                      const shootCopy = {...updated[idx], qShooters: updated[idx].qShooters.map((qs,qsi) => {
+                        if (qsi !== si) return qs;
+                        if (isCurrentRound) {
+                          const h = [...qs.history];
+                          h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
+                          const hits = h.filter(x => x === "hit").length;
+                          const misses = h.filter(x => x === "miss").length;
+                          return {...qs, history:h, hits, misses};
+                        }
+                        const newRounds = qs.rounds.map((rr,rri) => {
+                          if (rri !== ri || !rr.history) return rr;
+                          const h = [...rr.history];
+                          h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
+                          const hits = h.filter(x => x === "hit").length;
+                          const misses = h.filter(x => x === "miss").length;
+                          const pct = hits+misses>0?Math.round((hits/(hits+misses))*100):0;
+                          return {...rr, history:h, hits, misses, pct};
+                        });
+                        return {...qs, rounds:newRounds};
+                      })};
+                      updated[idx] = shootCopy;
+                      if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
+                      return updated;
+                    });
+                  };
+                  const renderShotGrid = (history, si, ri, isCurrentRound) => {
+                    if (!history || history.length === 0) return <div style={{fontSize:9,color:t.textDimmer,fontStyle:"italic",textAlign:"center"}}>No shot detail</div>;
+                    return (
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
+                        {[1,2,3,4,5].map(st => {
+                          const shots = history.slice((st-1)*5, st*5);
+                          const stHits = shots.filter(x => x === "hit").length;
+                          return (
+                            <div key={st} style={{background:t.stationBg,border:`1px solid ${t.border}`,borderRadius:4,padding:"3px 1px",textAlign:"center"}}>
+                              <div style={{fontSize:8,color:t.textDimmer,letterSpacing:1,fontWeight:"bold"}}>S{st}</div>
+                              <div style={{display:"flex",gap:1,justifyContent:"center",marginTop:2}}>
+                                {[0,1,2,3,4].map(j => {
+                                  const absIdx = (st-1)*5 + j;
+                                  const shot = shots[j];
+                                  if (!shot) return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:t.dotEmpty,border:`1px solid ${t.dotEmptyBorder}`}}/>;
+                                  return (
+                                    <div key={j} onClick={canEdit ? () => editShot(si, ri, absIdx, isCurrentRound) : undefined}
+                                      style={{width:8,height:8,borderRadius:"50%",cursor:canEdit?"pointer":"default",
+                                        background:shot==="hit"?t.hit:t.missCircle,
+                                        border:`1px solid ${shot==="hit"?t.hitBorder:t.missBorder}`,
+                                        transition:"all 0.15s",
+                                      }}/>
+                                  );
+                                })}
+                              </div>
+                              {shots.length===5&&<div style={{fontSize:8,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:1}}>{stHits}/5</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  };
                   return (
                     <div key={shoot.id} style={{padding:"10px 0",borderBottom:`1px solid ${t.border}`,fontSize:11}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <div onClick={()=>setExpandedShoot(isExpanded?null:idx)} style={{cursor:"pointer",flex:1}}>
-                          <div style={{fontWeight:"900",color:t.accent,letterSpacing:1}}>{isExpanded?"\u25BC":"\u25B6"} {shoot.eventName}</div>
-                          <div style={{color:t.textDim,marginTop:2,marginLeft:14}}>{dateStr} {timeStr}</div>
-                          {shoot.locationName && <div style={{color:t.textDim,marginLeft:14}}>{shoot.locationName}</div>}
-                          {shoot.weather && <div style={{color:t.textDim,marginLeft:14}}>{shoot.weather}</div>}
-                          <div style={{color:t.textMuted,marginTop:2,marginLeft:14}}>{shooterSummary}</div>
-                          <div style={{color:t.textDimmer,marginTop:1,fontSize:9,marginLeft:14}}>{shoot.device}{shoot.sessionId ? ` \u00B7 ${shoot.sessionId}` : ""}</div>
+                        <div onClick={()=>canEdit?loadShoot(shoot):setExpandedShoot(isExpanded?null:idx)} style={{cursor:"pointer",flex:1}}>
+                          <div style={{fontWeight:"900",color:t.accent,letterSpacing:1}}>{shoot.eventName}</div>
+                          <div style={{color:t.textDim,marginTop:2}}>{dateStr} {timeStr}</div>
+                          {shoot.locationName && <div style={{color:t.textDim}}>{shoot.locationName}</div>}
+                          {shoot.weather && <div style={{color:t.textDim}}>{shoot.weather}</div>}
+                          <div style={{color:t.textMuted,marginTop:2}}>{shooterSummary}</div>
+                          {!canEdit && <div style={{color:t.warn,marginTop:1,fontSize:9,fontWeight:"bold",letterSpacing:1}}>VIEW ONLY</div>}
                         </div>
-                        <button onClick={()=>setPastShoots(p=>p.filter((_,i2)=>i2!==idx))} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:14,padding:4}}>{"\u2715"}</button>
+                        <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                          <button onClick={(e)=>{e.stopPropagation();setExpandedShoot(isExpanded?null:idx);}} style={{background:"none",border:"none",color:t.textMuted,cursor:"pointer",fontSize:14,padding:4}} title="View details">{isExpanded?"\u25B2":"\u{1F441}"}</button>
+                          <button onClick={()=>setPastShoots(p=>p.filter((_,i2)=>i2!==idx))} style={{background:"none",border:"none",color:t.bad,cursor:"pointer",fontSize:14,padding:4}}>{"\u2715"}</button>
+                        </div>
                       </div>
-                      {isExpanded && shoot.mode === "quick" && shoot.qShooters && (
-                        <div style={{marginTop:10,paddingLeft:4}}>
-                          {shoot.qShooters.map((s, si) => (
+                      {isExpanded && (
+                        <div style={{marginTop:10}}>
+                          {shoot.mode === "quick" && shoot.qShooters && shoot.qShooters.map((s, si) => (
                             <div key={si} style={{marginBottom:12,padding:8,background:t.stationBg,borderRadius:6,border:`1px solid ${t.border}`}}>
                               <div style={{fontSize:12,fontWeight:"900",color:t.accent,letterSpacing:2,marginBottom:6}}>{s.name}</div>
-                              {s.rounds && s.rounds.map((r, ri) => (
+                              {(s.rounds||[]).map((r, ri) => (
                                 <div key={ri} style={{marginBottom:6}}>
                                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                                     <span style={{fontSize:10,fontWeight:"bold",color:t.textMuted,letterSpacing:1}}>RND {r.round}</span>
                                     <span style={{fontSize:10,fontWeight:"bold",color:t.accentBold}}>{r.hits}/{r.hits+r.misses}</span>
                                     <span style={{fontSize:10,fontWeight:"bold",color:r.pct>=80?t.good:r.pct>=60?t.warn:t.bad}}>{r.pct}%</span>
                                   </div>
-                                  {r.history && r.history.length > 0 ? (
-                                    <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
-                                      {[1,2,3,4,5].map(st => {
-                                        const shots = r.history.slice((st-1)*5, st*5);
-                                        const stHits = shots.filter(x => x === "hit").length;
-                                        return (
-                                          <div key={st} style={{background:t.stationBg,border:`1px solid ${t.border}`,borderRadius:4,padding:"3px 1px",textAlign:"center"}}>
-                                            <div style={{fontSize:8,color:t.textDimmer,letterSpacing:1,fontWeight:"bold"}}>S{st}</div>
-                                            <div style={{display:"flex",gap:1,justifyContent:"center",marginTop:2}}>
-                                              {[0,1,2,3,4].map(j => {
-                                                const absIdx = (st-1)*5 + j;
-                                                const shot = shots[j];
-                                                if (!shot) return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:t.dotEmpty,border:`1px solid ${t.dotEmptyBorder}`}}/>;
-                                                return (
-                                                  <div key={j} onClick={() => {
-                                                    setPastShoots(prev => {
-                                                      const updated = [...prev];
-                                                      const shootCopy = {...updated[idx], qShooters: updated[idx].qShooters.map((qs,qsi) => {
-                                                        if (qsi !== si) return qs;
-                                                        const newRounds = qs.rounds.map((rr,rri) => {
-                                                          if (rri !== ri || !rr.history) return rr;
-                                                          const h = [...rr.history];
-                                                          h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
-                                                          const hits = h.filter(x => x === "hit").length;
-                                                          const misses = h.filter(x => x === "miss").length;
-                                                          const pct = hits+misses>0?Math.round((hits/(hits+misses))*100):0;
-                                                          return {...rr, history:h, hits, misses, pct};
-                                                        });
-                                                        const newHits = newRounds.reduce((a,rr)=>a+rr.hits,0)+qs.hits;
-                                                        const newTotal = newRounds.reduce((a,rr)=>a+rr.hits+rr.misses,0)+qs.hits+qs.misses;
-                                                        return {...qs, rounds:newRounds};
-                                                      })};
-                                                      updated[idx] = shootCopy;
-                                                      if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
-                                                      return updated;
-                                                    });
-                                                  }} style={{width:8,height:8,borderRadius:"50%",cursor:"pointer",
-                                                    background:shot==="hit"?t.hit:t.missCircle,
-                                                    border:`1px solid ${shot==="hit"?t.hitBorder:t.missBorder}`,
-                                                    transition:"all 0.15s",
-                                                  }}/>
-                                                );
-                                              })}
-                                            </div>
-                                            {shots.length===5&&<div style={{fontSize:8,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:1}}>{stHits}/5</div>}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div style={{fontSize:9,color:t.textDimmer,fontStyle:"italic",textAlign:"center"}}>No shot detail saved</div>
-                                  )}
+                                  {renderShotGrid(r.history, si, ri, false)}
                                 </div>
                               ))}
                               {s.history && s.history.length > 0 && (
@@ -1617,52 +1719,30 @@ export default function TrapCounter() {
                                     <span style={{fontSize:10,fontWeight:"bold",color:t.accentBold}}>{s.hits}/{s.hits+s.misses}</span>
                                     <span style={{fontSize:10,fontWeight:"bold",color:(s.hits+s.misses>0?Math.round((s.hits/(s.hits+s.misses))*100):0)>=80?t.good:t.warn}}>{s.hits+s.misses>0?Math.round((s.hits/(s.hits+s.misses))*100):0}%</span>
                                   </div>
-                                  <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:3}}>
-                                    {[1,2,3,4,5].map(st => {
-                                      const shots = s.history.slice((st-1)*5, st*5);
-                                      const stHits = shots.filter(x => x === "hit").length;
-                                      return (
-                                        <div key={st} style={{background:t.stationBg,border:`1px solid ${t.border}`,borderRadius:4,padding:"3px 1px",textAlign:"center"}}>
-                                          <div style={{fontSize:8,color:t.textDimmer,letterSpacing:1,fontWeight:"bold"}}>S{st}</div>
-                                          <div style={{display:"flex",gap:1,justifyContent:"center",marginTop:2}}>
-                                            {[0,1,2,3,4].map(j => {
-                                              const absIdx = (st-1)*5 + j;
-                                              const shot = shots[j];
-                                              if (!shot) return <div key={j} style={{width:8,height:8,borderRadius:"50%",background:t.dotEmpty,border:`1px solid ${t.dotEmptyBorder}`}}/>;
-                                              return (
-                                                <div key={j} onClick={() => {
-                                                  setPastShoots(prev => {
-                                                    const updated = [...prev];
-                                                    const shootCopy = {...updated[idx], qShooters: updated[idx].qShooters.map((qs,qsi) => {
-                                                      if (qsi !== si) return qs;
-                                                      const h = [...qs.history];
-                                                      h[absIdx] = h[absIdx] === "hit" ? "miss" : "hit";
-                                                      const hits = h.filter(x => x === "hit").length;
-                                                      const misses = h.filter(x => x === "miss").length;
-                                                      return {...qs, history:h, hits, misses};
-                                                    })};
-                                                    updated[idx] = shootCopy;
-                                                    if (syncOn && sessionId) cloudSave("history:" + sessionId, updated);
-                                                    return updated;
-                                                  });
-                                                }} style={{width:8,height:8,borderRadius:"50%",cursor:"pointer",
-                                                  background:shot==="hit"?t.hit:t.missCircle,
-                                                  border:`1px solid ${shot==="hit"?t.hitBorder:t.missBorder}`,
-                                                  transition:"all 0.15s",
-                                                }}/>
-                                              );
-                                            })}
-                                          </div>
-                                          {shots.length===5&&<div style={{fontSize:8,fontWeight:"bold",color:stHits>=4?t.good:stHits>=3?t.warn:t.bad,marginTop:1}}>{stHits}/5</div>}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                  {renderShotGrid(s.history, si, null, true)}
                                 </div>
                               )}
-                              <div style={{fontSize:9,color:t.textDim,marginTop:6,textAlign:"center",letterSpacing:1}}>TAP ANY SHOT DOT TO EDIT</div>
+                              {canEdit && <div style={{fontSize:9,color:t.textDim,marginTop:6,textAlign:"center",letterSpacing:1}}>TAP ANY DOT TO EDIT</div>}
                             </div>
                           ))}
+                          {shoot.mode === "event" && shoot.scores && (
+                            <div>
+                              {Object.entries(shoot.scores).map(([key, shooters]) => (
+                                <div key={key} style={{marginBottom:8,padding:8,background:t.stationBg,borderRadius:6,border:`1px solid ${t.border}`}}>
+                                  <div style={{fontSize:10,fontWeight:"bold",color:t.textMuted,letterSpacing:2,marginBottom:4}}>SQ {key.split("-")[0]} TRAP {key.split("-")[1]}</div>
+                                  {shooters.map((s,si) => {
+                                    const totalH = (s.rounds||[]).reduce((a,r)=>a+r.hits,0)+s.hits;
+                                    const totalS = (s.rounds||[]).reduce((a,r)=>a+r.hits+r.misses,0)+s.hits+s.misses;
+                                    return totalS > 0 ? (
+                                      <div key={si} style={{fontSize:10,color:t.textMuted,padding:"2px 0"}}>
+                                        {s.name}: {totalH}/{totalS} ({totalS>0?Math.round((totalH/totalS)*100):0}%)
+                                      </div>
+                                    ) : null;
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
